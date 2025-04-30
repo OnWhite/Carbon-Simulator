@@ -57,7 +57,7 @@ general:
   gpus: 1
   restore_weights_agents: 'pretrained_model_path'
   restore_weights_planner: ''
-  train_planner: false
+  train_planner: true
   fix_mobile: false
   dense_log_frequency: 250
 

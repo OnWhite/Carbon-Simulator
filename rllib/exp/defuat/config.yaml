@@ -18,10 +18,10 @@ env:
   - CarbonRedistribution:
       planner_mode: inactive
       fixed_punishment: 30
-      tech_share_year: False
       total_idx: 200
       max_year_percent: 25
-      predefined: default
+      years_predefined: flat
+      agents_predefined: grandfathering_ml
   - Carbon_component:
       payment: 10
       require_Carbon_idx: 1
