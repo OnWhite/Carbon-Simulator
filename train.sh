@@ -4,7 +4,7 @@
 #SBATCH --qos=high
 #SBATCH --time=168:00:00
 #SBATCH --job-name=ray_train
-cd /nas/ucb/sophialudewig/Carbon-Simulator-minimal
+cd /nas/ucb/sophialudewig/Carbon-Simulator-minimal/Carbon-Simulator
 
 source .venv2/bin/activate
 
