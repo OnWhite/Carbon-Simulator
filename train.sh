@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --cpus-per-task=32
-#SBATCH --gres=gpu:1
+#SBATCH --gres=gpu:2
 #SBATCH --qos=high
 #SBATCH --time=168:00:00
 #SBATCH --job-name=ray_train

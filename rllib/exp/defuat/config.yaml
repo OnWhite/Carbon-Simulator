@@ -52,7 +52,7 @@ general:
   ckpt_frequency_steps: 500
   cpus: 32
   episodes: 1000000
-  gpus: 1
+  gpus: 2
   restore_weights_agents: ''
   restore_weights_planner: ''
   train_planner: false
@@ -119,7 +119,7 @@ trainer:
   env_config: null
   multiagent: null
   seed: null
-  num_gpus: 1
+  num_gpus: 2
   num_envs_per_worker: 2
   num_sgd_iter: 1
   num_workers: 16
@@ -127,7 +127,6 @@ trainer:
   shuffle_sequences: true
   sgd_minibatch_size: 2000
   train_batch_size: 8000
-  callbacks: GpuUtilCallbacks
   observation_filter: NoFilter
   rollout_fragment_length: 250
 
