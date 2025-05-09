@@ -6,6 +6,6 @@
 #SBATCH --job-name=ray_train
 cd /nas/ucb/sophialudewig/Carbon-Simulator-minimal/Carbon-Simulator
 
-source .venv2/bin/activate
+source .venv/bin/activate
 
 PYTHONPATH=. python3 rllib/training_script.py --run_dir rllib/exp/pl1
