@@ -10,4 +10,3 @@ source .venv/bin/activate
 
 python3 rllib/training_script.py \
     --run_dir rllib/exp/pl1 \
-    --callbacks gpu_callbacks.GpuUtilCallbacks
