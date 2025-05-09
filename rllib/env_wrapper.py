@@ -124,19 +124,26 @@ class RLlibEnvWrapper(MultiAgentEnv):
 
             # assign Space
             if isinstance(_v, np.ndarray):
-                x = float(_BIG_NUMBER)
+                if np.issubdtype(_v.dtype, np.integer):
+                    x_min, x_max = np.iinfo(_v.dtype).min, np.iinfo(_v.dtype).max
+                elif np.issubdtype(_v.dtype, np.floating):
+                    x_min, x_max = -1e10, 1e10  # conservative float bounds
+                else:
+                    raise TypeError(f"Unsupported dtype: {_v.dtype}")
+
                 # Warnings for extreme values
-                if np.max(_v) > x:
+                if np.max(_v) > x_max:
                     warnings.warn("Input is too large!")
-                if np.min(_v) < -x:
+                if np.min(_v) < x_min:
                     warnings.warn("Input is too small!")
-                box = spaces.Box(low=-x, high=x, shape=_v.shape, dtype=_v.dtype)
+                box = spaces.Box(low=x_min, high=x_max, shape=_v.shape, dtype=_v.dtype)
                 low_high_valid = (box.low < 0).all() and (box.high > 0).all()
 
                 # This loop avoids issues with overflow to make sure low/high are good.
                 while not low_high_valid:
-                    x = x // 2
-                    box = spaces.Box(low=-x, high=x, shape=_v.shape, dtype=_v.dtype)
+                    x_min = x_min // 2
+                    x_max = x_max // 2
+                    box = spaces.Box(low=x_min, high=x_max, shape=_v.shape, dtype=_v.dtype)
                     low_high_valid = (box.low < 0).all() and (box.high > 0).all()
 
                 dict_of_spaces[k] = box
