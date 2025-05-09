@@ -6,7 +6,9 @@ import time
 import torch_models
 import matplotlib.pyplot as plt
 import numpy as np
-
+import torch
+import pynvml
+from ray.rllib.algorithms.callbacks import DefaultCallbacks
 import ray
 import utils.saving as saving
 import yaml
@@ -104,6 +106,7 @@ def build_trainer(run_configuration):
             },
             "metrics_smoothing_episodes": trainer_config.get("num_workers")
                                           * trainer_config.get("num_envs_per_worker"),
+            "callbacks": GpuUtilCallbacks,
         }
     )
 
@@ -333,3 +336,25 @@ if __name__ == "__main__":
     logger.info("Final snapshot saved! All done.")
 
     ray.shutdown()  # shutdown Ray after use
+
+
+class GpuUtilCallbacks(DefaultCallbacks):
+    def __init__(self):
+        super().__init__()
+        # Compute GPU peak FLOPs (FP32): SMs × clock (Hz) × 128 ops/cycle
+        props = torch.cuda.get_device_properties(0)
+        sm      = props.multi_processor_count
+        clk_hz  = props.max_clock_rate * 1_000  # kHz → Hz
+        self.peak_flops = sm * clk_hz * 128      # FLOPs/sec
+        # Initialize NVML
+        pynvml.nvmlInit()
+        self.handle = pynvml.nvmlDeviceGetHandleByIndex(0)
+
+    def on_train_result(self, *, trainer, result: dict, **kwargs):
+        util = pynvml.nvmlDeviceGetUtilizationRates(self.handle).gpu
+        actual = util / 100.0 * self.peak_flops
+        ratio  = actual / self.peak_flops
+        # Inject into RLlib’s TensorBoard logs
+        result["custom_metrics"]["gpu_util_pct"]     = util
+        result["custom_metrics"]["gpu_flops_actual"] = actual
+        result["custom_metrics"]["gpu_flops_ratio"]  = ratio
