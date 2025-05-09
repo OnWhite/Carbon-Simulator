@@ -55,7 +55,7 @@ general:
   cpus: 32
   episodes: 1000000
   gpus: 1
-  restore_weights_agents: 'pretrained_model_path'
+  restore_weights_agents: '/nas/ucb/sophialudewig/Carbon-Simulator/rllib/exp/pl1/agent.weights.train-step-62500'
   restore_weights_planner: ''
   train_planner: false
   fix_mobile: false
