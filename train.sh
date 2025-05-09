@@ -7,5 +7,6 @@
 cd /nas/ucb/sophialudewig/Carbon-Simulator-minimal
 
 source .venv/bin/activate
+cd /Carbon-Simulator
 
 PYTHONPATH=. python3 rllib/training_script.py --run_dir rllib/exp/defuat
