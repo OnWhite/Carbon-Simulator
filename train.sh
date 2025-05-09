@@ -2,7 +2,7 @@
 
 # Configuration Parameters
 CPUS_TO_USE=32
-GPUS_NEEDED=2
+GPUS_NEEDED=1
 MAX_ALLOWED_MEMORY_USED=500  # MiB
 
 cd /nas/ucb/sophialudewig/Carbon-Simulator-minimal/Carbon-Simulator
