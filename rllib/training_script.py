@@ -1,9 +1,14 @@
+from datetime import timedelta
+
+import torch.cuda
+from ray.rllib.models import ModelCatalog
+from rllib.torch_models import ConvRnn
+
+ModelCatalog.register_custom_model("Conv_Rnn", ConvRnn)
 import argparse
-import logging
 import os
 import sys
 import time
-import torch_models
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -12,9 +17,19 @@ import utils.saving as saving
 import yaml
 from env_wrapper import RLlibEnvWrapper
 from ray.rllib.algorithms.ppo import PPOConfig
-from ray.tune.logger import NoopLogger, pretty_print
+from ray.tune.logger import NoopLogger, pretty_print,TBXLogger, UnifiedLogger
+import logging
+from torch.utils.tensorboard import SummaryWriter
+import pynvml
 
-ray.init(log_to_driver=False)
+ray_logger = logging.getLogger("ray")
+ray_logger.setLevel(logging.INFO)
+
+
+
+# Initialize Ray with GPU
+ray.init(address='auto', log_to_driver=True, include_dashboard=False)
+
 
 logging.basicConfig(stream=sys.stdout, format="%(asctime)s %(message)s")
 logger = logging.getLogger("main")
@@ -22,6 +37,7 @@ logger.setLevel(logging.DEBUG)
 
 
 def process_args():
+    # load args, check if valid
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
@@ -40,9 +56,14 @@ def process_args():
 
     return run_directory, run_configuration
 
-
+def custom_logger_creator(base_log_dir):
+    def logger_creator(config):
+        timestamp = int(time.time())
+        logdir = os.path.join(base_log_dir, f"PPO_{timestamp}")
+        os.makedirs(logdir, exist_ok=True)
+        return UnifiedLogger(config, logdir, loggers=[TBXLogger])
+    return logger_creator
 def build_trainer(run_configuration):
-    """Finalize the trainer config by combining the sub-configs."""
     trainer_config = run_configuration.get("trainer")
 
     # === Env ===
@@ -63,10 +84,8 @@ def build_trainer(run_configuration):
     final_seed = int(start_seed % (2 ** 16)) * 1000
     logger.info("seed (final): %s", final_seed)
 
-    # === Multiagent Policies ===
+    # === Dummy env to get policy specs ===
     dummy_env = RLlibEnvWrapper(env_config)
-
-    # Policy tuples for agent/planner policy types
     agent_policy_tuple = (
         None,
         dummy_env.observation_space,
@@ -79,10 +98,8 @@ def build_trainer(run_configuration):
         dummy_env.action_space_pl,
         run_configuration.get("planner_policy"),
     )
-
     policies = {"a": agent_policy_tuple, "p": planner_policy_tuple}
 
-    # Which policies to train
     if run_configuration["general"]["train_planner"] and not run_configuration["general"]["fix_mobile"]:
         policies_to_train = ["a", "p"]
     elif not run_configuration["general"]["train_planner"] and not run_configuration["general"]["fix_mobile"]:
@@ -92,11 +109,16 @@ def build_trainer(run_configuration):
     else:
         raise ValueError("must train one agent")
 
-    # === Finalize and create ===
+    # === GPU Setup ===
+    gpu_count = 1 if torch.cuda.is_available() else 0
+    gpu_per_worker = 0.125 if torch.cuda.is_available() else 0
+
     trainer_config.update(
         {
             "env_config": env_config,
             "seed": final_seed,
+            "num_gpus": gpu_count,
+            "num_gpus_per_worker": gpu_per_worker,
             "multiagent": {
                 "policies": policies,
                 "policies_to_train": policies_to_train,
@@ -104,15 +126,17 @@ def build_trainer(run_configuration):
             },
             "metrics_smoothing_episodes": trainer_config.get("num_workers")
                                           * trainer_config.get("num_envs_per_worker"),
+            "_use_gpu_for_workers": torch.cuda.is_available(),
         }
     )
-
     def logger_creator(config):
         return NoopLogger({}, "/tmp")
 
-    ppo_trainer = PPOConfig().update_from_dict(trainer_config).build(env=RLlibEnvWrapper, logger_creator=logger_creator)
-
-    return ppo_trainer
+    trainer_config["_enable_rl_tracing"] = True
+    return PPOConfig().update_from_dict(trainer_config).build(
+        env=RLlibEnvWrapper,
+        logger_creator=custom_logger_creator("./rllib/exp/pl1")
+    )
 
 def set_up_dirs_and_maybe_restore(run_directory, run_configuration, trainer_obj):
     # === Set up Logging & Saving, or Restore ===
@@ -253,7 +277,6 @@ def plot_reward(run_directory, reward_a, reward_p):
     fig2.savefig(fig_dir)
     plt.close()
 
-
 if __name__ == "__main__":
 
 
@@ -333,3 +356,5 @@ if __name__ == "__main__":
     logger.info("Final snapshot saved! All done.")
 
     ray.shutdown()  # shutdown Ray after use
+
+
