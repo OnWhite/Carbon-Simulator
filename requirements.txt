@@ -9,3 +9,11 @@ PyYAML==6.0.1
 ray==2.9.2
 scipy==1.13.0
 seaborn==0.13.2
+dm-tree==0.1.8
+pyarrow==14.0.0
+ray[tune]==2.9.2
+scikit-image==0.22.0
+opencv-python==4.8.0.76
+fsspec==2023.9.1
+scikit-image==0.22.0
+torch==2.1.0
