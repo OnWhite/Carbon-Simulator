@@ -255,7 +255,26 @@ def plot_reward(run_directory, reward_a, reward_p):
     fig_dir = run_directory + "/reward_p.jpg"
     fig2.savefig(fig_dir)
     plt.close()
+class GpuUtilCallbacks(DefaultCallbacks):
+    def __init__(self):
+        super().__init__()
+        # Compute GPU peak FLOPs (FP32): SMs × clock (Hz) × 128 ops/cycle
+        props = torch.cuda.get_device_properties(0)
+        sm      = props.multi_processor_count
+        clk_hz  = props.max_clock_rate * 1_000  # kHz → Hz
+        self.peak_flops = sm * clk_hz * 128      # FLOPs/sec
+        # Initialize NVML
+        pynvml.nvmlInit()
+        self.handle = pynvml.nvmlDeviceGetHandleByIndex(0)
 
+    def on_train_result(self, *, algorithm, result: dict, **kwargs):
+        util = pynvml.nvmlDeviceGetUtilizationRates(self.handle).gpu
+        actual = util / 100.0 * self.peak_flops
+        ratio  = actual / self.peak_flops
+        # Inject into RLlib’s TensorBoard logs
+        result["custom_metrics"]["gpu_util_pct"]     = util
+        result["custom_metrics"]["gpu_flops_actual"] = actual
+        result["custom_metrics"]["gpu_flops_ratio"]  = ratio
 
 if __name__ == "__main__":
 
@@ -338,23 +357,3 @@ if __name__ == "__main__":
     ray.shutdown()  # shutdown Ray after use
 
 
-class GpuUtilCallbacks(DefaultCallbacks):
-    def __init__(self):
-        super().__init__()
-        # Compute GPU peak FLOPs (FP32): SMs × clock (Hz) × 128 ops/cycle
-        props = torch.cuda.get_device_properties(0)
-        sm      = props.multi_processor_count
-        clk_hz  = props.max_clock_rate * 1_000  # kHz → Hz
-        self.peak_flops = sm * clk_hz * 128      # FLOPs/sec
-        # Initialize NVML
-        pynvml.nvmlInit()
-        self.handle = pynvml.nvmlDeviceGetHandleByIndex(0)
-
-    def on_train_result(self, *, trainer, result: dict, **kwargs):
-        util = pynvml.nvmlDeviceGetUtilizationRates(self.handle).gpu
-        actual = util / 100.0 * self.peak_flops
-        ratio  = actual / self.peak_flops
-        # Inject into RLlib’s TensorBoard logs
-        result["custom_metrics"]["gpu_util_pct"]     = util
-        result["custom_metrics"]["gpu_flops_actual"] = actual
-        result["custom_metrics"]["gpu_flops_ratio"]  = ratio
