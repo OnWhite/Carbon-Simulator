@@ -8,5 +8,11 @@
 cd /nas/ucb/sophialudewig/Carbon-Simulator-minimal/Carbon-Simulator
 source .venv/bin/activate
 
-python3 rllib/training_script.py \
-    --run_dir rllib/exp/pl1 \
+# Start Ray head node (use appropriate IP if running multi-node; here it's single-node)
+ray start --head --num-cpus=32 --num-gpus=2
+
+# Run your training script
+python3 rllib/training_script.py --run_dir rllib/exp/defuat
+
+# Optional: Stop Ray after the job completes
+ray stop
