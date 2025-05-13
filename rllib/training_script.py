@@ -4,6 +4,7 @@ import os
 import sys
 import time
 import torch_models
+import tempfile
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -13,8 +14,6 @@ import yaml
 from env_wrapper import RLlibEnvWrapper
 from ray.rllib.algorithms.ppo import PPOConfig
 from ray.tune.logger import NoopLogger, pretty_print
-
-ray.init(log_to_driver=False)
 
 logging.basicConfig(stream=sys.stdout, format="%(asctime)s %(message)s")
 logger = logging.getLogger("main")
@@ -255,7 +254,12 @@ def plot_reward(run_directory, reward_a, reward_p):
 
 
 if __name__ == "__main__":
-
+    temp_dir = tempfile.mkdtemp()
+    ray.init(
+        ignore_reinit_error=True,
+        include_dashboard=False,
+        _temp_dir=temp_dir,
+    )
 
     # ===================
     # === Start setup ===

@@ -54,6 +54,10 @@ class RLlibEnvWrapper(MultiAgentEnv):
         super().__init__()
         self.env_config_dict = env_config["env_config_dict"]
 
+        import signal
+        import faulthandler
+        faulthandler.register(signal.SIGUSR1)
+
         # Adding env id in the case of multiple environments
         if hasattr(env_config, "worker_index"):
             self.env_id = (
