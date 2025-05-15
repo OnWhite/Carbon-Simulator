@@ -324,11 +324,11 @@ if __name__ == "__main__":
         }
 
         algo = OptunaSearch(
-            metric="mean_reward",
+            metric="agent_reward",
             mode="max"
         )
         scheduler = ASHAScheduler(
-            metric="mean_reward",
+            metric="agent_reward",
             mode="max",
             max_t=500,
             grace_period=100,  # Evaluate very early
