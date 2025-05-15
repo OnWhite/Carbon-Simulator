@@ -58,7 +58,7 @@ class CarbonRedistribution(BaseComponent):
         if agent_cls_name == "BasicPlanner":
             if self.planner_mode == "active":
                 ### Action space ###
-
+                # select percentage from 0 to 100
                 return [
                     ("Carbon_{:03d}".format(int(r)), 101)
                     for r in range(self.n_agents + 2)
@@ -107,20 +107,24 @@ class CarbonRedistribution(BaseComponent):
             for agent in world.agents:
                 if agent.state["inventory"]["Carbon_idx"] < 0:
                     self.world.planner.state["settlement_idx"][agent.idx] -= agent.state["inventory"]["Carbon_idx"]
+                    # when in the negative, the overspending of emissions gets logged per agent
 
             if self.planner_mode == "active":
                 idx_action = []
                 total_percent = 0
                 for i in range(self.n_agents + 2):
+                    # 0 - 100
                     planner_action = self.world.planner.get_component_action(
                         self.name, "Carbon_{:03d}".format(int(i))
                     )
                     if i == self.n_agents:
                         # world.planner.state["env_idx"] = planner_action
+                        # total percent the idx_actions are sub percentages of this
                         total_percent = planner_action
                     elif i == self.n_agents + 1:
                         world.planner.state[
                             "punishment"] = self.fixed_punishment if self.fixed_punishment else planner_action * 10
+
                     else:
                         # world.planner.state["mobile_idx"][i] = planner_action
                         idx_action.append(planner_action)

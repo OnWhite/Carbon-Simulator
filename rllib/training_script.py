@@ -9,6 +9,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 import ray
+from ray import tune
+from ray.tune.search.optuna import OptunaSearch
+from ray.tune.schedulers import ASHAScheduler
 import utils.saving as saving
 import yaml
 from env_wrapper import RLlibEnvWrapper
@@ -40,10 +43,11 @@ def process_args():
     return run_directory, run_configuration
 
 
-def build_trainer(run_configuration):
+def build_trainer(run_configuration, tune_params=None):
     """Finalize the trainer config by combining the sub-configs."""
     trainer_config = run_configuration.get("trainer")
-
+    if tune_params:
+        trainer_config.update(tune_params)
     # === Env ===
     env_config = {
         "env_config_dict": run_configuration.get("env"),
@@ -252,9 +256,19 @@ def plot_reward(run_directory, reward_a, reward_p):
     fig2.savefig(fig_dir)
     plt.close()
 
+def tune_train(config, run_dir="exp", run_config=None):
+    run_config["trainer"].update(config)
+    trainer = build_trainer(run_config)
+    while True:
+        result = trainer.train()
+        mean_reward = result.get("episode_reward_mean", 0)
+        agent_reward = result.get('policy_reward_mean', {}).get('a', 0)
+        planner_reward = result.get('policy_reward_mean', {}).get('p', 0)
+        tune.report(mean_reward=mean_reward, agent_reward=agent_reward, planner_reward=planner_reward)
+
 
 if __name__ == "__main__":
-    temp_dir = tempfile.mkdtemp()
+    temp_dir = tempfile.mkdtemp(dir="/tmp")
     ray.init(
         ignore_reinit_error=True,
         include_dashboard=False,
@@ -295,45 +309,81 @@ if __name__ == "__main__":
 
     reward_result_a, reward_result_p = [], []
 
-    while num_parallel_episodes_done < run_config["general"]["episodes"]:
+    if True:
+        search_space = {
+            "lr": tune.loguniform(1e-6, 5e-5),  # Lower range due to small batch size.
+            "entropy_coeff": tune.uniform(0.0, 0.02),  # Encourage convergence over exploration.
+            "num_sgd_iter": tune.choice([1, 5, 10]),  # Try more gradient steps to compensate for small batch.
+            "grad_clip": tune.uniform(1.0, 5.0),  # Control gradient explosions from noisy updates.
+            "vf_loss_coeff": tune.uniform(0.05, 0.2),  # Improve value function accuracy.
+            "clip_param": tune.uniform(0.1, 0.3),  # Moderate PPO clipping for stability.
+            "lambda": tune.uniform(0.95, 0.99),  # Tune GAE bias-variance trade-off.
+        }
 
-        # Training
-        result = trainer.train()
-
-        # === Counters++ ===
-        num_parallel_episodes_done = result["episodes_total"]
-        global_step = result["timesteps_total"]
-        curr_iter = result["training_iteration"]
-
-        logger.info(
-            "Iter %d: episodes this-iter %d total %d step -> %d/%d episodes done",
-            curr_iter,
-            result["episodes_this_iter"],
-            global_step,
-            num_parallel_episodes_done,
-            run_config["general"]["episodes"],
+        algo = OptunaSearch(
+            metric="mean_reward",
+            mode="max"
+        )
+        scheduler = ASHAScheduler(
+            metric="mean_reward",
+            mode="max",
+            max_t=100,
+            grace_period=2,  # Evaluate very early
+            reduction_factor=2,
         )
 
-        if curr_iter == 1 or result["episodes_this_iter"] > 0:
-            logger.info(pretty_print(result))
-
-        reward_result_a.append(result.get('policy_reward_mean')["a"] if result.get('policy_reward_mean') else 0)
-        reward_result_p.append(result.get('policy_reward_mean')["p"] if result.get('policy_reward_mean') else 0)
-        plot_reward(run_dir, reward_result_a, reward_result_p)
-
-        # === Dense logging ===
-        step_last_log = maybe_store_dense_log(trainer, result, dense_log_frequency, dense_log_dir, step_last_log)
-
-        # === Saving ===
-        step_last_ckpt = maybe_save(
-            trainer, result, ckpt_frequency, ckpt_dir, step_last_ckpt
+        tune.run(
+            tune.with_parameters(tune_train, run_dir=run_dir, run_config=run_config),
+            resources_per_trial={"cpu": 4, "gpu": 0.25},
+            config=search_space,
+            num_samples=20,
+            search_alg=algo,
+            scheduler=scheduler,
+            local_dir=os.path.join(run_dir, "tune_results"),
+            name="hyperparam_tuning",
         )
+    else:
+        # Regular training as before
 
-    # Finish up
-    logger.info("Completing! Saving final snapshot...\n\n")
-    # saving.save_snapshot(trainer, ckpt_dir)
-    saving.save_model_weights(trainer, ckpt_dir, global_step, suffix="agent")
-    saving.save_model_weights(trainer, ckpt_dir, global_step, suffix="planner")
-    logger.info("Final snapshot saved! All done.")
+
+        while num_parallel_episodes_done < run_config["general"]["episodes"]:
+
+            # Training
+            result = trainer.train()
+
+            # === Counters++ ===
+            num_parallel_episodes_done = result["episodes_total"]
+            global_step = result["timesteps_total"]
+            curr_iter = result["training_iteration"]
+
+            logger.info(
+                "Iter %d: episodes this-iter %d total %d step -> %d/%d episodes done",
+                curr_iter,
+                result["episodes_this_iter"],
+                global_step,
+                num_parallel_episodes_done,
+                run_config["general"]["episodes"],
+            )
+
+            if curr_iter == 1 or result["episodes_this_iter"] > 0:
+                logger.info(pretty_print(result))
+
+            reward_result_a.append(result.get('policy_reward_mean')["a"] if result.get('policy_reward_mean') else 0)
+            reward_result_p.append(result.get('policy_reward_mean')["p"] if result.get('policy_reward_mean') else 0)
+            plot_reward(run_dir, reward_result_a, reward_result_p)
+
+            # === Dense logging ===
+            step_last_log = maybe_store_dense_log(trainer, result, dense_log_frequency, dense_log_dir, step_last_log)
+
+            # === Saving ===
+            step_last_ckpt = maybe_save(
+                trainer, result, ckpt_frequency, ckpt_dir, step_last_ckpt
+            )
+            # Finish up
+            logger.info("Completing! Saving final snapshot...\n\n")
+            # saving.save_snapshot(trainer, ckpt_dir)
+            saving.save_model_weights(trainer, ckpt_dir, global_step, suffix="agent")
+            saving.save_model_weights(trainer, ckpt_dir, global_step, suffix="planner")
+            logger.info("Final snapshot saved! All done.")
 
     ray.shutdown()  # shutdown Ray after use
