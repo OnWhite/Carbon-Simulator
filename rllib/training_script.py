@@ -265,13 +265,9 @@ def tune_train(config, run_dir="exp", run_config=None):
     trainer = build_trainer(run_config)
     while True:
         result = trainer.train()
-        mean_reward = result.get("episode_reward_mean", 0)
         agent_reward = result.get('policy_reward_mean', {}).get('a', 0)
-        planner_reward = result.get('policy_reward_mean', {}).get('p', 0)
         train.report({
-            "mean_reward": mean_reward,
             "agent_reward": agent_reward,
-            "planner_reward": planner_reward
         })
 
 if __name__ == "__main__":
