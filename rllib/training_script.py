@@ -3,6 +3,9 @@ import logging
 import os
 import sys
 import time
+
+from ray.tune import PlacementGroupFactory
+
 import torch_models
 import tempfile
 import matplotlib.pyplot as plt
@@ -311,7 +314,7 @@ if __name__ == "__main__":
 
     if True:
         search_space = {
-            "lr": tune.loguniform(1e-6, 5e-5),  # Lower range due to small batch size.
+            "lr": tune.loguniform(1e-5, 5e-4),
             "entropy_coeff": tune.uniform(0.0, 0.02),  # Encourage convergence over exploration.
             "num_sgd_iter": tune.choice([1, 5, 10]),  # Try more gradient steps to compensate for small batch.
             "grad_clip": tune.uniform(1.0, 5.0),  # Control gradient explosions from noisy updates.
@@ -331,10 +334,13 @@ if __name__ == "__main__":
             grace_period=2,  # Evaluate very early
             reduction_factor=2,
         )
+        pgf = PlacementGroupFactory(
+            [{"CPU": 4, "GPU": 1.0}] + [{"CPU": 4}] * 7
+        )
 
         tune.run(
             tune.with_parameters(tune_train, run_dir=run_dir, run_config=run_config),
-            resources_per_trial={"cpu": 4, "gpu": 0.25},
+            resources_per_trial= pgf,
             config=search_space,
             num_samples=20,
             search_alg=algo,
