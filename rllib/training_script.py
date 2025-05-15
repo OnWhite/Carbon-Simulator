@@ -345,7 +345,7 @@ if __name__ == "__main__":
             num_samples=20,
             search_alg=algo,
             scheduler=scheduler,
-            local_dir=os.path.join(run_dir, "tune_results"),
+            local_dir=os.path.abspath(os.path.join(run_dir, "tune_results")),
             name="hyperparam_tuning",
         )
     else:
