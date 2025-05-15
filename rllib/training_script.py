@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 import ray
+from ray import train
 from ray import tune
 from ray.tune.search.optuna import OptunaSearch
 from ray.tune.schedulers import ASHAScheduler
@@ -268,7 +269,11 @@ def tune_train(config, run_dir="exp", run_config=None):
         agent_reward = result.get('policy_reward_mean', {}).get('a', 0)
         planner_reward = result.get('policy_reward_mean', {}).get('p', 0)
         tune.report(mean_reward=mean_reward, agent_reward=agent_reward, planner_reward=planner_reward)
-
+        train.report({
+            "mean_reward": mean_reward,
+            "agent_reward": agent_reward,
+            "planner_reward": planner_reward
+        })
 
 if __name__ == "__main__":
     temp_dir = tempfile.mkdtemp(dir="/tmp")
