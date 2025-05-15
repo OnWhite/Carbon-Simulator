@@ -315,12 +315,12 @@ if __name__ == "__main__":
     if True:
         search_space = {
             "lr": tune.loguniform(1e-5, 5e-4),
-            "entropy_coeff": tune.uniform(0.0, 0.02),  # Encourage convergence over exploration.
-            "num_sgd_iter": tune.choice([1, 5, 10]),  # Try more gradient steps to compensate for small batch.
-            "grad_clip": tune.uniform(1.0, 5.0),  # Control gradient explosions from noisy updates.
-            "vf_loss_coeff": tune.uniform(0.05, 0.2),  # Improve value function accuracy.
-            "clip_param": tune.uniform(0.1, 0.3),  # Moderate PPO clipping for stability.
-            "lambda": tune.uniform(0.95, 0.99),  # Tune GAE bias-variance trade-off.
+            "entropy_coeff": tune.uniform(0.005, 0.01),  # Add entropy decay schedule if possible
+            "num_sgd_iter": tune.choice([5, 10]),
+            "grad_clip": tune.uniform(0.5, 3.0),
+            "vf_loss_coeff": tune.uniform(0.05, 0.1),
+            "clip_param": tune.uniform(0.1, 0.2),  # Smaller for more stable updates
+            "lambda": tune.uniform(0.95, 0.99),
         }
 
         algo = OptunaSearch(
@@ -330,8 +330,8 @@ if __name__ == "__main__":
         scheduler = ASHAScheduler(
             metric="mean_reward",
             mode="max",
-            max_t=100,
-            grace_period=2,  # Evaluate very early
+            max_t=500,
+            grace_period=100,  # Evaluate very early
             reduction_factor=2,
         )
         pgf = PlacementGroupFactory(
