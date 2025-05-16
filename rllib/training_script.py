@@ -6,6 +6,7 @@ import time
 
 from ray.tune import PlacementGroupFactory
 
+import torch_models
 import tempfile
 import matplotlib.pyplot as plt
 import numpy as np
