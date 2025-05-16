@@ -6,7 +6,6 @@ import time
 
 from ray.tune import PlacementGroupFactory
 
-import torch_models
 import tempfile
 import matplotlib.pyplot as plt
 import numpy as np
@@ -312,7 +311,7 @@ if __name__ == "__main__":
 
     reward_result_a, reward_result_p = [], []
 
-    if True:
+    if False:
         search_space = {
             "lr": tune.loguniform(1e-5, 5e-4),
             "entropy_coeff": tune.uniform(0.005, 0.01),  # Add entropy decay schedule if possible
