@@ -212,7 +212,7 @@ class Carbon_component(BaseComponent):
                                 Carbon_emission = (1 + self.debuff) * Carbon_emission
 
                         # Update Carbon_idx
-                        agent.state["inventory"]["Carbon_idx"] -= Carbon_emission
+                        agent.state["inventory"]["Carbon_idx"] += Carbon_emission
 
                         # Place a Property where the agent is standing
                         world.create_landmark("Property", loc_r, loc_c, agent.idx)

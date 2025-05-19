@@ -17,9 +17,8 @@ env:
   flatten_masks: true
   scenario_name: Carbon/Carbon_env
   components:
-  - CarbonRedistribution:
+  - Tax_allocation:
       planner_mode: active
-      fixed_punishment: 30
       total_idx: 200
       max_year_percent: 25
       years_predefined: None
@@ -120,7 +119,7 @@ trainer:
   batch_mode: truncate_episodes
   env_config: null
   multiagent: null
-  seed: null
+  seed: 22635000
   num_gpus: 1
   num_envs_per_worker: 20
   num_sgd_iter: 1

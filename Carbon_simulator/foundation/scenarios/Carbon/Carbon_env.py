@@ -104,13 +104,11 @@ class Carbon_env(BaseEnvironment):
                 labor_coefficient=self.energy_weight * self.energy_cost,
             )
         # (for the planner)
-        curr_optimization_metric[self.world.planner.idx] = rewards.planner_strategy(
+        curr_optimization_metric[self.world.planner.idx] = rewards.planner_strategy_variable_penalty(
             coin_endowments=np.array(
                 [agent.total_endowment("Coin") for agent in self.world.agents]
             ),
-            mobile_idx=self.world.planner.state["settlement_idx"],
-            remained_idx=self.world.planner.state["remained_idx"],
-            mobile_coefficient=self.mobile_coefficient
+            remained_idx=self.world.planner.state["remained_idx"]
         )
 
         return curr_optimization_metric
@@ -395,7 +393,7 @@ class Carbon_env(BaseEnvironment):
             coin_endowments=np.array(
                 [agent.total_endowment("Coin") for agent in self.world.agents]
             ),
-            mobile_idx=self.world.planner.state["settlement_idx"],
+            mobile_idx=self.world.planner.state["emissions_per_agent"],
             remained_idx=self.world.planner.state["remained_idx"],
             mobile_coefficient=self.mobile_coefficient
         )
