@@ -312,7 +312,7 @@ if __name__ == "__main__":
 
     reward_result_a, reward_result_p = [], []
 
-    if True:
+    if False:
         search_space = {
             "lr": tune.loguniform(1e-5, 5e-4),
             "entropy_coeff": tune.uniform(0.005, 0.01),  # Add entropy decay schedule if possible
@@ -386,11 +386,11 @@ if __name__ == "__main__":
             step_last_ckpt = maybe_save(
                 trainer, result, ckpt_frequency, ckpt_dir, step_last_ckpt
             )
-            # Finish up
-            logger.info("Completing! Saving final snapshot...\n\n")
-            # saving.save_snapshot(trainer, ckpt_dir)
-            saving.save_model_weights(trainer, ckpt_dir, global_step, suffix="agent")
-            saving.save_model_weights(trainer, ckpt_dir, global_step, suffix="planner")
-            logger.info("Final snapshot saved! All done.")
+        # Finish up
+        logger.info("Completing! Saving final snapshot...\n\n")
+        # saving.save_snapshot(trainer, ckpt_dir)
+        saving.save_model_weights(trainer, ckpt_dir, global_step, suffix="agent")
+        saving.save_model_weights(trainer, ckpt_dir, global_step, suffix="planner")
+        logger.info("Final snapshot saved! All done.")
 
     ray.shutdown()  # shutdown Ray after use

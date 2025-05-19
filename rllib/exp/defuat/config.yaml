@@ -51,7 +51,7 @@ env:
 general:
   ckpt_frequency_steps: 500
   cpus: 32
-  episodes: 1000000
+  episodes: 20000
   gpus: 1
   restore_weights_agents: ''
   restore_weights_planner: ''
@@ -118,7 +118,7 @@ trainer:
   batch_mode: truncate_episodes
   env_config: null
   multiagent: null
-  seed: null
+  seed: 22635000
   num_gpus: 1
   num_envs_per_worker: 4
   num_sgd_iter: 1
@@ -129,6 +129,3 @@ trainer:
   train_batch_size: 7000
   observation_filter: NoFilter
   rollout_fragment_length: 250
-
-
-

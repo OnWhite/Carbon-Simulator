@@ -120,7 +120,7 @@ trainer:
   batch_mode: truncate_episodes
   env_config: null
   multiagent: null
-  seed: null
+  seed: 22635000
   num_gpus: 1
   num_envs_per_worker: 10
   num_sgd_iter: 1
