@@ -280,11 +280,15 @@ def fetch_data(log_file_path="/Users/work/PycharmProjects/Carbon-Simulator/tax_a
         data = json.load(log_file)
         return data
 if __name__ == "__main__":
-    temp_dir = tempfile.mkdtemp(dir="/tmp")
+    relative_temp_dir = os.path.join(os.getcwd(), "ray_temp")
+
+    os.makedirs(relative_temp_dir, exist_ok=True)
+
     ray.init(
-        ignore_reinit_error=True,
+        log_to_driver=True,
         include_dashboard=False,
-        _temp_dir=temp_dir,
+        num_gpus=1,
+        _temp_dir=relative_temp_dir
     )
 
     # ===================
