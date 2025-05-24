@@ -6,7 +6,7 @@
 #SBATCH --time=168:00:00
 #SBATCH --job-name=ray_train
 
-cd /nas/ucb/sophialudewig/Carbon-Simulator
+cd /nas/ucb/sophialudewig/Cap-and-Trade/Carbon-Simulator
 
 source .venv/bin/activate
 
