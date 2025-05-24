@@ -287,7 +287,6 @@ if __name__ == "__main__":
     ray.init(
         log_to_driver=True,
         include_dashboard=False,
-        num_gpus=1,
         _temp_dir=relative_temp_dir
     )
 
