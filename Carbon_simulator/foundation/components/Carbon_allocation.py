@@ -349,7 +349,7 @@ class CarbonRedistribution(BaseComponent):
             )
 
         # Write the result to the log file
-        with open("./GandTBigBatch.json", "w") as log_file:
+        with open("./CandTSmallEpisodes.json", "w") as log_file:
             json.dump(result, log_file)
 
         return result
