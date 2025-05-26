@@ -46,6 +46,11 @@ class CarbonTaxation(BaseComponent):
         self.total_fields = int(total_fields)
         assert self.total_fields >= 0
 
+        self.permits = float(permits)
+        assert 0 <= self.permits <= 100
+
+        self.taxrate = float(taxrate)
+        assert 0 <= self.taxrate <= 100
         self.step_count = 0
         self.percentage_of_carbon_projects = float(percentage_of_carbon_projects)
         assert 0 <= self.percentage_of_carbon_projects <= 1
@@ -122,8 +127,7 @@ class CarbonTaxation(BaseComponent):
                     # when in the negative, the overspending of emissions gets logged per agent
 
             if self.planner_mode == "active":
-                idx_action = []
-                total_percent = 0
+
                 for i in range(2):
                     # 0 - 100
                     planner_action = self.world.planner.get_component_action(
