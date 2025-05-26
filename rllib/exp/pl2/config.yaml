@@ -17,7 +17,7 @@ env:
   flatten_masks: true
   scenario_name: Carbon/Carbon_env
   components:
-  - Tax_allocation:
+  - CarbonTaxation:
       planner_mode: active
       total_idx: 200
       max_year_percent: 25

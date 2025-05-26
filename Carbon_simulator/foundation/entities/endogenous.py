@@ -35,3 +35,8 @@ class Carbon_emission(Endogenous):
     """Labor accumulated through working. Included in all environments by default."""
 
     name = "Carbon_emission"
+@endogenous_registry.add
+class Taxation(Endogenous):
+    """Tax Coin per unit emissiosn encurred-> base_price * (tax/100) """
+
+    name = "Taxation"

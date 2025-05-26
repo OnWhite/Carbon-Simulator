@@ -11,7 +11,7 @@ from Carbon_simulator.foundation.base.base_component import (
 class Gather(BaseComponent):
 
     name = "Gather"
-    required_entities = ["Carbon_idx", "Carbon_emission", "Coin", "Green_project", "Labor"]
+    required_entities = ["Carbon_idx", "Carbon_emission", "Coin", "Green_project", "Labor", "Taxation"]
     agent_subclasses = ["BasicMobileAgent"]
 
     def __init__(
@@ -107,7 +107,11 @@ class Gather(BaseComponent):
                     # nothing will happen)
                     for resource, health in world.location_resources(new_r, new_c).items():
                         if resource == "Carbon_project" and health >= 1:
-                            if agent.state["inventory"]["Coin"]>self.collect_cost_coin:
+                            #taking into account the tax credit that will result in building a green energy plant
+                            tax = self.collect_idx * agent.state["endogenous"]["Taxation"]
+                            taxcredit = tax if tax < self.collect_cost_coin else self.collect_cost_coin
+
+                            if agent.state["inventory"]["Coin"] > self.collect_cost_coin - taxcredit:
                                 agent.state["inventory"][resource] += world.location_resources(new_r, new_c)[resource]
 
                                 world.consume_resource(resource, new_r, new_c)
@@ -118,7 +122,7 @@ class Gather(BaseComponent):
                                 # Incur the labor cost of collecting a resource
                                 agent.state["endogenous"]["Labor"] += self.collect_labor
 
-                                agent.state["inventory"]["Coin"] -= self.collect_cost_coin
+                                agent.state["inventory"]["Coin"] -= (self.collect_cost_coin-taxcredit)
                                 # Log the gather
                                 gathers.append(
                                     dict(

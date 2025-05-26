@@ -1,4 +1,5 @@
 import argparse
+import json
 import logging
 import os
 import sys
@@ -13,6 +14,10 @@ import numpy as np
 
 import ray
 from ray import train
+import wandb
+import SharedDataStore as data_store
+
+wandb.login(key="eea0e89ea325324e8b77b2c8e709f6ce5b26a5f5")
 from ray import tune
 from ray.tune.search.optuna import OptunaSearch
 from ray.tune.schedulers import ASHAScheduler
@@ -269,13 +274,23 @@ def tune_train(config, run_dir="exp", run_config=None):
         train.report({
             "agent_reward": agent_reward,
         })
+def fetch_data(log_file_path="./taxation.json"):
+    if not os.path.exists(log_file_path):
+        print("Log file not found.")
+        return None
+
+    with open(log_file_path, "r") as log_file:
+        data = json.load(log_file)
+        return data
 
 if __name__ == "__main__":
-    temp_dir = tempfile.mkdtemp(dir="/tmp")
+    custom_temp_dir = f"/nas/ucb/sophialudewig/ray_temp_{int(time.time())}"
+    os.makedirs(custom_temp_dir, exist_ok=True)
+
     ray.init(
-        ignore_reinit_error=True,
+        log_to_driver=True,
         include_dashboard=False,
-        _temp_dir=temp_dir,
+        _temp_dir=custom_temp_dir
     )
 
     # ===================
@@ -287,7 +302,13 @@ if __name__ == "__main__":
 
     fh = logging.FileHandler(run_dir+"/train.log")
     logger.addHandler(fh)
-
+    # Initialize W&B
+    wandb.init(
+        project="taxation",  # replace with your W&B project name
+        name=os.path.basename(run_dir), #defuat
+        config=run_config,# {'env': {'n_agents': 5, 'world_size': [40, 40], 'episode_length': 500, 'period': 50, 'multi_action_mode_agents': False, 'multi_action_mode_planner': True, 'flatten_observations': True, 'flatten_masks': True, 'scenario_name': 'Carbon/Carbon_env', 'components': [{'CarbonTaxation': {'planner_mode': 'active', 'total_idx': 200, 'max_year_percent': 25, 'years_predefined': 'flat', 'agents_predefined': 'grandfathering_ml'}}, {'Carbon_component': {'payment': 10, 'require_Carbon_idx': 1, 'lowest_rate': 0.02, 'research_setting': ['e^-', 0.1], 'random_fails': 0.3, 'delay': 5, 'forget': 25}}, {'Carbon_auction': {'max_bid_ask': 20, 'max_num_orders': 5, 'order_duration': 10}}, {'Gather': {'collect_labor': 30, 'collect_cost_coin': 10}}], 'dense_log_frequency': 20, 'isoelastic_eta': 0.23, 'energy_cost': 0.1, 'energy_warmup_constant': 10000, 'energy_warmup_method': 'auto', 'starting_agent_coin': 20, 'mobile_coefficient': 20}, 'general': {'ckpt_frequency_steps': 500, 'cpus': 8, 'episodes': 50000, 'gpus': 0, 'restore_weights_agents': '', 'restore_weights_planner': '', 'train_planner': False, 'fix_mobile': False, 'dense_log_frequency': 250}, 'agent_policy': {'clip_param': 0.3, 'entropy_coeff': 0.025, 'entropy_coeff_schedule': None, 'gamma': 0.998, 'grad_clip': 10.0, 'kl_coeff': 0.0, 'kl_target': 0.01, 'lambda': 0.98, 'lr': 5e-05, 'lr_schedule': None, 'use_gae': True, 'vf_clip_param': 50.0, 'vf_loss_coeff': 0.05, 'vf_share_layers': False, 'model': {'custom_model': 'Conv_Rnn', 'custom_model_config': {'input_emb_vocab': 20, 'idx_emb_dim': 5, 'num_conv': 2, 'num_fc': 2, 'cell_size': 128}, 'max_seq_len': 50}}, 'planner_policy': {'clip_param': 0.3, 'entropy_coeff': 0.125, 'entropy_coeff_schedule': [[0, 2.0], [50000000, 0.125]], 'gamma': 0.998, 'grad_clip': 10.0, 'kl_coeff': 0.0, 'kl_target': 0.01, 'lambda': 0.98, 'lr': 1e-05, 'lr_schedule': None, 'use_gae': True, 'vf_clip_param': 50.0, 'vf_loss_coeff': 0.05, 'vf_share_layers': False, 'model': {'custom_model': 'Conv_Rnn', 'custom_model_config': {'input_emb_vocab': 20, 'idx_emb_dim': 5, 'num_conv': 2, 'num_fc': 2, 'cell_size': 256}, 'max_seq_len': 100}}, 'trainer': {'batch_mode': 'truncate_episodes', 'env_config': None, 'multiagent': None, 'seed': 22635000, 'num_gpus': 0, 'num_envs_per_worker': 2, 'num_sgd_iter': 1, 'num_workers': 7, 'shuffle_sequences': True, 'sgd_minibatch_size': 1000, 'train_batch_size': 3500, 'observation_filter': 'NoFilter', 'rollout_fragment_length': 250}}
+        dir=run_dir #'/Users/work/PycharmProjects/Carbon-Simulator/rllib/exp/defuat'
+    )
     # Create a trainer object
     trainer = build_trainer(run_config)
 
@@ -311,6 +332,7 @@ if __name__ == "__main__":
     step_last_log = 0
 
     reward_result_a, reward_result_p = [], []
+    open("./taxation.json", 'w').close()
 
     if False:
         search_space = {
@@ -357,7 +379,18 @@ if __name__ == "__main__":
 
             # Training
             result = trainer.train()
+            wandb.log({
+                "iteration": result["training_iteration"],
+                "timesteps_total": result["timesteps_total"],
+                "episodes_total": result["episodes_total"],
+                "reward/agent": result.get("policy_reward_mean", {}).get("a", 0),
+                "reward/planner": result.get("policy_reward_mean", {}).get("p", 0),
 
+            })
+            if num_parallel_episodes_done % (run_config["general"]["episodes"]/500) == 0:
+                data = fetch_data()
+                if data:
+                    wandb.log(data)
             # === Counters++ ===
             num_parallel_episodes_done = result["episodes_total"]
             global_step = result["timesteps_total"]
@@ -393,4 +426,5 @@ if __name__ == "__main__":
         saving.save_model_weights(trainer, ckpt_dir, global_step, suffix="planner")
         logger.info("Final snapshot saved! All done.")
 
-    ray.shutdown()  # shutdown Ray after use
+    ray.shutdown()
+    wandb.finish()

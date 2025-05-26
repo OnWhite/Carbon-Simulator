@@ -1,3 +1,4 @@
+import json
 import numpy as np
 
 from Carbon_simulator.foundation.base.base_component import (
@@ -11,7 +12,7 @@ class CarbonTaxation(BaseComponent):
 
 
     name = "CarbonTaxation"
-    required_entities = ["Carbon_idx", "Carbon_project"]
+    required_entities = ["Carbon_idx", "Carbon_project", "Taxation"]
     agent_subclasses = ["BasicMobileAgent", "BasicPlanner"]
 
     """
@@ -25,10 +26,13 @@ class CarbonTaxation(BaseComponent):
             planner_mode="inactive",
             total_idx=200,
             max_year_percent=100,
-
+            base_carbon_price = 15,
             years_predefined = None,
             agents_predefined = None,
-
+            total_fields=1600,
+            taxrate=0,
+            permits=0,
+            percentage_of_carbon_projects=0.1,
             **base_component_kwargs
     ):
         super().__init__(*base_component_args, **base_component_kwargs)
@@ -39,8 +43,15 @@ class CarbonTaxation(BaseComponent):
         self.total_idx = float(total_idx)
         assert self.total_idx >= 1
 
-        self.step_count = 0
+        self.total_fields = int(total_fields)
+        assert self.total_fields >= 0
 
+        self.step_count = 0
+        self.percentage_of_carbon_projects = float(percentage_of_carbon_projects)
+        assert 0 <= self.percentage_of_carbon_projects <= 1
+
+        self.base_carbon_price = float(base_carbon_price)
+        assert self.base_carbon_price >= 0
 
         self.max_year_percent = int(max_year_percent)
         assert 0 <= self.max_year_percent <= 100
@@ -85,10 +96,11 @@ class CarbonTaxation(BaseComponent):
 
         # punishment at end of years#
         if self.world.timestep % self.period == 0:
-            for agent in world.agents:
+            #add tax directly after incurrence
+            """for agent in world.agents:
                 if agent.state["inventory"]["Carbon_idx"] > 0:
-                    taxation = world.planner.state["tax_rate"] * abs(agent.state["inventory"]["Carbon_idx"])
-                    agent.state["inventory"]["Coin"] -= taxation
+                    taxation =  agent.state["inventory"]["Carbon_idx"] *self.base_carbon_price * (world.planner.state["tax_rate"]/100)
+                    agent.state["inventory"]["Coin"] -= taxation"""
 
             sum_Er = 0
             for agent in world.agents:
@@ -109,17 +121,17 @@ class CarbonTaxation(BaseComponent):
                     self.world.planner.state["emissions_per_agent"][agent.idx] += agent.state["inventory"]["Carbon_idx"]
                     # when in the negative, the overspending of emissions gets logged per agent
 
-            if True:
+            if self.planner_mode == "active":
                 idx_action = []
                 total_percent = 0
-                for i in range(self.n_agents + 2):
+                for i in range(2):
                     # 0 - 100
                     planner_action = self.world.planner.get_component_action(
                         self.name, "Carbon_{:03d}".format(int(i))
                     )
                     if i == 0:
                         # allocation of percentage of green development
-                        world.planner.state["env_idx"] = planner_action
+                        world.planner.state["env_idx"] = self.total_fields * self.percentage_of_carbon_projects * (planner_action/100)
 
                     elif i == 1:
                         world.planner.state["tax_rate"] = planner_action
@@ -131,63 +143,20 @@ class CarbonTaxation(BaseComponent):
                 for agent in world.agents:
                     agent.state["inventory"]["Carbon_idx"] = 0
                     agent.state["escrow"]["Carbon_idx"] = 0
+                    agent.state["endogenous"]["Taxation"]= self.base_carbon_price * (world.planner.state["tax_rate"]/100)
 
-            elif False:
-                    #self.planner_mode == "inactive":
-                if self.years_predefined == "flat":
-                    if self.agents_predefined != "None":
-                        idx_action = [7, 6, 5, 4, 3]
-                    else:
-                        idx_action = [1, 1, 1, 1, 1]
-                    total_percent = 10
-                elif self.years_predefined == "decreasing":
-                    total_percents = [16, 16, 14, 12, 10, 10, 8, 6, 4, 4]
-                    assert sum(total_percents) == 100, sum(total_percents)
-                    if self.agents_predefined != "None":
-                        idx_action = [7, 6, 5, 4, 3]
-                    else:
-                        idx_action = [5, 5, 4, 3, 3]
-                    total_percent = total_percents[world.timestep // self.period]
-                elif self.years_predefined == "convex":
-                    total_percents = [6, 8, 10, 12, 14, 14, 12, 10, 8, 6]
-                    assert sum(total_percents) == 100, sum(total_percents)
-                    if self.agents_predefined != "None":
-                        idx_action = [7, 6, 5, 4, 3]
-                    else:
-                        idx_action = [5, 5, 4, 3, 3]
-                    total_percent = total_percents[world.timestep // self.period]
-                elif self.years_predefined is None:
-                    total_percents = [6, 8, 10, 12, 14, 14, 12, 10, 8, 6]
-                    assert sum(total_percents) == 100, sum(total_percents)
-                    idx_action = [7, 6, 5, 4, 3]
-                    total_percent = total_percents[world.timestep // self.period]
-                else:
-                    assert "predefined not in (flat, decreasing, convex or None)"
-                # Divide the Carbon-idx to agents
+            elif self.planner_mode == "inactive":
+                world.planner.state["env_idx"] = self.total_fields * self.percentage_of_carbon_projects * (
+                            self.permits / 100)
 
+                world.planner.state["tax_rate"] = self.taxrate
+                world.planner.state["remained_idx"] -= sum(self.world.planner.state["emissions_per_agent"])
 
-                year_idx = self.total_idx  * total_percent / 100
-                world.planner.state["env_idx"] = int(year_idx / 10)
-                for i in range(self.n_agents):
-                    # mobile_idx = idx_action[i] // sum(idx_action) * 0.9 * this year total idx
-                    if sum(idx_action):
-                        world.planner.state["mobile_idx"][i] = int(year_idx * 9 / 10 * idx_action[i] / sum(idx_action))
-                    else:
-                        world.planner.state["mobile_idx"][i] = int(year_idx * 9 / 10 / self.n_agents)
-
-                if self.agents_predefined == "grandfathering_ml":
-                    sorted_V = sorted(world.agents, key=lambda agent_V: agent_V.state["Manufacture_volume"]/agent_V.state["Carbon_emission_rate"], reverse=True)
-                elif self.agents_predefined == "grandfathering_e":
-                    sorted_V = sorted(world.agents, key=lambda agent_V: agent_V.state["Last_emission"], reverse=True)
-                elif self.agents_predefined == "None":
-                    sorted_V = sorted(world.agents, key=lambda agent_V: agent_V.state["Manufacture_volume"], reverse=True)
-                else:
-                    assert "predefined not in (grandfathering_m*l, grandfathering_m_l, grandfathering_e or None)"
-
-                for agent_idx in range(self.n_agents):
-                    sorted_V[agent_idx].state["inventory"]["Carbon_idx"] = world.planner.state["mobile_idx"][agent_idx]
-                    sorted_V[agent_idx].state["escrow"]["Carbon_idx"] = 0
-                    sorted_V[agent_idx].state["Last_emission"] = 0
+                for agent in world.agents:
+                    agent.state["inventory"]["Carbon_idx"] = 0
+                    agent.state["escrow"]["Carbon_idx"] = 0
+                    agent.state["endogenous"]["Taxation"] = self.base_carbon_price * (
+                                self.taxrate / 100)
 
             else:
                 assert self.planner_mode in ["inactive", "active"]
@@ -204,6 +173,8 @@ class CarbonTaxation(BaseComponent):
             empty = world.maps.empty
             project_num = 0
             n_tries = 0
+            world.planner.state["remained_permits"] -= world.planner.state["env_idx"]
+
             while project_num < world.planner.state["env_idx"]:
                 n_tries += 1
                 if n_tries > 200:
@@ -220,6 +191,8 @@ class CarbonTaxation(BaseComponent):
                 "env_idx": world.planner.state["env_idx"],
                 "emissions_per_agent": self.world.planner.state["emissions_per_agent"],
             })
+            self.wandb_log()
+
         else:
             self.log.append([])
 
@@ -245,12 +218,19 @@ class CarbonTaxation(BaseComponent):
         obs_dict[self.world.planner.idx] = {
             "year_num": self.world.planner.state["year_num"],
             "agents_Research_ability": [agent.state["Research_ability"] for agent in self.world.agents],
+            "agents_Coin": [a.state["inventory"]["Coin"] for a in self.world.agents],
             "agents_volume": [agent.state["Manufacture_volume"] for agent in self.world.agents],
+            "agents_labour": [agent.state["endogenous"]["Labor"] for agent in self.world.agents],
+            "agents_carbon_idx": [a.state["inventory"]["Carbon_idx"] for a in self.world.agents],
             "agents_emission_rate": [agent.state["Carbon_emission_rate"] for agent in self.world.agents],
             "emissions_per_agent": self.world.planner.state["emissions_per_agent"],
             "average_Er": self.world.planner.state["average_Er"],
             "tax_rate": self.world.planner.state["tax_rate"],
             "env_idx": self.world.planner.state["env_idx"],
+            "carbonproject_percentage": self.world.planner.state["env_idx"],
+            "avg_emission_rate": self.world.planner.state["average_Er"],
+            "emissions_per_agent_mean": np.mean(self.world.planner.state["emissions_per_agent"]),
+
         }
 
         return obs_dict
@@ -282,6 +262,7 @@ class CarbonTaxation(BaseComponent):
         world.planner.state["year_num"] = 0
 
         world.planner.state["remained_idx"] = float(self.total_idx)
+        world.planner.state["remained_permits"]= self.percentage_of_carbon_projects * self.total_fields
 
         world.planner.state["emissions_per_agent"] = np.zeros(self.n_agents)
 
@@ -299,3 +280,34 @@ class CarbonTaxation(BaseComponent):
             return None
         elif self.planner_mode == "active":
             return self.log
+    def wandb_log(self):
+        world = self.world
+        result = {
+            "carbonproject_percentage": world.planner.state["env_idx"],
+            "avg_emission_rate": world.planner.state["average_Er"],
+            "tax_rate": world.planner.state["tax_rate"],
+            "emissions_per_agent_mean": np.mean(world.planner.state["emissions_per_agent"]),
+            "remained_emissons": world.planner.state["remained_idx"],
+            "remained_permits": world.planner.state["remained_permits"]
+        }
+
+        for a in world.agents:
+            result.update(
+                {
+                    f"agent_{a.idx}/emission_rate": a.state["Carbon_emission_rate"],
+                    f"agent_{a.idx}/volume": a.state["Manufacture_volume"],
+                    f"agent_{a.idx}/emission": a.state["Last_emission"],
+                    f"agent_{a.idx}/taxation": a.state["endogenous"]["Taxation"],
+                    f"agent_{a.idx}/inventory": a.state["inventory"]["Carbon_idx"],
+                    f"agent_{a.idx}/escrow": a.state["escrow"]["Carbon_idx"],
+                    f"agent_{a.idx}/labor": a.state["endogenous"]["Labor"],
+                    f"agent_{a.idx}/coin": a.state["inventory"]["Coin"],
+                    f"agent_{a.idx}/research_ability": a.state["Research_ability"],
+                }
+            )
+
+        # Write the result to the log file
+        with open("./taxation.json", "w") as log_file:
+            json.dump(result, log_file)
+
+        return result

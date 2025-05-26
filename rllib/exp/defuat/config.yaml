@@ -11,9 +11,13 @@ env:
   flatten_masks: true
   scenario_name: Carbon/Carbon_env
   components:
-  - Tax_allocation:
+  - CarbonTaxation:
       planner_mode: inactive
+      taxrate: 10
+      permits: 20
+      total_fields: 1600
       total_idx: 200
+      percentage_of_carbon_projects: 0.01
       max_year_percent: 25
       years_predefined: flat
       agents_predefined: grandfathering_ml
@@ -45,9 +49,9 @@ env:
 
 general:
   ckpt_frequency_steps: 500
-  cpus: 32
+  cpus: 8
   episodes: 50000
-  gpus: 1
+  gpus: 0
   restore_weights_agents: ''
   restore_weights_planner: ''
   train_planner: false
@@ -115,14 +119,14 @@ trainer:
   env_config: null
   multiagent: null
   seed: 22635000
-  num_gpus: 1
+  num_gpus: 0
   num_envs_per_worker: 2
   num_sgd_iter: 1
-  num_workers: 16
+  num_workers: 7
 
   shuffle_sequences: true
-  sgd_minibatch_size: 2000
-  train_batch_size: 8000
+  sgd_minibatch_size: 1000
+  train_batch_size: 3500
 
   observation_filter: NoFilter
   rollout_fragment_length: 250

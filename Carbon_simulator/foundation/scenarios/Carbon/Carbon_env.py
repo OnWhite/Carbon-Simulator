@@ -12,7 +12,7 @@ class Carbon_env(BaseEnvironment):
 
     name = "Carbon/Carbon_env"
     agent_subclasses = ["BasicMobileAgent", "BasicPlanner"]
-    required_entities = ["Carbon_idx", "Carbon_emission", "Coin", "Property", "Carbon_pollution", "Labor", "Carbon_project", "Green_project"]
+    required_entities = ["Carbon_idx", "Carbon_emission", "Coin", "Property", "Carbon_pollution", "Labor", "Carbon_project", "Green_project","Taxation"]
 
     def __init__(
             self,
@@ -389,13 +389,12 @@ class Carbon_env(BaseEnvironment):
                 labor_coefficient=self.energy_weight * self.energy_cost,
             )
         # (for the planner)
-        curr_optimization_metric[self.world.planner.idx] = rewards.planner_metrics(
+        curr_optimization_metric[self.world.planner.idx] = rewards.planner_metrics_variable_penalty(
             coin_endowments=np.array(
                 [agent.total_endowment("Coin") for agent in self.world.agents]
             ),
-            mobile_idx=self.world.planner.state["emissions_per_agent"],
             remained_idx=self.world.planner.state["remained_idx"],
-            mobile_coefficient=self.mobile_coefficient
+            remained_permits= self.world.planner.state["remained_permits"],
         )
 
         for agent in self.all_agents:
@@ -417,3 +416,27 @@ class Carbon_env(BaseEnvironment):
         metrics["labor/warmup_integrator"] = int(self._auto_warmup_integrator)
 
         return metrics
+    def metrics1(self):
+        world = self.world
+        result = {
+            "carbonproject_percentage": world.planner.state["env_idx"],
+            "avg_emission_rate": world.planner.state["average_Er"],
+            "tax_rate": world.planner.state["tax_rate"],
+            "emissions_per_agent_mean": np.mean(world.planner.state["emissions_per_agent"]),
+        }
+
+        for a in world.agents:
+            result.update(
+                {
+                    f"agent_{a.idx}/emission_rate": a.state["Carbon_emission_rate"],
+                    f"agent_{a.idx}/volume": a.state["Manufacture_volume"],
+                    f"agent_{a.idx}/emission": a.state["Last_emission"],
+                    f"agent_{a.idx}/taxation": a.state["endogenous"]["Taxation"],
+                    f"agent_{a.idx}/inventory": a.state["inventory"]["Carbon_idx"],
+                    f"agent_{a.idx}/escrow": a.state["escrow"]["Carbon_idx"],
+                    f"agent_{a.idx}/labor": a.state["endogenous"]["Labor"],
+                    f"agent_{a.idx}/coin": a.state["inventory"]["Coin"],
+                    f"agent_{a.idx}/research_ability": a.state["Research_ability"],
+                }
+            )
+        return result

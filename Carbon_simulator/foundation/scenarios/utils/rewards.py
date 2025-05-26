@@ -114,17 +114,14 @@ def planner_metrics(coin_endowments, mobile_idx, remained_idx, mobile_coefficien
     }
     return planner_metrix
 
-def planner_metrics_variable_penalty(coin_endowments, remained_idx,  penalty_constant=1000, epsilon=1e-3):
+def planner_metrics_variable_penalty(coin_endowments, remained_idx, remained_permits):
     n_agents = len(coin_endowments)
     prod = get_productivity(coin_endowments) / n_agents
     equality = get_equality(coin_endowments)
 
-    if remained_idx < 0:
-        idx_used_planner = -10000
-    else:
-        idx_used_planner = -penalty_constant / (remained_idx + epsilon)  # Increases as remained_idx -> 0
-
-    util = equality * prod + idx_used_planner
+    idx_used_planner = 100 * np.exp(0.07*(remained_idx))
+    permits = 50 * max( 0, - remained_permits)**2
+    util = equality * prod - idx_used_planner - permits
 
     planner_metrix = {
         "util": util,
