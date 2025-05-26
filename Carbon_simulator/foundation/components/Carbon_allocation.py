@@ -349,7 +349,7 @@ class CarbonRedistribution(BaseComponent):
             )
 
         # Write the result to the log file
-        with open("./standart.json", "w") as log_file:
+        with open("./40-10-1mio-batch.json", "w") as log_file:
             json.dump(result, log_file)
 
         return result
