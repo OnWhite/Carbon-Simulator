@@ -1,7 +1,7 @@
 import json
 import os
-
 import numpy as np
+from ray.util.client import ray
 
 from Carbon_simulator.foundation.base.base_component import (
     BaseComponent,
@@ -11,8 +11,6 @@ from Carbon_simulator.foundation.base.base_component import (
 
 @component_registry.add
 class CarbonRedistribution(BaseComponent):
-
-
     name = "CarbonRedistribution"
     required_entities = ["Carbon_idx", "Carbon_project"]
     agent_subclasses = ["BasicMobileAgent", "BasicPlanner"]
@@ -30,8 +28,8 @@ class CarbonRedistribution(BaseComponent):
             total_idx=200,
             max_year_percent=100,
 
-            years_predefined = None,
-            agents_predefined = None,
+            years_predefined=None,
+            agents_predefined=None,
 
             **base_component_kwargs
     ):
@@ -137,7 +135,7 @@ class CarbonRedistribution(BaseComponent):
 
                 # world.planner.state["env_idx"] = idx_action[-1]
                 # env_idx = 10% of this year total idx, this year total idx = self.total_idx * total_percent/100
-                year_idx = self.total_idx  * total_percent / 100
+                year_idx = self.total_idx * total_percent / 100
 
                 world.planner.state["env_idx"] = int(year_idx / 10)
                 for i in range(self.n_agents):
@@ -186,8 +184,7 @@ class CarbonRedistribution(BaseComponent):
                     assert "predefined not in (flat, decreasing, convex or None)"
                 # Divide the Carbon-idx to agents
 
-
-                year_idx = self.total_idx  * total_percent / 100
+                year_idx = self.total_idx * total_percent / 100
                 world.planner.state["env_idx"] = int(year_idx / 10)
                 for i in range(self.n_agents):
                     # mobile_idx = idx_action[i] // sum(idx_action) * 0.9 * this year total idx
@@ -197,11 +194,14 @@ class CarbonRedistribution(BaseComponent):
                         world.planner.state["mobile_idx"][i] = int(year_idx * 9 / 10 / self.n_agents)
 
                 if self.agents_predefined == "grandfathering_ml":
-                    sorted_V = sorted(world.agents, key=lambda agent_V: agent_V.state["Manufacture_volume"]/agent_V.state["Carbon_emission_rate"], reverse=True)
+                    sorted_V = sorted(world.agents,
+                                      key=lambda agent_V: agent_V.state["Manufacture_volume"] / agent_V.state[
+                                          "Carbon_emission_rate"], reverse=True)
                 elif self.agents_predefined == "grandfathering_e":
                     sorted_V = sorted(world.agents, key=lambda agent_V: agent_V.state["Last_emission"], reverse=True)
                 elif self.agents_predefined == "None":
-                    sorted_V = sorted(world.agents, key=lambda agent_V: agent_V.state["Manufacture_volume"], reverse=True)
+                    sorted_V = sorted(world.agents, key=lambda agent_V: agent_V.state["Manufacture_volume"],
+                                      reverse=True)
                 else:
                     assert "predefined not in (grandfathering_m*l, grandfathering_m_l, grandfathering_e or None)"
 
@@ -243,7 +243,15 @@ class CarbonRedistribution(BaseComponent):
                 "mobile_idx": world.planner.state["mobile_idx"],
                 "settlement_idx": self.world.planner.state["settlement_idx"],
             })
-            self.wandb_log()
+            try:
+                worker_id = ray.get_runtime_context().worker.worker_id
+            except:
+                worker_id = 0  # Main process
+
+                # Only log if this is worker_id 0 (or another specific worker)
+            if worker_id == 0:
+                self.wandb_log()
+
         else:
             self.log.append([])
 
@@ -292,7 +300,8 @@ class CarbonRedistribution(BaseComponent):
                     remained_idx_mask = np.ones_like(v)
                     remained_idx_mask[0] = 0
                     if k == "Carbon_{:03d}".format(int(self.n_agents)):
-                        remained_idx_mask[min(int(self.world.planner.state["remained_idx"]/self.total_idx*100), self.max_year_percent)+1:] = 0
+                        remained_idx_mask[min(int(self.world.planner.state["remained_idx"] / self.total_idx * 100),
+                                              self.max_year_percent) + 1:] = 0
                 else:
                     remained_idx_mask = np.zeros_like(v)
                     remained_idx_mask[0] = 1
@@ -325,12 +334,13 @@ class CarbonRedistribution(BaseComponent):
             return None
         elif self.planner_mode == "active":
             return self.log
+
     def wandb_log(self):
         world = self.world
         result = {
             "carbonproject_percentage": world.planner.state["env_idx"],
             "avg_emission_rate": world.planner.state["average_Er"],
-"emissions_per_agent_mean": np.mean([a.state["Last_emission"] for a in world.agents]),
+            "emissions_per_agent_mean": np.mean([a.state["Last_emission"] for a in world.agents]),
             "remained_emissons": world.planner.state["remained_idx"],
         }
 
@@ -349,7 +359,7 @@ class CarbonRedistribution(BaseComponent):
             )
 
         # Write the result to the log file
-        with open("./40-10-1mio-batch.json", "w") as log_file:
+        with open("./test1.json", "w") as log_file:
             json.dump(result, log_file)
 
         return result

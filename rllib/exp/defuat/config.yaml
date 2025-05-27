@@ -50,9 +50,9 @@ env:
 
 general:
   ckpt_frequency_steps: 500
-  cpus: 32
+  cpus: 8
   episodes: 1000000
-  gpus: 1
+  gpus: 0
   restore_weights_agents: ''
   restore_weights_planner: ''
   train_planner: false
@@ -119,14 +119,14 @@ trainer:
   env_config: null
   multiagent: null
   seed: 22635000
-  num_gpus: 1
-  num_envs_per_worker: 10
+  num_gpus: 0
+  num_envs_per_worker: 1
   num_sgd_iter: 1
-  num_workers: 40
+  num_workers: 1
 
   shuffle_sequences: true
-  sgd_minibatch_size: 2000
-  train_batch_size: 100000
+  sgd_minibatch_size: 100
+  train_batch_size: 250
 
   observation_filter: NoFilter
   rollout_fragment_length: 250
