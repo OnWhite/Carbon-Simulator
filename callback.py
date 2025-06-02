@@ -1,0 +1,110 @@
+from pprint import pprint
+
+import numpy as np
+from ray.rllib.algorithms.callbacks import DefaultCallbacks
+from ray.rllib.evaluation.episode import Episode
+
+
+class InfoMetricsCallback(DefaultCallbacks):
+    """
+    Collects custom metrics from the `info` dict returned by the env.
+    – Step metrics: aggregated (avg, median, total) over *all* agents on the worker.
+    – Final metrics: last-step values for one tracked agent (default '0').
+    """
+
+    STEP_METRICS = {
+        # name               extractor – receives the agent_info dict
+        "Research_count_1": lambda info: info.get("Research_count", [0, 0])[1],
+        "Manufacture_volume": lambda info: info.get("Manufacture_volume"),
+        "Carbon_idx": lambda info: info.get("inventory", {}).get("Carbon_idx"),
+        # settlement_idx only exists in the special "p" info-dict
+        "Taxrate": lambda info: info.get("endogenous", {}).get("Taxation"),
+    }
+
+    FINAL_METRICS = {
+        "Coin": lambda info: info.get("inventory", {}).get("Coin"),
+        "Labor": lambda info: info.get("endogenous", {}).get("Labor"),
+        "Carbon_project": lambda info: info.get("inventory", {}).get("Carbon_project"),
+        "Carbon_emission": lambda info: info.get("endogenous", {}).get("Carbon_emission"),
+    }
+
+    def __init__(self, worker_id: int = 1):
+        super().__init__()
+        self.worker_id = worker_id
+
+    def on_episode_step(
+            self, *, worker, base_env, policies, episode: Episode, **kwargs
+    ):
+
+        # tracs metrics in Step_Metrics every step per worker for all agents
+        infos = episode._last_infos
+        if not infos:
+            return
+
+        wid = worker.worker_index
+        for agent_id, agent_info in infos.items():
+            if agent_id == 'p':
+                continue
+            if not isinstance(agent_info, dict):
+                continue
+            for name, fn in self.STEP_METRICS.items():
+                if name == "Taxrate" and agent_id == "1":
+                    value = fn(agent_info)
+                    if value is None:
+                        continue
+                    key = f"worker_{wid}/agent_{agent_id}/{name}"
+                    episode.user_data.setdefault(key, []).append(value)
+                elif name != "Taxrate":
+                    value = fn(agent_info)
+                    if value is None:
+                        continue
+                    key = f"worker_{wid}/agent_{agent_id}/{name}"
+                    episode.user_data.setdefault(key, []).append(value)
+
+    def on_episode_end(
+            self, *, worker, base_env, policies, episode: Episode, **kwargs
+    ):
+        wid = worker.worker_index
+
+        # ---- step metrics: avg / median / total -----------------
+        for key, series in episode.user_data.items():
+            if not key.startswith(f"worker_{wid}/") or not series:
+                continue
+            base = key.split("/", 2)[2]  # drop "worker_X/agent_Y/"
+            series = np.asarray(series, dtype=float)
+
+            episode.custom_metrics[f"worker_{wid}/Avg_{base}"] = float(np.mean(series))
+            episode.custom_metrics[f"worker_{wid}/Med_{base}"] = float(np.median(series))
+            episode.custom_metrics[f"worker_{wid}/Tot_{base}"] = float(np.sum(series))
+
+        if wid == self.worker_id:
+            print("in episode. wid:", wid, "user_data:", episode.user_data)
+            for key, series in episode.user_data.items():
+                if not key.startswith(f"worker_{wid}/") or not series:
+                    continue
+                agent, name = key.split("/", 2)[1], key.split("/", 2)[2]
+                series = np.asarray(series, dtype=float)
+                episode.custom_metrics[f"worker_{wid}/agent_{agent}/{name}"] = series.tolist()
+                episode.custom_metrics[f"worker_{wid}/agent_{agent}/Med_{name}"] = float(np.median(series))
+
+        # ---- final metrics for the tracked worker showing all agents ----------------
+        if str(wid) == str(self.worker_id):
+            for k, v in episode._last_infos.items():
+                if k != 'p':
+                    for name, fn in self.FINAL_METRICS.items():
+                        val = fn(v)
+                        if val is not None:
+                            # name pattern: <AgentID>_<Metric>, e.g. 0_Coin
+                            episode.custom_metrics[f"worker_{wid}/agent_{k}/{name}"] = float(val)
+
+        for name, fn in self.FINAL_METRICS.items():
+            metric = []
+            for k, v in episode._last_infos.items():
+                if k != 'p':
+                    val = fn(v)
+                    if val is not None:
+                        metric.append(float(val))
+
+            episode.custom_metrics[f"worker_{wid}/Tot_{name}"] = float(np.sum(metric))
+            episode.custom_metrics[f"worker_{wid}/Avg_{name}"] = float(np.mean(metric))
+            episode.custom_metrics[f"worker_{wid}/Med_{name}"] = float(np.median(metric))

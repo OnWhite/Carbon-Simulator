@@ -1040,6 +1040,7 @@ class BaseEnvironment(ABC):
             rew = self.collate_agent_rew(rew)
             info = self.collate_agent_info(info)
 
+        info.update({str(agent.idx): agent.state for agent in self.all_agents})
         return obs, rew, done, info
 
     # The following methods must be implemented for each scenario

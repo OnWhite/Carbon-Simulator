@@ -11,6 +11,7 @@ seaborn==0.13.2
 dm-tree==0.1.8
 pyarrow==14.0.0
 ray[tune]==2.9.2
+ray[torch,tune]==2.9.2
 scikit-image==0.22.0
 opencv-python==4.8.0.76
 fsspec==2023.9.1
@@ -18,4 +19,4 @@ torch==2.1.0
 packaging==21.0
 python-dateutil==2.8.2
 nvidia-ml-py3
-wandb
+wandb>=0.16,<0.17

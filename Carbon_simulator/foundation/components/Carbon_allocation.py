@@ -270,7 +270,7 @@ class CarbonRedistribution(BaseComponent):
             "agents_volume": [agent.state["Manufacture_volume"] for agent in self.world.agents],
             "agents_emission_rate": [agent.state["Carbon_emission_rate"] for agent in self.world.agents],
             "settlement_idx": self.world.planner.state["settlement_idx"],
-            "remained_idx": self.world.planner.state["remained_idx"],
+            "remained_idx": self.world.planner.state["remained_idx"], # total emissions
             "average_Er": self.world.planner.state["average_Er"],
         }
 

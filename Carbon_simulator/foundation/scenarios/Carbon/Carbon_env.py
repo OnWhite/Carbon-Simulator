@@ -17,6 +17,7 @@ class Carbon_env(BaseEnvironment):
     def __init__(
             self,
             *base_env_args,
+            alpha=100, beta=50,
             planner_gets_spatial_info=True,
             full_observability=False,
             mobile_agent_observation_range=5,
@@ -32,7 +33,8 @@ class Carbon_env(BaseEnvironment):
             **base_env_kwargs
     ):
         super().__init__(*base_env_args, **base_env_kwargs)
-
+        self.planner_alpha = alpha
+        self.planner_beta = beta
         # Whether agents receive spatial information in their observation tensor
         self._planner_gets_spatial_info = bool(planner_gets_spatial_info)
 
@@ -395,6 +397,8 @@ class Carbon_env(BaseEnvironment):
             ),
             remained_idx=self.world.planner.state["remained_idx"],
             remained_permits= self.world.planner.state["remained_permits"],
+            alpha=self.planner_alpha,
+            beta=self.planner_beta
         )
 
         for agent in self.all_agents:
@@ -416,27 +420,3 @@ class Carbon_env(BaseEnvironment):
         metrics["labor/warmup_integrator"] = int(self._auto_warmup_integrator)
 
         return metrics
-    def metrics1(self):
-        world = self.world
-        result = {
-            "carbonproject_percentage": world.planner.state["env_idx"],
-            "avg_emission_rate": world.planner.state["average_Er"],
-            "tax_rate": world.planner.state["tax_rate"],
-            "emissions_per_agent_mean": np.mean(world.planner.state["emissions_per_agent"]),
-        }
-
-        for a in world.agents:
-            result.update(
-                {
-                    f"agent_{a.idx}/emission_rate": a.state["Carbon_emission_rate"],
-                    f"agent_{a.idx}/volume": a.state["Manufacture_volume"],
-                    f"agent_{a.idx}/emission": a.state["Last_emission"],
-                    f"agent_{a.idx}/taxation": a.state["endogenous"]["Taxation"],
-                    f"agent_{a.idx}/inventory": a.state["inventory"]["Carbon_idx"],
-                    f"agent_{a.idx}/escrow": a.state["escrow"]["Carbon_idx"],
-                    f"agent_{a.idx}/labor": a.state["endogenous"]["Labor"],
-                    f"agent_{a.idx}/coin": a.state["inventory"]["Coin"],
-                    f"agent_{a.idx}/research_ability": a.state["Research_ability"],
-                }
-            )
-        return result

@@ -1,4 +1,3 @@
-import json
 import numpy as np
 
 from Carbon_simulator.foundation.base.base_component import (
@@ -195,8 +194,6 @@ class CarbonTaxation(BaseComponent):
                 "env_idx": world.planner.state["env_idx"],
                 "emissions_per_agent": self.world.planner.state["emissions_per_agent"],
             })
-            self.wandb_log()
-
         else:
             self.log.append([])
 
@@ -284,34 +281,4 @@ class CarbonTaxation(BaseComponent):
             return None
         elif self.planner_mode == "active":
             return self.log
-    def wandb_log(self):
-        world = self.world
-        result = {
-            "carbonproject_percentage": world.planner.state["env_idx"],
-            "avg_emission_rate": world.planner.state["average_Er"],
-            "tax_rate": world.planner.state["tax_rate"],
-            "emissions_per_agent_mean": np.mean(world.planner.state["emissions_per_agent"]),
-            "remained_emissons": world.planner.state["remained_idx"],
-            "remained_permits": world.planner.state["remained_permits"]
-        }
 
-        for a in world.agents:
-            result.update(
-                {
-                    f"agent_{a.idx}/emission_rate": a.state["Carbon_emission_rate"],
-                    f"agent_{a.idx}/volume": a.state["Manufacture_volume"],
-                    f"agent_{a.idx}/emission": a.state["Last_emission"],
-                    f"agent_{a.idx}/taxation": a.state["endogenous"]["Taxation"],
-                    f"agent_{a.idx}/inventory": a.state["inventory"]["Carbon_idx"],
-                    f"agent_{a.idx}/escrow": a.state["escrow"]["Carbon_idx"],
-                    f"agent_{a.idx}/labor": a.state["endogenous"]["Labor"],
-                    f"agent_{a.idx}/coin": a.state["inventory"]["Coin"],
-                    f"agent_{a.idx}/research_ability": a.state["Research_ability"],
-                }
-            )
-
-        # Write the result to the log file
-        with open("./taxation.json", "w") as log_file:
-            json.dump(result, log_file)
-
-        return result
