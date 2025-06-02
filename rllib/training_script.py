@@ -4,6 +4,7 @@ import os
 import sys
 import time
 from callback import InfoMetricsCallback
+import torch_models # don't remove this import, it registers the custom model
 import matplotlib.pyplot as plt
 import numpy as np
 import wandb
