@@ -1,8 +1,4 @@
-import json
-import os
 import numpy as np
-from ray.util.client import ray
-
 from Carbon_simulator.foundation.base.base_component import (
     BaseComponent,
     component_registry,
@@ -243,14 +239,6 @@ class CarbonRedistribution(BaseComponent):
                 "mobile_idx": world.planner.state["mobile_idx"],
                 "settlement_idx": self.world.planner.state["settlement_idx"],
             })
-            try:
-                worker_id = ray.get_runtime_context().worker.worker_id
-            except:
-                worker_id = 0  # Main process
-
-                # Only log if this is worker_id 0 (or another specific worker)
-            if worker_id == 0:
-                self.wandb_log()
 
         else:
             self.log.append([])
@@ -314,7 +302,7 @@ class CarbonRedistribution(BaseComponent):
     def additional_reset_steps(self):
 
         world = self.world
-        world.planner.state["punishment"] = self.fixed_punishment if self.fixed_punishment else 100  # 10, 30
+        world.planner.state["punishment"] = self.fixed_punishment if self.fixed_punishment else 100
         world.planner.state["year_num"] = 0
 
         world.planner.state["remained_idx"] = float(self.total_idx)
@@ -334,32 +322,3 @@ class CarbonRedistribution(BaseComponent):
             return None
         elif self.planner_mode == "active":
             return self.log
-
-    def wandb_log(self):
-        world = self.world
-        result = {
-            "carbonproject_percentage": world.planner.state["env_idx"],
-            "avg_emission_rate": world.planner.state["average_Er"],
-            "emissions_per_agent_mean": np.mean([a.state["Last_emission"] for a in world.agents]),
-            "remained_emissons": world.planner.state["remained_idx"],
-        }
-
-        for a in world.agents:
-            result.update(
-                {
-                    f"agent_{a.idx}/emission_rate": a.state["Carbon_emission_rate"],
-                    f"agent_{a.idx}/volume": a.state["Manufacture_volume"],
-                    f"agent_{a.idx}/emission": a.state["Last_emission"],
-                    f"agent_{a.idx}/inventory": a.state["inventory"]["Carbon_idx"],
-                    f"agent_{a.idx}/escrow": a.state["escrow"]["Carbon_idx"],
-                    f"agent_{a.idx}/labor": a.state["endogenous"]["Labor"],
-                    f"agent_{a.idx}/coin": a.state["inventory"]["Coin"],
-                    f"agent_{a.idx}/research_ability": a.state["Research_ability"],
-                }
-            )
-
-        # Write the result to the log file
-        with open("./test1.json", "w") as log_file:
-            json.dump(result, log_file)
-
-        return result
