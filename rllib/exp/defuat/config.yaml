@@ -47,7 +47,7 @@ env:
 general:
   ckpt_frequency_steps: 500
   cpus: 32
-  episodes: 1000000
+  episodes: 50000
   gpus: 1
   restore_weights_agents: ''
   restore_weights_planner: ''
