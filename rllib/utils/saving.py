@@ -37,15 +37,26 @@ def remote_env_fun(trainer, env_function):
 
 
 def fill_out_run_dir(run_dir):
-    dense_log_dir = os.path.join(run_dir, "dense_logs")
-    ckpt_dir = os.path.join(run_dir, "ckpts")
+    dense_log_base_dir = os.path.join(run_dir, "dense_logs")
+    dense_log_dir = dense_log_base_dir
+    dense_counter = 1
+    while os.path.exists(dense_log_dir):
+        dense_log_dir = os.path.join(dense_log_base_dir, f"dense_logs_{dense_counter}")
+        dense_counter += 1
+    # Find the next available numbered ckpts directory
+    ckpt_base_dir = os.path.join(run_dir, "ckpts")
+    ckpt_dir = ckpt_base_dir
+    counter = 1
+    while os.path.exists(ckpt_dir):
+        ckpt_dir = f"{ckpt_base_dir}{counter}"
+        counter += 1
 
     for sub_dir in [dense_log_dir, ckpt_dir]:
         os.makedirs(sub_dir, exist_ok=True)
 
     latest_filepath = os.path.join(ckpt_dir, "latest_checkpoint.pkl")
     restore = bool(os.path.isfile(latest_filepath))
-
+    logging.info(f"Checkpoint directory {ckpt_dir}, dense log directory {dense_log_dir}, restore {restore} ")
     return dense_log_dir, ckpt_dir, restore
 
 

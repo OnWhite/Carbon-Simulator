@@ -263,6 +263,8 @@ class CarbonTaxation(BaseComponent):
         world.planner.state["year_num"] = 0
 
         world.planner.state["remained_idx"] = float(self.total_idx)
+        world.planner.state["total_idx"] = float(self.total_idx)
+
         world.planner.state["remained_permits"]= self.percentage_of_carbon_projects * self.total_fields
 
         world.planner.state["emissions_per_agent"] = np.zeros(self.n_agents)

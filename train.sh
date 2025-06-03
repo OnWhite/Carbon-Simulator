@@ -11,4 +11,4 @@ cd /nas/ucb/sophialudewig/Carbon-Taxation/Carbon-Simulator
 source .venv/bin/activate
 
 # Run the training script
-PYTHONPATH=. python3 rllib/training_script.py --run_dir rllib/exp/defuat
+PYTHONPATH=. python3 rllib/training_script.py --run_dir rllib/exp/pl1

@@ -395,7 +395,7 @@ class Carbon_env(BaseEnvironment):
             coin_endowments=np.array(
                 [agent.total_endowment("Coin") for agent in self.world.agents]
             ),
-            remained_idx=self.world.planner.state["remained_idx"],
+            co2_idx= self.world.planner.state["total_idx"] -self.world.planner.state["remained_idx"],
             remained_permits= self.world.planner.state["remained_permits"],
             alpha=self.planner_alpha,
             beta=self.planner_beta
