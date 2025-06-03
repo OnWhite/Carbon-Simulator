@@ -297,7 +297,7 @@ def train_with_sweep():
     wandb.init()
 
     # Load the configuration file
-    with open("/Users/work/PycharmProjects/Carbon-Simulator/rllib/exp/defuat/config.yaml", "r") as f:
+    with open("exp/pl1/config.yaml", "r") as f:
         run_config = yaml.safe_load(f)
 
     # Update alpha and beta from wandb sweep parameters
