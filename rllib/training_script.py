@@ -297,7 +297,8 @@ def train_with_sweep():
     wandb.init()
 
     # Load the configuration file
-    with open("/exp/pl1/config.yaml", "r") as f:
+    config_path = os.path.join(os.path.dirname(__file__), "exp", "pl1", "config.yaml")
+    with open(config_path, "r") as f:
         run_config = yaml.safe_load(f)
 
     # Update alpha and beta from wandb sweep parameters
