@@ -321,6 +321,12 @@ def train_with_sweep():
         })
 if __name__ == "__main__":
     short_temp_dir = "/tmp/ray_temp"
+    if os.path.exists(short_temp_dir):
+        for root, dirs, files in os.walk(short_temp_dir):
+            for file in files:
+                os.remove(os.path.join(root, file))
+            for dir in dirs:
+                os.rmdir(os.path.join(root, dir))
     os.makedirs(short_temp_dir, exist_ok=True)
 
     ray.init(
