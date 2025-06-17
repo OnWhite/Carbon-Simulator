@@ -346,6 +346,24 @@ def create_unique_temp_dir():
 
 if __name__ == "__main__":
     try:
+        # Process the args first
+        run_dir, run_config = process_args()
+
+        # Set up W&B directories
+        wandb_dir = os.path.join(run_dir, ".wandb")
+        os.makedirs(wandb_dir, exist_ok=True)
+
+        # Configure W&B environment
+        os.environ.update({
+            "WANDB_API_KEY": "eea0e89ea325324e8b77b2c8e709f6ce5b26a5f5",
+            "WANDB_DIR": wandb_dir,
+            "WANDB_CACHE_DIR": os.path.join(wandb_dir, "cache"),
+            "WANDB_CONFIG_DIR": os.path.join(wandb_dir, "config"),
+            "WANDB_DISABLE_CODE": "true",
+            "TMPDIR": os.path.join(run_dir, "tmp")
+        })
+
+        # Set up temp directory for Ray
         temp_dir = create_unique_temp_dir()
         ray.init(
             log_to_driver=True,
@@ -355,8 +373,6 @@ if __name__ == "__main__":
         )
 
         # Process the args
-        run_dir, run_config = process_args()
-
         fh = logging.FileHandler(run_dir + "/train.log")
         logger.addHandler(fh)
         if True:
