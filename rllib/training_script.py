@@ -352,19 +352,23 @@ if __name__ == "__main__":
         # Set up W&B directories
         wandb_dir = os.path.join(run_dir, ".wandb")
         os.makedirs(wandb_dir, exist_ok=True)
+        temp_dir = os.path.join(run_dir, "tmp")
+        os.makedirs(temp_dir, exist_ok=True)
 
-        # Configure W&B environment
+        # Configure W&B environment before any wandb calls
         os.environ.update({
             "WANDB_API_KEY": "eea0e89ea325324e8b77b2c8e709f6ce5b26a5f5",
             "WANDB_DIR": wandb_dir,
             "WANDB_CACHE_DIR": os.path.join(wandb_dir, "cache"),
             "WANDB_CONFIG_DIR": os.path.join(wandb_dir, "config"),
             "WANDB_DISABLE_CODE": "true",
-            "TMPDIR": os.path.join(run_dir, "tmp")
+            "WANDB_MODE": "offline",  # Run in offline mode first
+            "WANDB_SILENT": "true",
+            "TMPDIR": temp_dir,
+            "WANDB_START_METHOD": "thread"
         })
 
-        # Set up temp directory for Ray
-        temp_dir = create_unique_temp_dir()
+        # Initialize Ray with temp directory
         ray.init(
             log_to_driver=True,
             include_dashboard=False,
@@ -372,8 +376,8 @@ if __name__ == "__main__":
             _plasma_directory=temp_dir
         )
 
-        # Process the args
-        fh = logging.FileHandler(run_dir + "/train.log")
+        # Set up logging
+        fh = logging.FileHandler(os.path.join(run_dir, "train.log"))
         logger.addHandler(fh)
         if True:
             # Define the sweep configuration
