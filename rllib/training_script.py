@@ -350,7 +350,7 @@ if __name__ == "__main__":
         # Process the args first
         run_dir, run_config = process_args()
 
-        temp_dir = os.path.join(run_dir, "tmp")
+        temp_dir = os.path.abspath(os.path.join(run_dir, "tmp"))
         os.makedirs(temp_dir, exist_ok=True)
 
         # Initialize Ray with temp directory
