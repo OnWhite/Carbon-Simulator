@@ -2,6 +2,7 @@ import argparse
 import logging
 import os
 import sys
+import shutil
 import time
 from callback import InfoMetricsCallback
 import torch_models  # don't remove this import, it registers the custom model
