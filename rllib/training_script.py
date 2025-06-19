@@ -112,7 +112,7 @@ def build_trainer(run_configuration, tune_params=None):
     def logger_creator(config):
         return NoopLogger({}, "/tmp")
 
-    ppo_trainer = PPOConfig().update_from_dict(trainer_config).callbacks(lambda: InfoMetricsCallback(worker_id=1)).reporting(metrics_num_episodes_for_smoothing=1).build(env=RLlibEnvWrapper, logger_creator=logger_creator)
+    ppo_trainer = PPOConfig().update_from_dict(trainer_config).callbacks(lambda: InfoMetricsCallback(worker_id=1)).reporting(keep_per_episode_custom_metrics=True,metrics_num_episodes_for_smoothing=1).build(env=RLlibEnvWrapper, logger_creator=logger_creator)
 
     return ppo_trainer
 
@@ -276,6 +276,8 @@ def log_custom_metrics(result):
         # Skip if value is None
         if value is None:
             continue
+        elif isinstance(value, list) and len(value) == 1:
+            value = value[0]
 
         # Handle lists - convert to numpy array for proper logging
         if isinstance(value, list):
@@ -294,146 +296,158 @@ def log_custom_metrics(result):
     return metrics_dict
 
     return metrics_dict
+def create_unique_temp_dir():
+    """Create a unique temp directory for this run"""
+    timestamp = time.strftime("%Y%m%d-%H%M%S")
+    # Use a shorter base path but still unique per run
+    temp_dir = f"/tmp/ray_{timestamp}"
+    os.makedirs(temp_dir, exist_ok=True)
+    return temp_dir
+
+
 if __name__ == "__main__":
-    short_temp_dir = "/tmp/ray_temp"
-    os.makedirs(short_temp_dir, exist_ok=True)
+    try:
+        # Process the args first
+        run_dir, run_config = process_args()
 
-    ray.init(
-        log_to_driver=True,
-        include_dashboard=False,
-        _temp_dir=short_temp_dir
-    )
+        temp_dir = os.path.abspath(os.path.join("/", create_unique_temp_dir()))
+        os.makedirs(temp_dir, exist_ok=True)
 
-    # Process the args
-    run_dir, run_config = process_args()
-
-    fh = logging.FileHandler(run_dir+"/train.log")
-    logger.addHandler(fh)
-    # Initialize W&B
-    wandb.init(
-        project="taxation",  # replace with your W&B project name
-        name="CandT-40-10-100000-100000-BigBatch",
-        config=run_config, #{'env': {'n_agents': 5, 'world_size': [40, 40], 'episode_length': 500, 'period': 50, 'multi_action_mode_agents': False, 'multi_action_mode_planner': True, 'flatten_observations': True, 'flatten_masks': True, 'scenario_name': 'Carbon/Carbon_env', 'components': [{'CarbonTaxation': {'planner_mode': 'active', 'total_idx': 200, 'max_year_percent': 25, 'years_predefined': 'flat', 'agents_predefined': 'grandfathering_ml'}}, {'Carbon_component': {'payment': 10, 'require_Carbon_idx': 1, 'lowest_rate': 0.02, 'research_setting': ['e^-', 0.1], 'random_fails': 0.3, 'delay': 5, 'forget': 25}}, {'Carbon_auction': {'max_bid_ask': 20, 'max_num_orders': 5, 'order_duration': 10}}, {'Gather': {'collect_labor': 30, 'collect_cost_coin': 10}}], 'dense_log_frequency': 20, 'isoelastic_eta': 0.23, 'energy_cost': 0.1, 'energy_warmup_constant': 10000, 'energy_warmup_method': 'auto', 'starting_agent_coin': 20, 'mobile_coefficient': 20}, 'general': {'ckpt_frequency_steps': 500, 'cpus': 8, 'episodes': 50000, 'gpus': 0, 'restore_weights_agents': '', 'restore_weights_planner': '', 'train_planner': False, 'fix_mobile': False, 'dense_log_frequency': 250}, 'agent_policy': {'clip_param': 0.3, 'entropy_coeff': 0.025, 'entropy_coeff_schedule': None, 'gamma': 0.998, 'grad_clip': 10.0, 'kl_coeff': 0.0, 'kl_target': 0.01, 'lambda': 0.98, 'lr': 5e-05, 'lr_schedule': None, 'use_gae': True, 'vf_clip_param': 50.0, 'vf_loss_coeff': 0.05, 'vf_share_layers': False, 'model': {'custom_model': 'Conv_Rnn', 'custom_model_config': {'input_emb_vocab': 20, 'idx_emb_dim': 5, 'num_conv': 2, 'num_fc': 2, 'cell_size': 128}, 'max_seq_len': 50}}, 'planner_policy': {'clip_param': 0.3, 'entropy_coeff': 0.125, 'entropy_coeff_schedule': [[0, 2.0], [50000000, 0.125]], 'gamma': 0.998, 'grad_clip': 10.0, 'kl_coeff': 0.0, 'kl_target': 0.01, 'lambda': 0.98, 'lr': 1e-05, 'lr_schedule': None, 'use_gae': True, 'vf_clip_param': 50.0, 'vf_loss_coeff': 0.05, 'vf_share_layers': False, 'model': {'custom_model': 'Conv_Rnn', 'custom_model_config': {'input_emb_vocab': 20, 'idx_emb_dim': 5, 'num_conv': 2, 'num_fc': 2, 'cell_size': 256}, 'max_seq_len': 100}}, 'trainer': {'batch_mode': 'truncate_episodes', 'env_config': None, 'multiagent': None, 'seed': 22635000, 'num_gpus': 0, 'num_envs_per_worker': 2, 'num_sgd_iter': 1, 'num_workers': 7, 'shuffle_sequences': True, 'sgd_minibatch_size': 1000, 'train_batch_size': 3500, 'observation_filter': 'NoFilter', 'rollout_fragment_length': 250}}
-        dir=run_dir #'/Users/work/PycharmProjects/Carbon-Simulator/rllib/exp/defuat'
-    )
-
-
-    # Create a trainer object
-    trainer = build_trainer(run_config)
-
-    # Set up directories for logging and saving. Restore if this has already been
-    # done (indicating that we're restarting a crashed run). Or, if appropriate,
-    # load in starting model weights for the agent and/or planner.
-    (
-        dense_log_dir,
-        ckpt_dir,
-        restore_from_crashed_run,
-        step_last_ckpt,
-        num_parallel_episodes_done,
-    ) = set_up_dirs_and_maybe_restore(run_dir, run_config, trainer)
-
-    # ======================
-    # === Start training ===
-    # ======================
-    dense_log_frequency = run_config["general"].get("dense_log_frequency", 0)
-    ckpt_frequency = run_config["general"].get("ckpt_frequency_steps", 0)
-    global_step = int(step_last_ckpt)
-    step_last_log = 0
-
-    reward_result_a, reward_result_p = [], []
-
-    if False:
-        search_space = {
-            "lr": tune.loguniform(1e-5, 5e-4),
-            "entropy_coeff": tune.uniform(0.005, 0.01),  # Add entropy decay schedule if possible
-            "num_sgd_iter": tune.choice([5, 10]),
-            "grad_clip": tune.uniform(0.5, 3.0),
-            "vf_loss_coeff": tune.uniform(0.05, 0.1),
-            "clip_param": tune.uniform(0.1, 0.2),  # Smaller for more stable updates
-            "lambda": tune.uniform(0.95, 0.99),
-        }
-
-        algo = OptunaSearch(
-            metric="agent_reward",
-            mode="max"
-        )
-        scheduler = ASHAScheduler(
-            metric="agent_reward",
-            mode="max",
-            max_t=500,
-            grace_period=100,  # Evaluate very early
-            reduction_factor=2,
-        )
-        pgf = PlacementGroupFactory(
-            [{"CPU": 4, "GPU": 1.0}] + [{"CPU": 4}] * 7
+        # Initialize Ray with temp directory
+        ray.init(
+            log_to_driver=True,
+            include_dashboard=False,
+            _temp_dir=temp_dir,
+            _plasma_directory=temp_dir
         )
 
-        tune.run(
-            tune.with_parameters(tune_train, run_dir=run_dir, run_config=run_config),
-            resources_per_trial= pgf,
-            config=search_space,
-            num_samples=5,
-            max_concurrent_trials=1,
-            search_alg=algo,
-            scheduler=scheduler,
-            local_dir=os.path.abspath(os.path.join(run_dir, "tune_results")),
-            name="hyperparam_tuning",
+
+        fh = logging.FileHandler(run_dir+"/train.log")
+        logger.addHandler(fh)
+        # Initialize W&B
+        wandb.init(
+            project="taxation",  # replace with your W&B project name
+            name="CandT-40-10-100000-100000-BigBatch",
+            config=run_config, #{'env': {'n_agents': 5, 'world_size': [40, 40], 'episode_length': 500, 'period': 50, 'multi_action_mode_agents': False, 'multi_action_mode_planner': True, 'flatten_observations': True, 'flatten_masks': True, 'scenario_name': 'Carbon/Carbon_env', 'components': [{'CarbonTaxation': {'planner_mode': 'active', 'total_idx': 200, 'max_year_percent': 25, 'years_predefined': 'flat', 'agents_predefined': 'grandfathering_ml'}}, {'Carbon_component': {'payment': 10, 'require_Carbon_idx': 1, 'lowest_rate': 0.02, 'research_setting': ['e^-', 0.1], 'random_fails': 0.3, 'delay': 5, 'forget': 25}}, {'Carbon_auction': {'max_bid_ask': 20, 'max_num_orders': 5, 'order_duration': 10}}, {'Gather': {'collect_labor': 30, 'collect_cost_coin': 10}}], 'dense_log_frequency': 20, 'isoelastic_eta': 0.23, 'energy_cost': 0.1, 'energy_warmup_constant': 10000, 'energy_warmup_method': 'auto', 'starting_agent_coin': 20, 'mobile_coefficient': 20}, 'general': {'ckpt_frequency_steps': 500, 'cpus': 8, 'episodes': 50000, 'gpus': 0, 'restore_weights_agents': '', 'restore_weights_planner': '', 'train_planner': False, 'fix_mobile': False, 'dense_log_frequency': 250}, 'agent_policy': {'clip_param': 0.3, 'entropy_coeff': 0.025, 'entropy_coeff_schedule': None, 'gamma': 0.998, 'grad_clip': 10.0, 'kl_coeff': 0.0, 'kl_target': 0.01, 'lambda': 0.98, 'lr': 5e-05, 'lr_schedule': None, 'use_gae': True, 'vf_clip_param': 50.0, 'vf_loss_coeff': 0.05, 'vf_share_layers': False, 'model': {'custom_model': 'Conv_Rnn', 'custom_model_config': {'input_emb_vocab': 20, 'idx_emb_dim': 5, 'num_conv': 2, 'num_fc': 2, 'cell_size': 128}, 'max_seq_len': 50}}, 'planner_policy': {'clip_param': 0.3, 'entropy_coeff': 0.125, 'entropy_coeff_schedule': [[0, 2.0], [50000000, 0.125]], 'gamma': 0.998, 'grad_clip': 10.0, 'kl_coeff': 0.0, 'kl_target': 0.01, 'lambda': 0.98, 'lr': 1e-05, 'lr_schedule': None, 'use_gae': True, 'vf_clip_param': 50.0, 'vf_loss_coeff': 0.05, 'vf_share_layers': False, 'model': {'custom_model': 'Conv_Rnn', 'custom_model_config': {'input_emb_vocab': 20, 'idx_emb_dim': 5, 'num_conv': 2, 'num_fc': 2, 'cell_size': 256}, 'max_seq_len': 100}}, 'trainer': {'batch_mode': 'truncate_episodes', 'env_config': None, 'multiagent': None, 'seed': 22635000, 'num_gpus': 0, 'num_envs_per_worker': 2, 'num_sgd_iter': 1, 'num_workers': 7, 'shuffle_sequences': True, 'sgd_minibatch_size': 1000, 'train_batch_size': 3500, 'observation_filter': 'NoFilter', 'rollout_fragment_length': 250}}
+            dir=run_dir #'/Users/work/PycharmProjects/Carbon-Simulator/rllib/exp/defuat'
         )
-    else:
-        # Regular training as before
 
 
-        while num_parallel_episodes_done < run_config["general"]["episodes"]:
+        # Create a trainer object
+        trainer = build_trainer(run_config)
 
-            # Training
-            result = trainer.train()
-            # Get formatted metrics
-            metrics = log_custom_metrics(result)
+        # Set up directories for logging and saving. Restore if this has already been
+        # done (indicating that we're restarting a crashed run). Or, if appropriate,
+        # load in starting model weights for the agent and/or planner.
+        (
+            dense_log_dir,
+            ckpt_dir,
+            restore_from_crashed_run,
+            step_last_ckpt,
+            num_parallel_episodes_done,
+        ) = set_up_dirs_and_maybe_restore(run_dir, run_config, trainer)
 
-            # Log everything to W&B
-            wandb.log({
-                "iteration": result["training_iteration"],
-                "timesteps_total": result["timesteps_total"],
-                "episodes_total": result["episodes_total"],
-                "reward/agent": result.get("policy_reward_mean", {}).get("a", 0),
-                "reward/planner": result.get("policy_reward_mean", {}).get("p", 0),
-                **metrics  # Log all metrics including arrays
-            })
+        # ======================
+        # === Start training ===
+        # ======================
+        dense_log_frequency = run_config["general"].get("dense_log_frequency", 0)
+        ckpt_frequency = run_config["general"].get("ckpt_frequency_steps", 0)
+        global_step = int(step_last_ckpt)
+        step_last_log = 0
 
-            # === Counters++ ===
-            num_parallel_episodes_done = result["episodes_total"]
-            global_step = result["timesteps_total"]
-            curr_iter = result["training_iteration"]
+        reward_result_a, reward_result_p = [], []
 
-            logger.info(
-                "Iter %d: episodes this-iter %d total %d step -> %d/%d episodes done",
-                curr_iter,
-                result["episodes_this_iter"],
-                global_step,
-                num_parallel_episodes_done,
-                run_config["general"]["episodes"],
+        if False:
+            search_space = {
+                "lr": tune.loguniform(1e-5, 5e-4),
+                "entropy_coeff": tune.uniform(0.005, 0.01),  # Add entropy decay schedule if possible
+                "num_sgd_iter": tune.choice([5, 10]),
+                "grad_clip": tune.uniform(0.5, 3.0),
+                "vf_loss_coeff": tune.uniform(0.05, 0.1),
+                "clip_param": tune.uniform(0.1, 0.2),  # Smaller for more stable updates
+                "lambda": tune.uniform(0.95, 0.99),
+            }
+
+            algo = OptunaSearch(
+                metric="agent_reward",
+                mode="max"
+            )
+            scheduler = ASHAScheduler(
+                metric="agent_reward",
+                mode="max",
+                max_t=500,
+                grace_period=100,  # Evaluate very early
+                reduction_factor=2,
+            )
+            pgf = PlacementGroupFactory(
+                [{"CPU": 4, "GPU": 1.0}] + [{"CPU": 4}] * 7
             )
 
-            if curr_iter == 1 or result["episodes_this_iter"] > 0:
-                logger.info(pretty_print(result))
-
-            reward_result_a.append(result.get('policy_reward_mean')["a"] if result.get('policy_reward_mean') else 0)
-            reward_result_p.append(result.get('policy_reward_mean')["p"] if result.get('policy_reward_mean') else 0)
-            plot_reward(run_dir, reward_result_a, reward_result_p)
-
-            # === Dense logging ===
-            step_last_log = maybe_store_dense_log(trainer, result, dense_log_frequency, dense_log_dir, step_last_log)
-
-            # === Saving ===
-            step_last_ckpt = maybe_save(
-                trainer, result, ckpt_frequency, ckpt_dir, step_last_ckpt
+            tune.run(
+                tune.with_parameters(tune_train, run_dir=run_dir, run_config=run_config),
+                resources_per_trial=pgf,
+                config=search_space,
+                num_samples=5,
+                max_concurrent_trials=1,
+                search_alg=algo,
+                scheduler=scheduler,
+                local_dir=os.path.abspath(os.path.join(run_dir, "tune_results")),
+                name="hyperparam_tuning",
             )
-        # Finish up
-        logger.info("Completing! Saving final snapshot...\n\n")
-        # saving.save_snapshot(trainer, ckpt_dir)
-        saving.save_model_weights(trainer, ckpt_dir, global_step, suffix="agent")
-        saving.save_model_weights(trainer, ckpt_dir, global_step, suffix="planner")
-        logger.info("Final snapshot saved! All done.")
+        elif True:
 
-    ray.shutdown()  # shutdown Ray after use
-    wandb.finish()
+            while num_parallel_episodes_done < run_config["general"]["episodes"]:
+
+                # Training
+                result = trainer.train()
+                # Get formatted metrics
+                metrics = log_custom_metrics(result)
+                # Log everything to W&B
+                wandb.log({
+                    "iteration": result["training_iteration"],
+                    "timesteps_total": result["timesteps_total"],
+                    "episodes_total": result["episodes_total"],
+                    "reward/agent": result.get("policy_reward_mean", {}).get("a", 0),
+                    "reward/planner": result.get("policy_reward_mean", {}).get("p", 0),
+                    **metrics  # Log all metrics including arrays
+                })
+
+                # === Counters++ ===
+                num_parallel_episodes_done = result["episodes_total"]
+                global_step = result["timesteps_total"]
+                curr_iter = result["training_iteration"]
+                if num_parallel_episodes_done % run_config["general"]["episodes"]/50 == 0:
+                    logger.info(
+                        "Iter %d: episodes this-iter %d total %d step -> %d/%d episodes done",
+                        curr_iter,
+                        result["episodes_this_iter"],
+                        global_step,
+                        num_parallel_episodes_done,
+                        run_config["general"]["episodes"],
+                    )
+
+                if curr_iter == 1 or result["episodes_this_iter"] > 0:
+                    logger.info(pretty_print(result))
+
+                reward_result_a.append(result.get('policy_reward_mean')["a"] if result.get('policy_reward_mean') else 0)
+                reward_result_p.append(result.get('policy_reward_mean')["p"] if result.get('policy_reward_mean') else 0)
+                plot_reward(run_dir, reward_result_a, reward_result_p)
+
+                # === Dense logging ===
+                #step_last_log = maybe_store_dense_log(trainer, result, dense_log_frequency, dense_log_dir,
+                #                                     step_last_log)
+
+                # === Saving ===
+                step_last_ckpt = maybe_save(
+                    trainer, result, ckpt_frequency, ckpt_dir, step_last_ckpt
+                )
+            # Finish up
+            logger.info("Completing! Saving final snapshot...\n\n")
+            # saving.save_snapshot(trainer, ckpt_dir)
+            saving.save_model_weights(trainer, ckpt_dir, global_step, suffix="agent")
+            saving.save_model_weights(trainer, ckpt_dir, global_step, suffix="planner")
+            logger.info("Final snapshot saved! All done.")
+    finally:
+        ray.shutdown()
+        wandb.finish()
+        shutil.rmtree(temp_dir, ignore_errors=True)
