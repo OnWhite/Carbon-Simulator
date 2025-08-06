@@ -8,6 +8,7 @@ from callback import InfoMetricsCallback
 import matplotlib.pyplot as plt
 import numpy as np
 import wandb
+from torch_models import ConvRnn
 
 wandb.login(key="eea0e89ea325324e8b77b2c8e709f6ce5b26a5f5")
 import ray
