@@ -90,7 +90,7 @@ class InfoMetricsCallback(DefaultCallbacks):
                         val = fn(v)
                         if val is not None:
                             # name pattern: <AgentID>_<Metric>, e.g. 0_Coin
-                            episode.custom_metrics[f"worker_{wid}/agent_{k}/{name}"] = float(val)
+                            episode.custom_metrics[f"worker_{wid}/agent_{k}/final/{name}"] = float(val)
 
         for name, fn in self.FINAL_METRICS.items():
             metric = []
@@ -100,6 +100,6 @@ class InfoMetricsCallback(DefaultCallbacks):
                     if val is not None:
                         metric.append(float(val))
 
-            episode.custom_metrics[f"worker_{wid}/Tot_{name}"] = float(np.sum(metric))
-            episode.custom_metrics[f"worker_{wid}/Avg_{name}"] = float(np.mean(metric))
-            episode.custom_metrics[f"worker_{wid}/Med_{name}"] = float(np.median(metric))
+            episode.custom_metrics[f"worker_{wid}/final/Tot_{name}"] = float(np.sum(metric))
+            episode.custom_metrics[f"worker_{wid}/final/Avg_{name}"] = float(np.mean(metric))
+            episode.custom_metrics[f"worker_{wid}/final/Med_{name}"] = float(np.median(metric))
