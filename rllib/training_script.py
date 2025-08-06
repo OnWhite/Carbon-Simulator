@@ -3,7 +3,7 @@ import logging
 import os
 import sys
 import time
-from rllib.callback import InfoMetricsCallback
+from callback import InfoMetricsCallback
 import matplotlib.pyplot as plt
 import numpy as np
 import wandb
