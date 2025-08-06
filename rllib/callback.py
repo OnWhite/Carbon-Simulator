@@ -18,7 +18,10 @@ class InfoMetricsCallback(DefaultCallbacks):
         "Manufacture_volume": lambda info: info.get("Manufacture_volume"),
         "Carbon_idx": lambda info: info.get("inventory", {}).get("Carbon_idx"),
         # settlement_idx only exists in the special "p" info-dict
-        "Taxrate": lambda info: info.get("endogenous", {}).get("Taxation"),
+        "settlement_idx": lambda info: (
+            None if "settlement_idx" not in info
+            else float(np.sum(info["settlement_idx"]))
+        ),
     }
 
     FINAL_METRICS = {
@@ -35,7 +38,6 @@ class InfoMetricsCallback(DefaultCallbacks):
     def on_episode_step(
             self, *, worker, base_env, policies, episode: Episode, **kwargs
     ):
-
         # tracs metrics in Step_Metrics every step per worker for all agents
         infos = episode._last_infos
         if not infos:
@@ -48,19 +50,11 @@ class InfoMetricsCallback(DefaultCallbacks):
             if not isinstance(agent_info, dict):
                 continue
             for name, fn in self.STEP_METRICS.items():
-                if name == "Taxrate" and agent_id == "1":
-                    value = fn(agent_info)
-                    if value is None:
-                        continue
-                    key = f"worker_{wid}/agent_{agent_id}/{name}"
-                    episode.user_data.setdefault(key, []).append(value)
-                elif name != "Taxrate":
-                    value = fn(agent_info)
-                    if value is None:
-                        continue
-                    key = f"worker_{wid}/agent_{agent_id}/{name}"
-                    episode.user_data.setdefault(key, []).append(value)
-
+                value = fn(agent_info)
+                if value is None:
+                    continue
+                key = f"worker_{wid}/agent_{agent_id}/{name}"
+                episode.user_data.setdefault(key, []).append(value)
     def on_episode_end(
             self, *, worker, base_env, policies, episode: Episode, **kwargs
     ):
@@ -70,14 +64,15 @@ class InfoMetricsCallback(DefaultCallbacks):
         for key, series in episode.user_data.items():
             if not key.startswith(f"worker_{wid}/") or not series:
                 continue
-            base = key.split("/", 2)[2]  # drop "worker_X/agent_Y/"
+            base = key.split("/", 2)[2] # drop "worker_X/agent_Y/"
             series = np.asarray(series, dtype=float)
 
             episode.custom_metrics[f"worker_{wid}/Avg_{base}"] = float(np.mean(series))
             episode.custom_metrics[f"worker_{wid}/Med_{base}"] = float(np.median(series))
             episode.custom_metrics[f"worker_{wid}/Tot_{base}"] = float(np.sum(series))
 
-        if wid == self.worker_id:
+
+        if wid==self.worker_id:
             print("in episode. wid:", wid, "user_data:", episode.user_data)
             for key, series in episode.user_data.items():
                 if not key.startswith(f"worker_{wid}/") or not series:

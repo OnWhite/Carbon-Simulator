@@ -3,13 +3,14 @@ import logging
 import os
 import sys
 import time
-from callback import InfoMetricsCallback
-import torch_models # don't remove this import, it registers the custom model
+from rllib.callback import InfoMetricsCallback
 import matplotlib.pyplot as plt
 import numpy as np
 import wandb
 wandb.login(key="eea0e89ea325324e8b77b2c8e709f6ce5b26a5f5")
 import ray
+from torch_models import ConvRnn
+
 from ray import train
 import utils.saving as saving
 import yaml
