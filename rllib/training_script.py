@@ -4,8 +4,7 @@ import os
 import sys
 import shutil
 import time
-from callback import InfoMetricsCallback
-import torch_models  # don't remove this import, it registers the custom model
+from rllib.callback import InfoMetricsCallback
 import matplotlib.pyplot as plt
 import numpy as np
 import wandb
@@ -17,7 +16,7 @@ import utils.saving as saving
 import yaml
 from env_wrapper import RLlibEnvWrapper
 from ray.rllib.algorithms.ppo import PPOConfig
-from ray.tune.logger import NoopLogger, pretty_print
+from ray.tune.logger import NoopLogger
 
 logging.basicConfig(stream=sys.stdout, format="%(asctime)s %(message)s")
 logger = logging.getLogger("main")
