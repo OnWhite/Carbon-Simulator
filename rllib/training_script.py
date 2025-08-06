@@ -470,15 +470,15 @@ if __name__ == "__main__":
                     num_parallel_episodes_done = result["episodes_total"]
                     global_step = result["timesteps_total"]
                     curr_iter = result["training_iteration"]
-
-                    logger.info(
-                        "Iter %d: episodes this-iter %d total %d step -> %d/%d episodes done",
-                        curr_iter,
-                        result["episodes_this_iter"],
-                        global_step,
-                        num_parallel_episodes_done,
-                        run_config["general"]["episodes"],
-                    )
+                    if num_parallel_episodes_done % run_config["general"]["episodes"]/50 == 0:
+                        logger.info(
+                            "Iter %d: episodes this-iter %d total %d step -> %d/%d episodes done",
+                            curr_iter,
+                            result["episodes_this_iter"],
+                            global_step,
+                            num_parallel_episodes_done,
+                            run_config["general"]["episodes"],
+                        )
 
                     if curr_iter == 1 or result["episodes_this_iter"] > 0:
                         logger.info(pretty_print(result))
@@ -488,8 +488,8 @@ if __name__ == "__main__":
                     plot_reward(run_dir, reward_result_a, reward_result_p)
 
                     # === Dense logging ===
-                    step_last_log = maybe_store_dense_log(trainer, result, dense_log_frequency, dense_log_dir,
-                                                          step_last_log)
+                    #step_last_log = maybe_store_dense_log(trainer, result, dense_log_frequency, dense_log_dir,
+                    #                                     step_last_log)
 
                     # === Saving ===
                     step_last_ckpt = maybe_save(
