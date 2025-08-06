@@ -79,7 +79,7 @@ class InfoMetricsCallback(DefaultCallbacks):
                     continue
                 agent, name = key.split("/", 2)[1], key.split("/", 2)[2]
                 series = np.asarray(series, dtype=float)
-                episode.custom_metrics[f"worker_{wid}/agent_{agent}/{name}"] = series.tolist()
+                episode.custom_metrics[f"worker_{wid}/agent_{agent}/Raw_{name}"] = series.tolist()
                 episode.custom_metrics[f"worker_{wid}/agent_{agent}/Med_{name}"] = float(np.median(series))
 
         # ---- final metrics for the tracked worker showing all agents ----------------
