@@ -298,7 +298,6 @@ def log_custom_metrics(result):
 
     return metrics_dict
 
-    return metrics_dict
 def create_unique_temp_dir():
     """Create a unique temp directory for this run"""
     timestamp = time.strftime("%Y%m%d-%H%M%S")
