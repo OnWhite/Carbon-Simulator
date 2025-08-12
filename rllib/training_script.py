@@ -7,6 +7,7 @@ from callback import InfoMetricsCallback
 import matplotlib.pyplot as plt
 import numpy as np
 import wandb
+import shutil
 wandb.login(key="eea0e89ea325324e8b77b2c8e709f6ce5b26a5f5")
 import ray
 from torch_models import ConvRnn
@@ -268,35 +269,38 @@ def tune_train(config, run_dir="exp", run_config=None):
             "agent_reward": agent_reward,
         })
 def log_custom_metrics(result):
-    """Helper function to format and log all custom metrics to W&B"""
-    metrics_dict = {}
+    """Format RLlib custom metrics for W&B with media types."""
+    metrics = {}
+    cm = result.get("custom_metrics", {})
 
-    # Get custom metrics
-    custom_metrics = result.get("custom_metrics", {})
-
-    # Format each metric for W&B
-    for key, value in custom_metrics.items():
-        # Skip if value is None
-        if value is None:
-            continue
-        elif isinstance(value, list) and len(value) == 1:
-            value = value[0]
-
-        # Handle lists - convert to numpy array for proper logging
-        if isinstance(value, list):
-            metrics_dict[key] = np.array(value)
+    for key, val in cm.items():
+        if val is None:
             continue
 
-        # Convert numpy values to native Python types
-        if isinstance(value, (np.float32, np.float64)):
-            value = float(value)
-        elif isinstance(value, (np.int32, np.int64)):
-            value = int(value)
+        # Lists/arrays -> media
+        if isinstance(val, (list, np.ndarray)):
+            arr = np.asarray(val)
+            if arr.ndim == 1:
+                # Recreates the automatic histogram panel
+                metrics[f"hist/{key}"] = wandb.Histogram(arr)
+            elif arr.ndim == 2:
+                # Heat map as an image
+                fig, ax = plt.subplots()
+                ax.imshow(arr, aspect="auto")
+                ax.set_title(key)
+                fig.tight_layout()
+                metrics[f"heatmap/{key}"] = wandb.Image(fig)
+                plt.close(fig)
+            # Higher dims: skip or reduce as needed
+            continue
 
-        # Add formatted scalar metric
-        metrics_dict[key] = value
+        # Scalars stay scalars
+        if isinstance(val, (np.floating, np.integer)):
+            val = val.item()
+        metrics[key] = val
 
-    return metrics_dict
+    return metrics
+
 
 def create_unique_temp_dir():
     """Create a unique temp directory for this run"""
@@ -404,15 +408,14 @@ if __name__ == "__main__":
                 result = trainer.train()
                 # Get formatted metrics
                 metrics = log_custom_metrics(result)
-                # Log everything to W&B
                 wandb.log({
                     "iteration": result["training_iteration"],
                     "timesteps_total": result["timesteps_total"],
                     "episodes_total": result["episodes_total"],
                     "reward/agent": result.get("policy_reward_mean", {}).get("a", 0),
                     "reward/planner": result.get("policy_reward_mean", {}).get("p", 0),
-                    **metrics  # Log all metrics including arrays
-                })
+                    **metrics
+                }, step=result["episodes_total"])  # <-- add step to align by episode
 
                 # === Counters++ ===
                 num_parallel_episodes_done = result["episodes_total"]
