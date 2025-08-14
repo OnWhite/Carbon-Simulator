@@ -53,11 +53,11 @@ env:
 general:
   ckpt_frequency_steps: 500
   cpus: 32
-  episodes: 1000000
+  episodes: 250000
   gpus: 1
-  restore_weights_agents: '/nas/ucb/sophialudewig/Carbon-Simulator/rllib/exp/pl1/agent.weights.train-step-62500'
+  restore_weights_agents: '/nas/ucb/sophialudewig/Carbon-Simulator/rllib/exp/defuat/ckpts13/agent.weights.train-step-15500'
   restore_weights_planner: ''
-  train_planner: false
+  train_planner: true #changed
   fix_mobile: false
   dense_log_frequency: 250
 
@@ -122,14 +122,13 @@ trainer:
   multiagent: null
   seed: 22635000
   num_gpus: 1
-  num_envs_per_worker: 20
+  num_envs_per_worker: 2
   num_sgd_iter: 1
-  num_workers: 40
-
+  num_workers: 16
 
   shuffle_sequences: true
-  sgd_minibatch_size: 4000
-  train_batch_size: 200000
+  sgd_minibatch_size: 2000
+  train_batch_size: 8000
 
   observation_filter: NoFilter
   rollout_fragment_length: 250
