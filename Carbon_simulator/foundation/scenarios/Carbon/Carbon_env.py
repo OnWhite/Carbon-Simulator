@@ -12,7 +12,7 @@ class Carbon_env(BaseEnvironment):
 
     name = "Carbon/Carbon_env"
     agent_subclasses = ["BasicMobileAgent", "BasicPlanner"]
-    required_entities = ["Carbon_idx", "Carbon_emission", "Coin", "Property", "Carbon_pollution", "Labor", "Carbon_project", "Green_project"]
+    required_entities = ["Carbon_idx", "Carbon_emission", "Coin", "Property", "Carbon_pollution", "Labor"]
 
     def __init__(
             self,
@@ -115,15 +115,15 @@ class Carbon_env(BaseEnvironment):
 
         return curr_optimization_metric
 
-    def make_source_prob_maps(self):
-        """
+    """def make_source_prob_maps(self):
+        
         Make maps specifying how likely each location is to be assigned as a resource
         source tile.
 
         Returns:
             source_prob_maps (dict): Contains a source probability map for both
                 stone and wood
-        """
+        
         prob_gradient = (
                 np.arange(self.world_size[0])[:, None].repeat(self.world_size[1], axis=1)
                 ** self.gradient_steepness
@@ -132,7 +132,7 @@ class Carbon_env(BaseEnvironment):
 
         return {
             "Carbon_project": prob_gradient * self.layout_specs["Carbon_project"]["starting_coverage"],
-        }
+        }"""
 
     # The following methods must be implemented for each scenario
     # -----------------------------------------------------------
@@ -197,6 +197,8 @@ class Carbon_env(BaseEnvironment):
         regeneration.
         """
 
+    def make_source_prob_maps(self):
+        return {}
     def generate_observations(self):
         """
         Generate observations associated with this scenario.

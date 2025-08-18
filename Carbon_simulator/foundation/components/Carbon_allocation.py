@@ -8,7 +8,7 @@ from Carbon_simulator.foundation.base.base_component import (
 @component_registry.add
 class CarbonRedistribution(BaseComponent):
     name = "CarbonRedistribution"
-    required_entities = ["Carbon_idx", "Carbon_project"]
+    required_entities = ["Carbon_idx"]
     agent_subclasses = ["BasicMobileAgent", "BasicPlanner"]
 
     """
@@ -69,7 +69,7 @@ class CarbonRedistribution(BaseComponent):
         if agent_cls_name == "BasicPlanner":
             return {"punishment": 0,
                     "year_num": 0,
-                    "env_idx": [0 * self._episode_length / self.period],
+                    "env_idx": 0, #changed
                     "mobile_idx": [[0 * self._episode_length / self.period] * self.n_agents],
                     "average_Er": 1
                     }
@@ -133,13 +133,13 @@ class CarbonRedistribution(BaseComponent):
                 # env_idx = 10% of this year total idx, this year total idx = self.total_idx * total_percent/100
                 year_idx = self.total_idx * total_percent / 100
 
-                world.planner.state["env_idx"] = int(year_idx / 10)
+                world.planner.state["env_idx"] = 0
                 for i in range(self.n_agents):
                     # mobile_idx = idx_action[i] // sum(idx_action) * 0.9 * this year total idx
                     if sum(idx_action):
-                        world.planner.state["mobile_idx"][i] = int(year_idx * 9 / 10 * idx_action[i] / sum(idx_action))
+                        world.planner.state["mobile_idx"][i] = int(year_idx * idx_action[i] / sum(idx_action))
                     else:
-                        world.planner.state["mobile_idx"][i] = int(year_idx * 9 / 10 / self.n_agents)
+                        world.planner.state["mobile_idx"][i] = int(year_idx / self.n_agents)
 
                 world.planner.state["remained_idx"] -= self.world.planner.state["env_idx"] + sum(
                     self.world.planner.state["mobile_idx"])
@@ -181,13 +181,13 @@ class CarbonRedistribution(BaseComponent):
                 # Divide the Carbon-idx to agents
 
                 year_idx = self.total_idx * total_percent / 100
-                world.planner.state["env_idx"] = int(year_idx / 10)
+                world.planner.state["env_idx"] = 0
                 for i in range(self.n_agents):
                     # mobile_idx = idx_action[i] // sum(idx_action) * 0.9 * this year total idx
                     if sum(idx_action):
-                        world.planner.state["mobile_idx"][i] = int(year_idx * 9 / 10 * idx_action[i] / sum(idx_action))
+                        world.planner.state["mobile_idx"][i] = int(year_idx * idx_action[i] / sum(idx_action))
                     else:
-                        world.planner.state["mobile_idx"][i] = int(year_idx * 9 / 10 / self.n_agents)
+                        world.planner.state["mobile_idx"][i] = int(year_idx / self.n_agents)
 
                 if self.agents_predefined == "grandfathering_ml":
                     sorted_V = sorted(world.agents,
@@ -228,8 +228,8 @@ class CarbonRedistribution(BaseComponent):
                 r = np.random.randint(world.world_size[0])
                 c = np.random.randint(world.world_size[1])
                 if empty[r, c]:
-                    world.maps.set_point("Carbon_project", r, c, 1)
-                    world.maps.set_point("Carbon_projectSourceBlock", r, c, 1)
+                    #world.maps.set_point("Carbon_project", r, c, 1)
+                    #world.maps.set_point("Carbon_projectSourceBlock", r, c, 1)
                     empty = world.maps.empty
                     project_num += 1
 
@@ -266,7 +266,6 @@ class CarbonRedistribution(BaseComponent):
             "year_num": self.world.planner.state["year_num"],
             "env_idx": self.world.planner.state["env_idx"],
             "mobile_idx": self.world.planner.state["mobile_idx"],
-            "agents_Research_ability": [agent.state["Research_ability"] for agent in self.world.agents],
             "agents_volume": [agent.state["Manufacture_volume"] for agent in self.world.agents],
             "agents_emission_rate": [agent.state["Carbon_emission_rate"] for agent in self.world.agents],
             "settlement_idx": self.world.planner.state["settlement_idx"],

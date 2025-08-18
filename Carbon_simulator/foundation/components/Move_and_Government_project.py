@@ -11,7 +11,7 @@ from Carbon_simulator.foundation.base.base_component import (
 class Gather(BaseComponent):
 
     name = "Gather"
-    required_entities = ["Carbon_idx", "Carbon_emission", "Coin", "Green_project", "Labor"]
+    required_entities = ["Carbon_idx", "Carbon_emission", "Coin", "Labor"]
     agent_subclasses = ["BasicMobileAgent"]
 
     def __init__(
@@ -37,7 +37,7 @@ class Gather(BaseComponent):
         self.collect_idx = float(collect_idx)
         assert self.collect_idx >= 0
 
-        self.gathers = []
+        #self.gathers = []
 
         self._aidx = np.arange(self.n_agents)[:, None].repeat(4, axis=1)
         self._roff = np.array([[0, 0, -1, 1]])
@@ -79,7 +79,7 @@ class Gather(BaseComponent):
         de-populating it from the tile.
         """
         world = self.world
-        gathers = []
+        # gathers = []
         if self.world.timestep % self.period != 1:
             for agent in world.get_random_order_agents():
 
@@ -105,7 +105,7 @@ class Gather(BaseComponent):
 
                     # Attempt to move the agent (if the new coordinates aren't accessible,
                     # nothing will happen)
-                    for resource, health in world.location_resources(new_r, new_c).items():
+                    """for resource, health in world.location_resources(new_r, new_c).items():
                         if resource == "Carbon_project" and health >= 1:
                             if agent.state["inventory"]["Coin"]>self.collect_cost_coin:
                                 agent.state["inventory"][resource] += world.location_resources(new_r, new_c)[resource]
@@ -127,9 +127,7 @@ class Gather(BaseComponent):
                                         loc=[new_r, new_c],
                                     )
                                 )
-                            else:
-                                new_r, new_c = r, c
-
+                            else:"""
 
                     new_r, new_c = world.set_agent_loc(agent, new_r, new_c)
 
@@ -142,7 +140,7 @@ class Gather(BaseComponent):
 
 
 
-        self.gathers.append(gathers)
+        #self.gathers.append(gathers)
 
     def generate_observations(self):
         """
@@ -186,7 +184,7 @@ class Gather(BaseComponent):
         Re-sample agents' collection skills.
         """
 
-        self.gathers = []
+        #self.gathers = []
 
     def get_dense_log(self):
         """
@@ -198,4 +196,4 @@ class Gather(BaseComponent):
                 occurred on that timestep.
 
         """
-        return self.gathers
+        #return self.gathers
