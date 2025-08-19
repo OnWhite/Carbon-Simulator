@@ -44,8 +44,12 @@ class InfoMetricsCallback(DefaultCallbacks):
             return
 
         wid = worker.worker_index
+        pprint(infos.items)
         for agent_id, agent_info in infos.items():
             if agent_id == 'p':
+                print(agent_id+" ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+                pprint(agent_info)
+                print(" +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
                 continue
             if not isinstance(agent_info, dict):
                 continue
