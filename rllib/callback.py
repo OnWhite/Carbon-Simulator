@@ -86,7 +86,9 @@ class InfoMetricsCallback(DefaultCallbacks):
             series = np.asarray(series, dtype=float)
             arr.append(float(np.median(series)))
             arr2.append(float(np.mean(series)))
-
+        print("--------------------------------------------------------")
+        print("end of episode metrics")
+        print(wid<=self.worker_id)
         if wid<=self.worker_id:
             print("--------------------------------------------------------1")
             print("in episode. wid:", wid, "user_data:", episode.user_data)
@@ -99,7 +101,6 @@ class InfoMetricsCallback(DefaultCallbacks):
                 episode.custom_metrics[f"worker_{wid}/agent_{agent}/Med_{name}"] = float(np.median(series))
 
         # ---- final metrics for the tracked worker showing all agents ----------------
-        if wid<=self.worker_id:
             print("--------------------------------------------------------2")
             for k, v in episode._last_infos.items():
                 if k != 'p':
