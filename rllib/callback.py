@@ -52,7 +52,7 @@ class InfoMetricsCallback(DefaultCallbacks):
                 print(" +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
                 mobile_idx_list = agent_info.get('mobile_idx', [])
                 print(f"Full mobile_idx list: {mobile_idx_list}")
-                for i in range (0,agent_info.get('mobile_idx', []).length-1):
+                for i in range(0, agent_info.get('mobile_idx', []).length - 1):
                     key = f"worker_{wid}/agent_{i}/Certificates_Allocated"
                     episode.user_data.setdefault(key, []).append(mobile_idx_list[i])
                 continue
