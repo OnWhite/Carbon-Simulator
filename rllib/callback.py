@@ -85,7 +85,7 @@ class InfoMetricsCallback(DefaultCallbacks):
                 curr_base = base
             series = np.asarray(series, dtype=float)
             arr.append(float(np.median(series)))
-            arr2.append(float(np.avg(series)))
+            arr2.append(float(np.mean(series)))
 
         if wid<=self.worker_id:
             print("--------------------------------------------------------1")
