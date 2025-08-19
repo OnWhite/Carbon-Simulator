@@ -50,6 +50,11 @@ class InfoMetricsCallback(DefaultCallbacks):
                 print(agent_id+" ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
                 pprint(agent_info)
                 print(" +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+                mobile_idx_list = agent_info.get('mobile_idx', [])
+                print(f"Full mobile_idx list: {mobile_idx_list}")
+                for i in range (0,agent_info.get('mobile_idx', []).length-1):
+                    key = f"worker_{wid}/agent_{i}/Certificates_Allocated"
+                    episode.user_data.setdefault(key, []).append(mobile_idx_list[i])
                 continue
             if not isinstance(agent_info, dict):
                 continue
@@ -65,18 +70,25 @@ class InfoMetricsCallback(DefaultCallbacks):
         wid = worker.worker_index
 
         # ---- step metrics: avg / median / total -----------------
+        curr_base=""
+        arr= []
+        arr2 = []
         for key, series in episode.user_data.items():
             if not key.startswith(f"worker_{wid}/") or not series:
                 continue
+
             base = key.split("/", 2)[2] # drop "worker_X/agent_Y/"
+            if base != curr_base:
+                if base!= "":
+                    episode.custom_metrics[f"worker_{wid}/Med_{base}"] = float(np.median(arr))
+                    episode.custom_metrics[f"worker_{wid}/Avg_{base}"] = float(np.mean(arr2))
+                curr_base = base
             series = np.asarray(series, dtype=float)
+            arr.append(float(np.median(series)))
+            arr2.append(float(np.avg(series)))
 
-            episode.custom_metrics[f"worker_{wid}/Avg_{base}"] = float(np.mean(series))
-            episode.custom_metrics[f"worker_{wid}/Med_{base}"] = float(np.median(series))
-            episode.custom_metrics[f"worker_{wid}/Tot_{base}"] = float(np.sum(series))
-
-
-        if wid==self.worker_id:
+        if wid<=self.worker_id:
+            print("--------------------------------------------------------1")
             print("in episode. wid:", wid, "user_data:", episode.user_data)
             for key, series in episode.user_data.items():
                 if not key.startswith(f"worker_{wid}/") or not series:
@@ -87,7 +99,8 @@ class InfoMetricsCallback(DefaultCallbacks):
                 episode.custom_metrics[f"worker_{wid}/agent_{agent}/Med_{name}"] = float(np.median(series))
 
         # ---- final metrics for the tracked worker showing all agents ----------------
-        if str(wid) == str(self.worker_id):
+        if wid<=self.worker_id:
+            print("--------------------------------------------------------2")
             for k, v in episode._last_infos.items():
                 if k != 'p':
                     for name, fn in self.FINAL_METRICS.items():
