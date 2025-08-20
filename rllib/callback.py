@@ -95,7 +95,8 @@ class InfoMetricsCallback(DefaultCallbacks):
             arr2.append(float(np.mean(series)))
 
         episode.custom_metrics[f"worker_{wid}/Remaining_Manufacturing_Potential"] = float(np.sum(arr3)/np.sum(arr1)) if np.sum(arr1) != 0 else 0.0
-        print(float(np.sum(arr4)/(np.sum(arr4)+np.sum(arr5))))
+        print("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
+        print(float(np.sum(arr4)/(np.sum(arr4)+np.sum(arr5)))if np.sum(arr4)+np.sum(arr5) != 0 else 0.0)
         episode.custom_metrics[f"worker_{wid}/ProfitMargin"]=float(np.sum(arr4)/(np.sum(arr4)+np.sum(arr5))) if np.sum(arr4)+np.sum(arr5) != 0 else 0.0
 
         if wid<=self.worker_id:
@@ -120,7 +121,9 @@ class InfoMetricsCallback(DefaultCallbacks):
                     val3[agent]= float(np.sum(series))
             for agent, value in val.items():
                 episode.custom_metrics[f"worker_{wid}/agent_{agent}/Remaining_Manufacturing_Potential"]=float(val1[agent]/value) if value != 0 and agent in val1 else 0.0
-                print(float(val2[agent]/(val2[agent]+val3[agent])))
+                print("kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk")
+                print(val2[agent], val3[agent])
+                print(float(val2[agent]/(val2[agent]+val3[agent])) if (val2[agent]+val3[agent])!=0 and agent in val2 and agent in val3 else 0.0)
                 episode.custom_metrics[f"worker_{wid}/agent_{agent}/ProfitMargin"] = float(val2[agent]/(val2[agent]+val3[agent])) if (val2[agent]+val3[agent])!=0 and agent in val2 and agent in val3 else 0.0
 
             # ---- final metrics for the tracked worker showing all agents ----------------
