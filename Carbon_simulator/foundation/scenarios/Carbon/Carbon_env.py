@@ -12,7 +12,7 @@ class Carbon_env(BaseEnvironment):
 
     name = "Carbon/Carbon_env"
     agent_subclasses = ["BasicMobileAgent", "BasicPlanner"]
-    required_entities = ["Carbon_idx", "Carbon_emission", "Coin", "Property", "Carbon_pollution", "Labor"]
+    required_entities = ["Carbon_idx", "Carbon_emission", "Coin", "Property", "Carbon_pollution", "Labor", "Costs", "Profit"]
 
     def __init__(
             self,
