@@ -107,6 +107,9 @@ class Carbon_env(BaseEnvironment):
             agent.state["endogenous"]["Costs"] = agent.state["endogenous"]["Costs"] + (agent.state["endogenous"]["Labor"] * self.energy_weight * self.energy_cost)
             agent.state["endogenous"]["Revenue"] = agent.state["endogenous"]["Profit"]
             agent.state["endogenous"]["Profit"] = agent.state["endogenous"]["Profit"] - agent.state["endogenous"]["Costs"]
+            agent.state["inventory"]["Cost"] = 0
+            agent.state["endogenous"]["Profit"] = 0
+            agent.state["inventory"]["Revenue"] = 0
         # (for the planner)
         curr_optimization_metric[self.world.planner.idx] = rewards.planner_strategy(
             coin_endowments=np.array(
