@@ -103,6 +103,8 @@ class Carbon_env(BaseEnvironment):
                 isoelastic_eta=self.isoelastic_eta,
                 labor_coefficient=self.energy_weight * self.energy_cost,
             )
+            agent.state["endogenous"]["Costs"] = agent.state["endogenous"]["Costs"] + agent.state["endogenous"]["Labor"] * self.energy_weight * self.energy_cost
+            agent.state["endogenous"]["Profit"] = - agent.state["endogenous"]["Costs"]
         # (for the planner)
         curr_optimization_metric[self.world.planner.idx] = rewards.planner_strategy(
             coin_endowments=np.array(

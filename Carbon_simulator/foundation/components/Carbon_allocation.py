@@ -8,7 +8,7 @@ from Carbon_simulator.foundation.base.base_component import (
 @component_registry.add
 class CarbonRedistribution(BaseComponent):
     name = "CarbonRedistribution"
-    required_entities = ["Carbon_idx"]
+    required_entities = ["Carbon_idx, Costs, Coin"]
     agent_subclasses = ["BasicMobileAgent", "BasicPlanner"]
 
     """
@@ -86,6 +86,8 @@ class CarbonRedistribution(BaseComponent):
                 if agent.state["inventory"]["Carbon_idx"] < 0:
                     punishment = world.planner.state["punishment"] * abs(agent.state["inventory"]["Carbon_idx"])
                     agent.state["inventory"]["Coin"] -= punishment
+                    agent.state["endogenous"]["Costs"] +=punishment
+
 
             sum_Er = 0
             for agent in world.agents:

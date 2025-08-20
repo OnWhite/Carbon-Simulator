@@ -35,3 +35,15 @@ class Carbon_emission(Endogenous):
     """Labor accumulated through working. Included in all environments by default."""
 
     name = "Carbon_emission"
+
+@endogenous_registry.add
+class Costs(Endogenous):
+    """Costs associated with various activities, such as manufacturing or research."""
+
+    name = "Costs"
+
+@endogenous_registry.add
+class Profit(Endogenous):
+    """Profit generated from activities such as manufacturing / carbontrade."""
+
+    name = "Profit"
