@@ -47,3 +47,9 @@ class Profit(Endogenous):
     """Profit generated from activities such as manufacturing / carbontrade."""
 
     name = "Profit"
+
+@endogenous_registry.add
+class Revenue(Endogenous):
+    """Profit generated from activities such as manufacturing / carbontrade."""
+
+    name = "Revenue"
