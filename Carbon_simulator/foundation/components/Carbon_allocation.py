@@ -8,7 +8,7 @@ from Carbon_simulator.foundation.base.base_component import (
 @component_registry.add
 class CarbonRedistribution(BaseComponent):
     name = "CarbonRedistribution"
-    required_entities = ["Carbon_idx, Costs, Coin"]
+    required_entities = ["Carbon_idx, Coin"]
     agent_subclasses = ["BasicMobileAgent", "BasicPlanner"]
 
     """
