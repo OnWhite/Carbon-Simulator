@@ -22,6 +22,8 @@ class InfoMetricsCallback(DefaultCallbacks):
             None if "settlement_idx" not in info
             else float(np.sum(info["settlement_idx"]))
         ),
+        "Profit": lambda info: info.get("endogenous", {}).get("Profit"),
+        "Costs": lambda info: info.get("endogenous", {}).get("Costs"),
     }
 
     FINAL_METRICS = {
@@ -68,10 +70,8 @@ class InfoMetricsCallback(DefaultCallbacks):
 
         # ---- step metrics: avg / median / total -----------------
         curr_base=""
-        arr = []
-        arr1 = []
-        arr3 = []
-        arr2 = []
+        arr, arr1, arr3, arr2, arr4, arr5 = [], [], [], [], [], []
+
         for key, series in episode.user_data.items():
             if not key.startswith(f"worker_{wid}/") or not series:
                 continue
@@ -88,13 +88,20 @@ class InfoMetricsCallback(DefaultCallbacks):
                 arr1.append(float(np.sum(series)))
             elif base == "Carbon_idx":
                 arr3.append(float(np.sum(series)))
+            elif base == "Profit":
+                arr4.append(float(np.sum(series)))
+            elif base == "Costs":
+                arr5.append(float(np.sum(series)))
             arr2.append(float(np.mean(series)))
-        episode.custom_metrics[f"worker_{wid}/Remaining_Manufacturing_Potential"] = float(np.sum(arr3)/np.sum(arr1)) if np.sum(arr1) != 0 else 0.0
 
+        episode.custom_metrics[f"worker_{wid}/Remaining_Manufacturing_Potential"] = float(np.sum(arr3)/np.sum(arr1)) if np.sum(arr1) != 0 else 0.0
+        episode.custom_metrics[f"worker_{wid}/ProfitMargin"]=float(np.sum(arr4)/(np.sum(arr4)+np.sum(arr5))) if np.sum(arr4)+np.sum(arr5) != 0 else 0.0
 
         if wid<=self.worker_id:
             val={}
             val1={}
+            val2={}
+            val3={}
             for key, series in episode.user_data.items():
                 if not key.startswith(f"worker_{wid}/") or not series:
                     continue
@@ -106,10 +113,15 @@ class InfoMetricsCallback(DefaultCallbacks):
                     val[agent]= float(np.sum(series))
                 elif name == "Carbon_idx" and agent != "p":
                     val1[agent] = float(np.sum(series))
+                elif name == "Profit" and agent!="p":
+                    val2[agent]= float(np.sum(series))
+                elif name=="Costs" and agent!="p":
+                    val3[agent]= float(np.sum(series))
             for agent, value in val.items():
                 episode.custom_metrics[f"worker_{wid}/agent_{agent}/Remaining_Manufacturing_Potential"]=float(val1[agent]/value) if value != 0 and agent in val1 else 0.0
+                episode.custom_metrics[f"worker_{wid}/agent_{agent}/ProfitMargin"] = float(val2[agent]/(val2[agent]+val3[agent])) if (val2[agent]+val3[agent])!=0 and agent in val2 and agent in val3 else 0.0
 
-        # ---- final metrics for the tracked worker showing all agents ----------------
+            # ---- final metrics for the tracked worker showing all agents ----------------
             for k, v in episode._last_infos.items():
                 if k != 'p':
                     for name, fn in self.FINAL_METRICS.items():
