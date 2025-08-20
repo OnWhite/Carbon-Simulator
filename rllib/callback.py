@@ -71,8 +71,12 @@ class InfoMetricsCallback(DefaultCallbacks):
 
         # ---- step metrics: avg / median / total -----------------
         curr_base=""
-        arr, arr1, arr3, arr2, arr4, arr5 = [], [], [], [], [], []
-
+        arr = []
+        arr1 = []
+        arr2 = []
+        arr3 = []
+        arr4 = []
+        arr5 = []
         for key, series in episode.user_data.items():
             if not key.startswith(f"worker_{wid}/") or not series:
                 continue
