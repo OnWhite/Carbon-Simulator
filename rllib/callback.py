@@ -77,7 +77,11 @@ class InfoMetricsCallback(DefaultCallbacks):
         arr3 = []
         arr4 = []
         arr5 = []
-        for key, series in episode.user_data.items():
+        items = sorted(
+            episode.user_data.items(),
+            key=lambda kv: (kv[0].split("/")[1], kv[0].split("/", 2)[2])
+        )
+        for key, series in items:
             if not key.startswith(f"worker_{wid}/") or not series:
                 continue
 
@@ -86,6 +90,8 @@ class InfoMetricsCallback(DefaultCallbacks):
                 if base!= "":
                     episode.custom_metrics[f"worker_{wid}/Med_{base}"] = float(np.median(arr))
                     episode.custom_metrics[f"worker_{wid}/Avg_{base}"] = float(np.mean(arr2))
+                arr = []
+                arr2 = []
                 curr_base = base
             series = np.asarray(series, dtype=float)
             arr.append(float(np.median(series)))
@@ -98,6 +104,9 @@ class InfoMetricsCallback(DefaultCallbacks):
             elif base == "Costs":
                 arr5.append(float(np.sum(series)))
             arr2.append(float(np.mean(series)))
+        if curr_base is not None and arr:
+            episode.custom_metrics[f"worker_{wid}/Med_{curr_base}"] = float(np.median(arr))
+            episode.custom_metrics[f"worker_{wid}/Avg_{curr_base}"] = float(np.mean(arr2))
 
         episode.custom_metrics[f"worker_{wid}/Remaining_Manufacturing_Potential"] = float(np.sum(arr3)/np.sum(arr1)) if np.sum(arr1) != 0 else 0.0
         print(f"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb{float(np.sum(arr4)/(np.sum(arr4)+np.sum(arr5)))if np.sum(arr4)+np.sum(arr5) != 0 else 0.0}")
@@ -108,6 +117,7 @@ class InfoMetricsCallback(DefaultCallbacks):
             val1={}
             val2={}
             val3={}
+
             for key, series in episode.user_data.items():
                 if not key.startswith(f"worker_{wid}/") or not series:
                     continue
