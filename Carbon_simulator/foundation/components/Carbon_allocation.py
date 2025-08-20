@@ -87,6 +87,7 @@ class CarbonRedistribution(BaseComponent):
                     punishment = world.planner.state["punishment"] * abs(agent.state["inventory"]["Carbon_idx"])
                     agent.state["inventory"]["Coin"] -= punishment
                     agent.state["endogenous"]["Costs"] +=punishment
+                    print("It acutally reaches Costs and Coin here")
 
 
             sum_Er = 0
