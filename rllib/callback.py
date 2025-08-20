@@ -24,6 +24,7 @@ class InfoMetricsCallback(DefaultCallbacks):
         ),
         "Profit": lambda info: info.get("endogenous", {}).get("Profit"),
         "Costs": lambda info: info.get("endogenous", {}).get("Costs"),
+        "Revenue": lambda info: info.get("endogenous", {}).get("Revenue"),
     }
 
     FINAL_METRICS = {
