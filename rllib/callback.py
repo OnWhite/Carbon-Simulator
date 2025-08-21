@@ -14,7 +14,6 @@ class InfoMetricsCallback(DefaultCallbacks):
 
     STEP_METRICS = {
         # name               extractor – receives the agent_info dict
-        "Research_count_1": lambda info: info.get("Research_count", [0, 0])[1],
         "Manufacture_volume": lambda info: info.get("Manufacture_volume"),
         "Carbon_idx": lambda info: info.get("inventory", {}).get("Carbon_idx"),
         # settlement_idx only exists in the special "p" info-dict
@@ -30,7 +29,6 @@ class InfoMetricsCallback(DefaultCallbacks):
     FINAL_METRICS = {
         "Coin": lambda info: info.get("inventory", {}).get("Coin"),
         "Labor": lambda info: info.get("endogenous", {}).get("Labor"),
-        "Carbon_project": lambda info: info.get("inventory", {}).get("Carbon_project"),
         "Carbon_emission": lambda info: info.get("endogenous", {}).get("Carbon_emission"),
     }
 
@@ -122,7 +120,6 @@ class InfoMetricsCallback(DefaultCallbacks):
                     continue
                 agent, name = key.split("/", 2)[1], key.split("/", 2)[2]
                 series = np.asarray(series, dtype=float)
-                episode.custom_metrics[f"worker_{wid}/agent_{agent}/Raw_{name}"] = series.tolist()
                 episode.custom_metrics[f"worker_{wid}/agent_{agent}/Med_{name}"] = float(np.median(series))
                 if name == "Certificates_Allocated" and agent != "p":
                     val[agent]= float(np.sum(series))
@@ -134,8 +131,6 @@ class InfoMetricsCallback(DefaultCallbacks):
                     val3[agent]= float(np.sum(series))
             for agent, value in val.items():
                 episode.custom_metrics[f"worker_{wid}/agent_{agent}/Remaining_Manufacturing_Potential"]=float(val1[agent]/value) if value != 0 and agent in val1 else 0.0
-                print(f"kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk {val2[agent]}, { val3[agent]}")
-                print(f"kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk {float(val2[agent]/(val2[agent]+val3[agent])) if (val2[agent]+val3[agent])!=0 and agent in val2 and agent in val3 else 0.0}")
                 episode.custom_metrics[f"worker_{wid}/agent_{agent}/ProfitMargin"] = float(val2[agent]/(val2[agent]+val3[agent])) if (val2[agent]+val3[agent])!=0 and agent in val2 and agent in val3 else 0.0
 
             # ---- final metrics for the tracked worker showing all agents ----------------

@@ -323,6 +323,7 @@ if __name__ == "__main__":
         ray.init(
             log_to_driver=True,
             include_dashboard=False,
+            object_store_memory=8 * 1024 ** 3,
             _temp_dir=temp_dir,
             _plasma_directory=temp_dir
         )
