@@ -317,9 +317,9 @@ class CarbonRedistribution(BaseComponent):
 
         world.planner.state["mobile_idx"] = [0] * self.n_agents
         for agent in world.agents:
-            agent.state["inventory"]["Cost"] = 0
-            agent.state["endogenous"]["Profit"] = 0
-            agent.state["inventory"]["Revenue"] = 0
+            agent.state["endogenous"]["Cost"] = 0.0
+            agent.state["endogenous"]["Profit"] = 0.0
+            agent.state["endogenous"]["Revenue"] = 0.0
 
     def get_dense_log(self):
         if self.planner_mode == "inactive":

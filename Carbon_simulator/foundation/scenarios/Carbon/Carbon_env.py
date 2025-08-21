@@ -32,6 +32,7 @@ class Carbon_env(BaseEnvironment):
             **base_env_kwargs
     ):
         super().__init__(*base_env_args, **base_env_kwargs)
+        self._prev_labor = {agent.idx: 0.0 for agent in self.all_agents}
 
         # Whether agents receive spatial information in their observation tensor
         self._planner_gets_spatial_info = bool(planner_gets_spatial_info)
@@ -103,11 +104,14 @@ class Carbon_env(BaseEnvironment):
                 isoelastic_eta=self.isoelastic_eta,
                 labor_coefficient=self.energy_weight * self.energy_cost,
             )
-            print(f"Agent {agent.idx} - Coin: {agent.total_endowment('Coin')}, Labor: {agent.state['endogenous']['Labor']}, Costs: {agent.state['endogenous']['Costs']}, Profit: {agent.state['endogenous']['Profit']}")
-            agent.state["endogenous"]["Costs"] = agent.state["endogenous"]["Costs"] + (agent.state["endogenous"]["Labor"] * self.energy_weight * self.energy_cost)
-            agent.state["endogenous"]["Revenue"] = agent.state["endogenous"]["Profit"]
-            agent.state["endogenous"]["Profit"] = agent.state["endogenous"]["Profit"] - agent.state["endogenous"]["Costs"]
-
+            labor_now = agent.state["endogenous"]["Labor"]
+            delta_labor = labor_now - self._prev_labor[agent.idx]
+            if delta_labor > 0:
+                agent.state["endogenous"]["Costs"] += delta_labor * self.energy_weight * self.energy_cost
+            self._prev_labor[agent.idx] = labor_now
+            revenue = agent.state["endogenous"].get("Revenue", 0.0)
+            costs = agent.state["endogenous"].get("Costs", 0.0)
+            agent.state["endogenous"]["Profit"] = revenue - costs
         # (for the planner)
         curr_optimization_metric[self.world.planner.idx] = rewards.planner_strategy(
             coin_endowments=np.array(
@@ -375,6 +379,7 @@ class Carbon_env(BaseEnvironment):
         self.curr_optimization_metric = deepcopy(curr_optimization_metric)
         self.init_optimization_metric = deepcopy(curr_optimization_metric)
         self.prev_optimization_metric = deepcopy(curr_optimization_metric)
+        self._prev_labor = {agent.idx: 0.0 for agent in self.all_agents}
 
     def scenario_metrics(self):
         """

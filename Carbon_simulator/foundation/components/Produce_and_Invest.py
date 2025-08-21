@@ -12,7 +12,7 @@ class Carbon_component(BaseComponent):
 
     name = "Carbon_component"
     component_type = "Carbon_component"
-    required_entities = ["Carbon_idx", "Carbon_emission", "Coin", "Profit", "Property", "Carbon_pollution", "Labor"]
+    required_entities = ["Carbon_idx", "Carbon_emission", "Coin", "Revenue", "Property", "Carbon_pollution", "Labor"]
     agent_subclasses = ["BasicMobileAgent"]
 
     def __init__(
@@ -233,7 +233,7 @@ class Carbon_component(BaseComponent):
                         # Receive payment for the house
                         income = self.payment * agent.state["Manufacture_volume"]
                         agent.state["inventory"]["Coin"] += income
-                        agent.state["endogenous"]["Profit"] += income
+                        agent.state["endogenous"]["Revenue"] += income
                         assert income > 0, income
 
                         # Incur the Labor cost and Carbon_emission for building
@@ -393,9 +393,9 @@ class Carbon_component(BaseComponent):
             agent.state["Start_Er"] = 1.0
 
             agent.state["Last_emission"] = 0
-            agent.state["inventory"]["Cost"] = 0
+            agent.state["endogenous"]["Cost"] = 0
             agent.state["endogenous"]["Profit"] = 0
-            agent.state["inventory"]["Revenue"] = 0
+            agent.state["endogenous"]["Revenue"] = 0
             # initiate the [total research count, this year research count] be [0, 0]
             #agent.state["Research_count"] = [0, 0]
 

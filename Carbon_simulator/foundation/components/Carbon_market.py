@@ -12,7 +12,7 @@ class Carbon_auction(BaseComponent):
 
     name = "Carbon_auction"
     component_type = "Trade"
-    required_entities = ["Coin", "Labor", "Costs", "Profit"]
+    required_entities = ["Coin", "Labor", "Costs", "Revenue"]
     agent_subclasses = ["BasicMobileAgent"]
 
     def __init__(
@@ -314,7 +314,7 @@ class Carbon_auction(BaseComponent):
                         payment_to_seller = int(trade["price"])
                         excess_payment_from_buyer = pre_payment - payment_to_seller
                         assert excess_payment_from_buyer >= 0
-                        seller.state["endogenous"]["Profit"] += payment_to_seller
+                        seller.state["endogenous"]["Revenue"] += payment_to_seller
                         seller.state["inventory"]["Coin"] += payment_to_seller
                         buyer.state["endogenous"]["Costs"] -= excess_payment_from_buyer
                         buyer.state["inventory"]["Coin"] += excess_payment_from_buyer

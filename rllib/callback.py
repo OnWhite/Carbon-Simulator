@@ -109,7 +109,6 @@ class InfoMetricsCallback(DefaultCallbacks):
             episode.custom_metrics[f"worker_{wid}/Avg_{curr_base}"] = float(np.mean(arr2))
 
         episode.custom_metrics[f"worker_{wid}/Remaining_Manufacturing_Potential"] = float(np.sum(arr3)/np.sum(arr1)) if np.sum(arr1) != 0 else 0.0
-        print(f"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb{float(np.sum(arr4)/(np.sum(arr4)+np.sum(arr5)))if np.sum(arr4)+np.sum(arr5) != 0 else 0.0}")
         episode.custom_metrics[f"worker_{wid}/ProfitMargin"]=float(np.sum(arr4)/(np.sum(arr4)+np.sum(arr5))) if np.sum(arr4)+np.sum(arr5) != 0 else 0.0
 
         if wid<=self.worker_id:
