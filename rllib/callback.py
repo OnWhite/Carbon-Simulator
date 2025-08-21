@@ -150,6 +150,6 @@ class InfoMetricsCallback(DefaultCallbacks):
                     if val is not None:
                         metric.append(float(val))
 
-            episode.custom_metrics[f"worker_{wid}/Tot_{name}"] = float(np.sum(metric))
+
             episode.custom_metrics[f"worker_{wid}/Avg_{name}"] = float(np.mean(metric))
             episode.custom_metrics[f"worker_{wid}/Med_{name}"] = float(np.median(metric))

@@ -1,4 +1,5 @@
 import argparse
+import json
 import logging
 import os
 import sys
@@ -18,6 +19,19 @@ import yaml
 from env_wrapper import RLlibEnvWrapper
 from ray.rllib.algorithms.ppo import PPOConfig
 from ray.tune.logger import NoopLogger, pretty_print
+import pathlib
+BASE = "/scratch/$USER"  # or an absolute path you own, e.g. "/nas/ucb/yourid/ray"
+BASE = os.path.expandvars(BASE)
+TMP_DIR   = os.path.join(BASE, "ray_tmp")
+SPILL_DIR = os.path.join(BASE, "ray_spill")
+
+pathlib.Path(TMP_DIR).mkdir(parents=True, exist_ok=True)
+pathlib.Path(SPILL_DIR).mkdir(parents=True, exist_ok=True)
+
+# Make Ray use these instead of /tmp
+os.environ["RAY_TMPDIR"] = TMP_DIR
+# Optional but nice: also steer Python temp
+os.environ["TMPDIR"] = TMP_DIR
 
 logging.basicConfig(stream=sys.stdout, format="%(asctime)s %(message)s")
 logger = logging.getLogger("main")
@@ -316,16 +330,17 @@ if __name__ == "__main__":
         # Process the args first
         run_dir, run_config = process_args()
 
-        temp_dir = os.path.abspath(os.path.join("/", create_unique_temp_dir()))
-        os.makedirs(temp_dir, exist_ok=True)
-
         # Initialize Ray with temp directory
         ray.init(
             log_to_driver=True,
             include_dashboard=False,
             object_store_memory=8 * 1024 ** 3,
-            _temp_dir=temp_dir,
-            _plasma_directory=temp_dir
+            _temp_dir = TMP_DIR,  # belt-and-suspenders with RAY_TMPDIR
+            _system_config = {
+                "object_spilling_config": json.dumps({
+                    "type": "filesystem",
+                    "params": {"directory_path": SPILL_DIR}
+                })}
         )
 
 
