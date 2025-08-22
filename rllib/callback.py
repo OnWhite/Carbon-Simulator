@@ -190,6 +190,7 @@ class InfoMetricsCallback(DefaultCallbacks):
         episode.custom_metrics[f"worker_{wid}/Episode_ProfitMargin_final"] = (
             float(tot_prf / tot_rev) if tot_rev != 0 else 0.0
         )
+        print("Something it is getting here ")
 
         # ---- FINAL distribution stats (Avg/Med) and Gini for Coin ----
         for name, fn in self.FINAL_METRICS.items():
