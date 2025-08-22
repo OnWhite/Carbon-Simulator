@@ -23,7 +23,8 @@ def get_gini(endowments):
     return 1 - (2 / (n_agents + 1)) * np.sum(
         np.cumsum(s_endows) / (np.sum(s_endows) + 1e-10)
     )
-
+def _env_id_of(episode):
+        return getattr(episode, "env_id", getattr(episode, "_env_id", 0))
 
 class InfoMetricsCallback(DefaultCallbacks):
     """
@@ -54,6 +55,7 @@ class InfoMetricsCallback(DefaultCallbacks):
         super().__init__()
         self.worker_id = worker_id
 
+
     def on_episode_step(
             self, *, worker, base_env, policies, episode: Episode, **kwargs
     ):
@@ -61,7 +63,6 @@ class InfoMetricsCallback(DefaultCallbacks):
         infos = episode._last_infos
         if not infos:
             return
-
         wid = worker.worker_index
         for agent_id, agent_info in infos.items():
             if agent_id == 'p':
@@ -83,6 +84,8 @@ class InfoMetricsCallback(DefaultCallbacks):
             self, *, worker, base_env, policies, episode: Episode, **kwargs
     ):
         wid = worker.worker_index
+        eid = _env_id_of(episode)
+
 
         # ---- step metrics: avg / median -----------------
         curr_base = ""
@@ -123,7 +126,7 @@ class InfoMetricsCallback(DefaultCallbacks):
         )
 
         # ---- per-agent FINAL snapshot & episode totals (Revenue, Costs, Profit, Margin) ----
-        if wid <= self.worker_id:
+        if wid <= self.worker_id and eid==0:
             val = {}
             val1 = {}
             for key, series in episode.user_data.items():
@@ -141,18 +144,19 @@ class InfoMetricsCallback(DefaultCallbacks):
                     float(val1[agent] / value) if value != 0 and agent in val1 else 0.0
                 )
 
-            tot_rev = 0.0
-            tot_prf = 0.0
-            for k, info in episode._last_infos.items():
-                if k == 'p' or not isinstance(info, dict):
-                    continue
-                inv = info.get("inventory", {}) or {}
-                endo = info.get("endogenous", {}) or {}
+        tot_rev = 0.0
+        tot_prf = 0.0
+        tot_cost = 0.0
+        for k, info in episode._last_infos.items():
+            if k == 'p' or not isinstance(info, dict):
+                continue
+            inv = info.get("inventory", {}) or {}
+            endo = info.get("endogenous", {}) or {}
 
-                rev = float(endo.get("Revenue", 0.0) or 0.0)
-                cst = float(endo.get("Costs",   0.0) or 0.0)
-                prf = rev - cst
-
+            rev = float(endo.get("Revenue", 0.0) or 0.0)
+            cst = float(endo.get("Costs",   0.0) or 0.0)
+            prf = rev - cst
+            if wid <= self.worker_id and eid == 0:
                 base = f"worker_{wid}/agent_{k}"
                 episode.custom_metrics[f"{base}/Revenue_final"] = rev
                 episode.custom_metrics[f"{base}/Costs_final"] = cst
@@ -176,26 +180,28 @@ class InfoMetricsCallback(DefaultCallbacks):
                 if ce is not None:
                     episode.custom_metrics[f"{base}/Carbon_emission_final"] = float(ce)
 
-                tot_rev += rev
-                tot_prf += prf
+            tot_rev += rev
+            tot_prf += prf
+            tot_cost+= cst
 
-            episode.custom_metrics[f"worker_{wid}/Episode_Revenue_final"] = tot_rev
-            episode.custom_metrics[f"worker_{wid}/Episode_Profit_final"] = tot_prf
-            episode.custom_metrics[f"worker_{wid}/Episode_ProfitMargin_final"] = (
-                float(tot_prf / tot_rev) if tot_rev != 0 else 0.0
-            )
+        episode.custom_metrics[f"worker_{wid}/Episode_Revenue_final"] = tot_rev
+        episode.custom_metrics[f"worker_{wid}/Episode_Profit_final"] = tot_prf
+        episode.custom_metrics[f"worker_{wid}/Episode_Cost_final"] = tot_cost
+        episode.custom_metrics[f"worker_{wid}/Episode_ProfitMargin_final"] = (
+            float(tot_prf / tot_rev) if tot_rev != 0 else 0.0
+        )
 
-            # ---- FINAL distribution stats (Avg/Med) and Gini for Coin ----
-            for name, fn in self.FINAL_METRICS.items():
-                metric = []
-                for k, v in episode._last_infos.items():
-                    if k != 'p':
-                        valf = fn(v)
-                        if valf is not None:
-                            metric.append(float(valf))
-                if not metric:
-                    continue
-                episode.custom_metrics[f"worker_{wid}/Avg_{name}_final"] = float(np.mean(metric))
-                episode.custom_metrics[f"worker_{wid}/Med_{name}_final"] = float(np.median(metric))
-                if name == "Coin":
-                    episode.custom_metrics[f"worker_{wid}/Gini_idx_final"] = 1 - get_gini(np.array(metric, float))
+        # ---- FINAL distribution stats (Avg/Med) and Gini for Coin ----
+        for name, fn in self.FINAL_METRICS.items():
+            metric = []
+            for k, v in episode._last_infos.items():
+                if k != 'p':
+                    valf = fn(v)
+                    if valf is not None:
+                        metric.append(float(valf))
+            if not metric:
+                continue
+            episode.custom_metrics[f"worker_{wid}/Avg_{name}_final"] = float(np.mean(metric))
+            episode.custom_metrics[f"worker_{wid}/Med_{name}_final"] = float(np.median(metric))
+            if name == "Coin":
+                episode.custom_metrics[f"worker_{wid}/Gini_idx_final"] = 1 - get_gini(np.array(metric, float))
