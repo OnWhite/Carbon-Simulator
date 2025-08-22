@@ -1,10 +1,13 @@
+import sys
 from pprint import pprint
 
 import numpy as np
 from ray.rllib.algorithms.callbacks import DefaultCallbacks
 from ray.rllib.evaluation.episode import Episode
-from rllib.training_script import logger
-
+import logging
+logging.basicConfig(stream=sys.stdout, format="%(asctime)s %(message)s")
+logger = logging.getLogger("main")
+logger.setLevel(logging.DEBUG)
 
 def get_gini(endowments):
     n_agents = len(endowments)
