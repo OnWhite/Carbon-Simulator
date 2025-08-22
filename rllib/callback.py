@@ -83,6 +83,7 @@ class InfoMetricsCallback(DefaultCallbacks):
     def on_episode_end(
             self, *, worker, base_env, policies, episode: Episode, **kwargs
     ):
+        print("hereeee ")
         wid = worker.worker_index
         eid = _env_id_of(episode)
 
