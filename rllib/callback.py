@@ -3,6 +3,7 @@ from pprint import pprint
 import numpy as np
 from ray.rllib.algorithms.callbacks import DefaultCallbacks
 from ray.rllib.evaluation.episode import Episode
+from rllib.training_script import logger
 
 
 def get_gini(endowments):
@@ -191,7 +192,7 @@ class InfoMetricsCallback(DefaultCallbacks):
         episode.custom_metrics[f"worker_{wid}/Episode_ProfitMargin_final"] = (
             float(tot_prf / tot_rev) if tot_rev != 0 else 0.0
         )
-        print("Something it is getting here ")
+        logger.info("Something it is getting here ")
 
         # ---- FINAL distribution stats (Avg/Med) and Gini for Coin ----
         for name, fn in self.FINAL_METRICS.items():
