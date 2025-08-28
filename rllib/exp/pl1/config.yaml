@@ -132,6 +132,6 @@ trainer:
   train_batch_size: 8000
 
   observation_filter: NoFilter
-  rollout_fragment_length: auto
+  rollout_fragment_length: 62
 
 
