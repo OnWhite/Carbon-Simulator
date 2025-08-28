@@ -129,10 +129,9 @@ trainer:
 
   shuffle_sequences: true
   sgd_minibatch_size: 2000
-  train_batch_size: 128000
+  train_batch_size: 8000
 
   observation_filter: NoFilter
-  rollout_fragment_length: 1000
-
+  rollout_fragment_length: auto
 
 
