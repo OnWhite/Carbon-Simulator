@@ -332,7 +332,6 @@ if __name__ == "__main__":
 
         # Initialize Ray with temp directory
         ray.init(
-            runtime_env={"working_dir": os.path.abspath(os.path.dirname(__file__))},
             log_to_driver=True,
             include_dashboard=False,
             object_store_memory=8 * 1024 ** 3,
