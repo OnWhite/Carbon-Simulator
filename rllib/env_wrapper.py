@@ -107,9 +107,7 @@ class RLlibEnvWrapper(MultiAgentEnv):
         if self.verbose:
             print("[EnvWrapper] Spaces")
             print("[EnvWrapper] Obs (a)   ")
-            pretty_print(self.observation_space)
             print("[EnvWrapper] Obs (p)   ")
-            pretty_print(self.observation_space_pl)
             print("[EnvWrapper] Action (a)", self.action_space)
             print("[EnvWrapper] Action (p)", self.action_space_pl)
 

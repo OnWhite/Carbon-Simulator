@@ -116,9 +116,9 @@ trainer:
   multiagent: null
   seed: null
   num_gpus: 1
-  num_envs_per_worker: 2
+  num_envs_per_worker: 8
   num_sgd_iter: 1
-  num_workers: 16
+  num_workers: 8
 
   shuffle_sequences: true
   sgd_minibatch_size: 2000
