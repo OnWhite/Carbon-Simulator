@@ -2,6 +2,7 @@ import argparse
 import json
 import logging
 import os
+import ray
 import sys
 import time
 from callback import InfoMetricsCallback
@@ -10,7 +11,6 @@ import numpy as np
 import wandb
 import shutil
 wandb.login(key="eea0e89ea325324e8b77b2c8e709f6ce5b26a5f5")
-import ray
 from torch_models import ConvRnn
 
 from ray import train
@@ -332,6 +332,7 @@ if __name__ == "__main__":
 
         # Initialize Ray with temp directory
         ray.init(
+            runtime_env={"working_dir": os.path.abspath(os.path.dirname(__file__))},
             log_to_driver=True,
             include_dashboard=False,
             object_store_memory=8 * 1024 ** 3,

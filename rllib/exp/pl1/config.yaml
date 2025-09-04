@@ -123,7 +123,7 @@ trainer:
   seed: 22635000
   framework: "torch"
   num_gpus: 1
-  num_envs_per_worker: 8
+  num_envs_per_worker: 2
   num_sgd_iter: 1
   num_workers: 16
 
@@ -132,6 +132,6 @@ trainer:
   train_batch_size: 8000
 
   observation_filter: NoFilter
-  rollout_fragment_length: 62
+  rollout_fragment_length: 250
 
 
