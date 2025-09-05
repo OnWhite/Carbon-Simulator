@@ -15,6 +15,7 @@ from Carbon_simulator import foundation
 from gymnasium import spaces
 from gymnasium.utils import seeding
 from ray.rllib.env.multi_agent_env import MultiAgentEnv
+import logging
 
 _BIG_NUMBER = 1e20
 
@@ -35,7 +36,6 @@ def recursive_list_to_np_array(d):
                 raise AssertionError
         return new_d
     raise AssertionError
-
 
 def pretty_print(dictionary):
     for key in dictionary:
@@ -104,12 +104,31 @@ class RLlibEnvWrapper(MultiAgentEnv):
             '''self.action_space_pl.dtype = np.int64'''
 
         self._seed = None
-        if self.verbose:
-            print("[EnvWrapper] Spaces")
-            print("[EnvWrapper] Obs (a)   ")
-            print("[EnvWrapper] Obs (p)   ")
-            print("[EnvWrapper] Action (a)", self.action_space)
-            print("[EnvWrapper] Action (p)", self.action_space_pl)
+        if True:
+
+            # Configure a new logger for this specific purpose
+            new_logger = logging.getLogger("EnvWrapperLogger")
+            new_logger.setLevel(logging.INFO)
+
+            # Create a file handler for the new log file
+            file_handler = logging.FileHandler("env_wrapper_new.log")
+            file_handler.setLevel(logging.INFO)
+
+            # Add a formatter to the file handler
+            formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+            file_handler.setFormatter(formatter)
+
+            # Add the file handler to the logger
+            new_logger.addHandler(file_handler)
+
+            # Log the information
+            new_logger.info("[EnvWrapper] Spaces")
+            new_logger.info("[EnvWrapper] Obs (a)")
+            pretty_print(self.observation_space)
+            new_logger.info("[EnvWrapper] Obs (p)")
+            pretty_print(self.observation_space_pl)
+            new_logger.info("[EnvWrapper] Action (a) %s", self.action_space)
+            new_logger.info("[EnvWrapper] Action (p) %s", self.action_space_pl)
 
         self._spaces_in_preferred_format = True
 
