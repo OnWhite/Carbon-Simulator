@@ -12,7 +12,7 @@ class Carbon_component(BaseComponent):
 
     name = "Carbon_component"
     component_type = "Carbon_component"
-    required_entities = ["Carbon_idx", "Carbon_emission", "Coin", "Revenue", "Property", "Carbon_pollution", "Labor"]
+    required_entities = ["Carbon_idx", "Carbon_emission", "Coin", "Revenue", "Property", "Carbon_pollution", "Labor", "Carbon_project", "Green_project"]
     agent_subclasses = ["BasicMobileAgent"]
 
     def __init__(
@@ -78,7 +78,7 @@ class Carbon_component(BaseComponent):
         self.forget = int(forget)
         assert self.forget >= 0
 
-        self.Manufactures ={"builds": []} #{"builds": [], "research": []}
+        self.Manufactures = {"builds": [], "research": []}
 
     def agent_can_build(self, agent):
         """Return True if agent can actually build in its current location."""
@@ -90,17 +90,15 @@ class Carbon_component(BaseComponent):
         # If we made it here, the agent can build.
         return True
 
-    """def agent_can_research(self, agent):
-       #Return True if agent can actually research in its current location.
+    def agent_can_research(self, agent):
+        """Return True if agent can actually build in its current location."""
         # Do nothing if this spot is already occupied by a landmark or resource
         if self.world.location_resources(*agent.loc):
             return False
         if self.world.location_landmarks(*agent.loc):
             return False
-        # If we made it here, the agent can research
-        # changed
-        # return agent.state["inventory"]["Coin"]>0
-        return False"""
+        # If we made it here, the agent can build.
+        return agent.state["inventory"]["Coin"]>0
 
     # Required methods for implementing components
     # --------------------------------------------
@@ -113,7 +111,7 @@ class Carbon_component(BaseComponent):
         """
         # This component adds 1.0.0 action that mobile agents can take: build a house
         if agent_cls_name == "BasicMobileAgent":
-            return 1 # changed
+            return 2
 
         return None
 
@@ -126,7 +124,8 @@ class Carbon_component(BaseComponent):
         if agent_cls_name not in self.agent_subclasses:
             return {}
         if agent_cls_name == "BasicMobileAgent":
-            return {"Manufacture_volume": 1, "Carbon_emission_rate": 1, "Start_Er": 1,} #changed
+            return {"Manufacture_volume": 1, "Research_ability": 1, "Carbon_emission_rate": 1, "Start_Er": 1,
+                    "Research_count": [0, 0], "Research_history": [0] * max(self.delay, self.forget)}
         raise NotImplementedError
 
     def component_step(self):
@@ -137,7 +136,7 @@ class Carbon_component(BaseComponent):
         """
         world = self.world
         builds = []
-        #research = []
+        research = []
         if self.world.timestep % self.period != 1:
 
             # Apply any building or research actions taken by the mobile agents
@@ -147,7 +146,6 @@ class Carbon_component(BaseComponent):
 
                 # Update the Carbon_emission_rate
                 previous_rate = agent.state["Carbon_emission_rate"]
-                """
                 research_activity = ''
                 # forget if more than self.forget time steps do not do research
                 if agent.state["Research_count"][1] > 0:
@@ -162,7 +160,7 @@ class Carbon_component(BaseComponent):
                     # Research_count +1.0.0
                     agent.state["Research_count"][0] += 1
                     agent.state["Research_count"][1] += 1
-                """
+
                 # Update Emission rate
                 if self.research_type == "-log":
                     """if agent.state["Start_Er"]==1:
@@ -189,9 +187,8 @@ class Carbon_component(BaseComponent):
                     """
                     agent.state["Carbon_emission_rate"] = 1.0
                 # Update Research_history
-                """
                 agent.state["Research_history"][1:] = agent.state["Research_history"][:-1]
-                agent.state["Research_history"][0] = 0"""
+                agent.state["Research_history"][0] = 0
 
                 # This component doesn't apply to this agent!
                 if action is None:
@@ -245,40 +242,41 @@ class Carbon_component(BaseComponent):
                         builds.append(
                             {
                                 "enterprise": agent.idx,
+                                "research_activity": research_activity,
                                 "Carbon_emission_rate_change": previous_rate - agent.state["Carbon_emission_rate"],
                                 "loc": np.array(agent.loc),
                                 "Carbon_emission": Carbon_emission,
                                 "Income": income,
                             }
-                        ) #Changed
-                    """elif action == 2:
-                        # Action Success
-                        if random.random() > self.random_fails:
-                            action_result = 'Success'
-                            # Newest history add Research_mark
-                            agent.state["Research_history"][0] = 1
-                        else:
-                            action_result = 'Fails'
-    
-                        research.append(
-                            {
-                                "enterprise": agent.idx,
-                                "research_activity": research_activity,
-                                "Carbon_emission_rate_change": previous_rate - agent.state["Carbon_emission_rate"],
-                                "action_result": action_result,
-                                "Research_count": agent.state["Research_count"][0]
-                            }
                         )
-                        agent.state["endogenous"]["Labor"] += self.labor * agent.state[
-                            "Research_ability"] if self.labor_multiple else self.labor
-    
-                        agent.state["inventory"]["Coin"] -= self.payment/(2* agent.state["Research_ability"])
-                        """
+                elif action == 2:
+                    # Action Success
+                    if random.random() > self.random_fails:
+                        action_result = 'Success'
+                        # Newest history add Research_mark
+                        agent.state["Research_history"][0] = 1
+                    else:
+                        action_result = 'Fails'
+
+                    research.append(
+                        {
+                            "enterprise": agent.idx,
+                            "research_activity": research_activity,
+                            "Carbon_emission_rate_change": previous_rate - agent.state["Carbon_emission_rate"],
+                            "action_result": action_result,
+                            "Research_count": agent.state["Research_count"][0]
+                        }
+                    )
+                    agent.state["endogenous"]["Labor"] += self.labor * agent.state[
+                        "Research_ability"] if self.labor_multiple else self.labor
+
+                    agent.state["inventory"]["Coin"] -= self.payment/(2* agent.state["Research_ability"])
+
                 else:
                     raise ValueError
 
         self.Manufactures["builds"].append(builds)
-        #self.Manufactures["research"].append(research)
+        self.Manufactures["research"].append(research)
 
     def generate_observations(self):
         """
@@ -291,8 +289,10 @@ class Carbon_component(BaseComponent):
         obs_dict = dict()
         for agent in self.world.agents:
             obs_dict[agent.idx] = {
+                "Research_ability": agent.state["Research_ability"],
                 "Manufacture_volume": agent.state["Manufacture_volume"],
                 "Carbon_emission_rate": agent.state["Carbon_emission_rate"],
+                "Research_count": agent.state["Research_count"][0]
             }
 
         return obs_dict
@@ -308,7 +308,7 @@ class Carbon_component(BaseComponent):
         # Mobile agents' build action is masked if they cannot build with their
         # current location and/or endowment
         for agent in self.world.agents:
-            masks[agent.idx] = np.array([self.agent_can_build(agent)])#changed
+            masks[agent.idx] = np.array([self.agent_can_build(agent), self.agent_can_research(agent)])
 
         return masks
 
@@ -332,11 +332,11 @@ class Carbon_component(BaseComponent):
                 build_stats[idx]["n_builds"] += 1
                 build_stats[idx]["emission"] += action["Carbon_emission"]
 
-        """research_stats = {a.idx: {"n_research": 0} for a in world.agents}
+        research_stats = {a.idx: {"n_research": 0} for a in world.agents}
         for actions in self.Manufactures["research"]:
             for action in actions:
                 idx = action["enterprise"]
-                research_stats[idx]["n_research"] += 1"""
+                research_stats[idx]["n_research"] += 1
 
         out_dict = {}
         total_emission = 0
@@ -345,8 +345,8 @@ class Carbon_component(BaseComponent):
                 out_dict["{}/{}".format(a.idx, k)] = v
                 if k == "emission":
                     total_emission += v
-            """for k, v in research_stats[a.idx].items():
-                out_dict["{}/{}".format(a.idx, k)] = v"""
+            for k, v in research_stats[a.idx].items():
+                out_dict["{}/{}".format(a.idx, k)] = v
 
         num_Property = np.sum(world.maps.get("Property") > 0)
         out_dict["total_builds"] = num_Property
@@ -366,25 +366,25 @@ class Carbon_component(BaseComponent):
             if self.evaluate:
                 assert self.n_agents == 5
                 if agent.idx == 0:
-                    #agent.state["Research_ability"] = 1.2
+                    agent.state["Research_ability"] = 1.2
                     agent.state["Manufacture_volume"] = 1.6
                 elif agent.idx == 1:
-                    #agent.state["Research_ability"] = 1.0
+                    agent.state["Research_ability"] = 1.0
                     agent.state["Manufacture_volume"] = 1.4
                 elif agent.idx == 2:
-                    #agent.state["Research_ability"] = 1.2
+                    agent.state["Research_ability"] = 1.2
                     agent.state["Manufacture_volume"] = 1.2
                 elif agent.idx == 3:
-                    #agent.state["Research_ability"] = 1.4
+                    agent.state["Research_ability"] = 1.4
                     agent.state["Manufacture_volume"] = 1.2
                 elif agent.idx == 4:
-                    #agent.state["Research_ability"] = 1.6
+                    agent.state["Research_ability"] = 1.6
                     agent.state["Manufacture_volume"] = 1.0
                 else:
                     raise ValueError(agent.idx)
             else:
                 # 0.5 ~ PMSM, 0.1.0.0
-                #agent.state["Research_ability"] = random.choice([1.0, 1.2, 1.4, 1.6])
+                agent.state["Research_ability"] = random.choice([1.0, 1.2, 1.4, 1.6])
                 agent.state["Manufacture_volume"] = random.choice([1.0, 1.2, 1.4, 1.6])
 
             # initiate the Carbon_emission_rate be 1.0.0.0
@@ -396,11 +396,11 @@ class Carbon_component(BaseComponent):
             agent.state["endogenous"]["Cost"] = 0
             agent.state["endogenous"]["Revenue"] = 0
             # initiate the [total research count, this year research count] be [0, 0]
-            #agent.state["Research_count"] = [0, 0]
+            agent.state["Research_count"] = [0, 0]
 
-            #agent.state["Research_history"] = [0] * max(self.delay, self.forget)
+            agent.state["Research_history"] = [0] * max(self.delay, self.forget)
 
-        self.Manufactures = {"builds": []}
+        self.Manufactures = {"builds": [], "research": []}
 
     def get_dense_log(self):
         """

@@ -267,6 +267,7 @@ class CarbonRedistribution(BaseComponent):
             "year_num": self.world.planner.state["year_num"],
             "env_idx": self.world.planner.state["env_idx"],
             "mobile_idx": self.world.planner.state["mobile_idx"],
+            "agents_Research_ability": [agent.state["Research_ability"] for agent in self.world.agents],
             "agents_volume": [agent.state["Manufacture_volume"] for agent in self.world.agents],
             "agents_emission_rate": [agent.state["Carbon_emission_rate"] for agent in self.world.agents],
             "settlement_idx": self.world.planner.state["settlement_idx"],
