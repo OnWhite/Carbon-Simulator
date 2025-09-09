@@ -73,14 +73,14 @@ class Property(Landmark):
     solid = True
 
 
-"""@landmark_registry.add
+@landmark_registry.add
 class Green_project(Landmark):
     #Renewable energy site. Ownable. Solid.
 
     name = "Green_project"
     color = np.array([241, 233, 219]) / 255.0
     ownable = True
-    solid = True"""
+    solid = True
 
 
 @landmark_registry.add

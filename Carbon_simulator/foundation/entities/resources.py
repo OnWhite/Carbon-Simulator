@@ -31,13 +31,13 @@ class Resource:
 resource_registry = Registry(Resource)
 
 
-"""@resource_registry.add
+@resource_registry.add
 class Carbon_project(Resource):
-    #Green energy site permit + usable land. collectible.
+    """Wood resource. collectible."""
 
     name = "Carbon_project"
     color = np.array([107, 143, 113]) / 255.0
-    collectible = True"""
+    collectible = True
 
 
 @resource_registry.add
