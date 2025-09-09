@@ -3,6 +3,7 @@ import pickle
 import random
 import warnings
 import sys
+from pprint import pformat
 
 sys.path.append(
     os.path.abspath(
@@ -126,9 +127,9 @@ class RLlibEnvWrapper(MultiAgentEnv):
             new_logger.info("[EnvWrapper] Obs (a)")
             pretty_print(self.observation_space)
             new_logger.info("[EnvWrapper] Obs (p)")
-            pretty_print(self.observation_space_pl)
-            new_logger.info("[EnvWrapper] Action (a) %s", self.action_space)
-            new_logger.info("[EnvWrapper] Action (p) %s", self.action_space_pl)
+            new_logger.info("[EnvWrapper] Obs (p) %s", pformat(self.observation_space_pl))
+            new_logger.info("[EnvWrapper] Action (a) %s", pformat(self.action_space))
+            new_logger.info("[EnvWrapper] Action (p) %s", pformat(self.action_space_pl))
 
         self._spaces_in_preferred_format = True
 
