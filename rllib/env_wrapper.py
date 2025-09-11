@@ -105,7 +105,7 @@ class RLlibEnvWrapper(MultiAgentEnv):
             '''self.action_space_pl.dtype = np.int64'''
 
         self._seed = None
-        if True:
+        if False:
 
             # Configure a new logger for this specific purpose
             new_logger = logging.getLogger("EnvWrapperLogger")
