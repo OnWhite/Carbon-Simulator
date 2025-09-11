@@ -55,7 +55,7 @@ general:
   cpus: 32
   episodes: 250000
   gpus: 1
-  restore_weights_agents: '/nas/ucb/sophialudewig/Minimalist/rllib/exp/defuat/ckpts41/agent.weights.train-step-50000000'
+  restore_weights_agents: '/nas/ucb/sophialudewig/Minimalist/rllib/exp/defuat/ckpts42/agent.weights.train-step-50000000'
   restore_weights_planner: ''
   train_planner: true #changed
   fix_mobile: false
