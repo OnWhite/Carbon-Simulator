@@ -55,7 +55,7 @@ general:
   cpus: 32
   episodes: 250000
   gpus: 1
-  restore_weights_agents: '/nas/ucb/sophialudewig/Minimalist/rllib/exp/defuat/ckpts32/agent.weights.train-step-125008000'
+  restore_weights_agents: '/nas/ucb/sophialudewig/Minimalist/rllib/exp/defuat/ckpts41/agent.weights.train-step-6000'
   restore_weights_planner: ''
   train_planner: true #changed
   fix_mobile: false
@@ -120,7 +120,7 @@ trainer:
   batch_mode: truncate_episodes
   env_config: null
   multiagent: null
-  seed: 22635000
+  seed: null
   framework: "torch"
   num_gpus: 1
   num_envs_per_worker: 2

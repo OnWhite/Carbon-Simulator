@@ -19,7 +19,7 @@ class Gather(BaseComponent):
         *base_component_args,
         move_labor=1.0,
         collect_labor=30,
-        collect_cost_coin=10,
+        collect_cost_coin=10,# equivalent to manufacturing 1 unit of goods
         collect_idx=1,
         **base_component_kwargs
     ):

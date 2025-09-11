@@ -37,6 +37,8 @@ class InfoMetricsCallback(DefaultCallbacks):
     """
 
     STEP_METRICS = {
+        # name               extractor – receives the agent_info dict
+        "Research_count_1": lambda info: info.get("Research_count", [0, 0])[1],
         "Manufacture_volume": lambda info: info.get("Manufacture_volume"),
         "Carbon_idx": lambda info: info.get("inventory", {}).get("Carbon_idx"),
         # settlement_idx only exists in the special "p" info-dict
@@ -51,6 +53,8 @@ class InfoMetricsCallback(DefaultCallbacks):
         "Revenue": lambda info: info.get("endogenous", {}).get("Revenue"),
         "Coin": lambda info: info.get("inventory", {}).get("Coin"),
         "Labor": lambda info: info.get("endogenous", {}).get("Labor"),
+        "Carbon_project": lambda info: info.get("inventory", {}).get("Carbon_project"),
+        "Green_project": lambda info: info.get("inventory", {}).get("Green_project"),
         "Carbon_emission": lambda info: info.get("endogenous", {}).get("Carbon_emission"),
     }
 
