@@ -44,8 +44,8 @@ general:
   cpus: 32
   episodes: 250000
   gpus: 1
-  restore_weights_agents: ''
-  restore_weights_planner: ''
+  restore_weights_agents: ''   # start from scratch
+  restore_weights_planner: ''  # start from scratch
   train_planner: true
   fix_mobile: false
   dense_log_frequency: 250
@@ -53,12 +53,14 @@ general:
 agent_policy:
   clip_param: 0.3
   entropy_coeff: 0.025
+  entropy_coeff_schedule: null
   gamma: 0.998
   grad_clip: 10.0
   kl_coeff: 0.0
   kl_target: 0.01
   lambda: 0.98
   lr: 0.0003
+  lr_schedule: null
   use_gae: true
   vf_clip_param: 50.0
   vf_loss_coeff: 0.05
@@ -85,6 +87,7 @@ planner_policy:
   kl_target: 0.01
   lambda: 0.98
   lr: 0.0001
+  lr_schedule: null
   use_gae: true
   vf_clip_param: 50.0
   vf_loss_coeff: 0.05
@@ -100,9 +103,12 @@ planner_policy:
     max_seq_len: 100
 
 trainer:
-  framework: "torch"
   compress_observations: false
   batch_mode: truncate_episodes
+  env_config: null
+  multiagent: null
+  seed: null
+  framework: "torch"
   num_gpus: 1
   num_envs_per_worker: 1
   num_sgd_iter: 1
