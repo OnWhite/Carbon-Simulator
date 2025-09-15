@@ -72,6 +72,8 @@ class InfoMetricsCallback(DefaultCallbacks):
             return
         wid = worker.worker_index
         for agent_id, agent_info in infos.items():
+            with open("infos_items_log.txt", "a") as log_file:
+                log_file.write(f"Agent ID: {agent_id}, Full Info: {agent_info}\n")
             if agent_id == 'p':
                 mobile_idx_list = agent_info.get("mobile_idx", [])
                 for i, v in enumerate(mobile_idx_list):
@@ -90,7 +92,6 @@ class InfoMetricsCallback(DefaultCallbacks):
     def on_episode_end(
             self, *, worker, base_env, policies, episode: Episode, **kwargs
     ):
-        print("hereeee ")
         wid = worker.worker_index
         eid = _env_id_of(episode)
 
