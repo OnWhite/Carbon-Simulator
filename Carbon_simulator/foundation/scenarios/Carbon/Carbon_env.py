@@ -12,7 +12,7 @@ class Carbon_env(BaseEnvironment):
 
     name = "Carbon/Carbon_env"
     agent_subclasses = ["BasicMobileAgent", "BasicPlanner"]
-    required_entities = ["Carbon_idx", "Carbon_emission", "Coin", "Property", "Carbon_pollution", "Labor", "Costs", "Revenue"]
+    required_entities = ["Carbon_idx", "Carbon_emission", "Coin", "Property", "Carbon_pollution", "Labor", "LaborCost", "Costs", "Revenue"]
 
     def __init__(
             self,
@@ -20,7 +20,7 @@ class Carbon_env(BaseEnvironment):
             planner_gets_spatial_info=True,
             full_observability=False,
             mobile_agent_observation_range=5,
-
+            total_idx=200,
             starting_agent_coin=0,
             isoelastic_eta=0.23,
             energy_cost=0.21,
@@ -39,6 +39,7 @@ class Carbon_env(BaseEnvironment):
 
         # Whether the (non-planner) agents can see the whole world map
         self._full_observability = bool(full_observability)
+        self.total_idx = int(total_idx)
 
         self._mobile_agent_observation_range = int(mobile_agent_observation_range)
 
@@ -108,9 +109,9 @@ class Carbon_env(BaseEnvironment):
             delta_labor = labor_now - self._prev_labor[agent.idx]
             if delta_labor > 0:
                 agent.state["endogenous"]["Costs"] += delta_labor * self.energy_weight * self.energy_cost
+                agent.state["endogenous"]["LaborCost"] += delta_labor * self.energy_weight * self.energy_cost
             self._prev_labor[agent.idx] = labor_now
-            revenue = agent.state["endogenous"].get("Revenue", 0.0)
-            costs = agent.state["endogenous"].get("Costs", 0.0)
+
         # (for the planner)
         curr_optimization_metric[self.world.planner.idx] = rewards.planner_strategy(
             coin_endowments=np.array(
@@ -123,15 +124,15 @@ class Carbon_env(BaseEnvironment):
 
         return curr_optimization_metric
 
-    """def make_source_prob_maps(self):
-        
+    def make_source_prob_maps(self):
+        """
         Make maps specifying how likely each location is to be assigned as a resource
         source tile.
 
         Returns:
             source_prob_maps (dict): Contains a source probability map for both
                 stone and wood
-        
+        """
         prob_gradient = (
                 np.arange(self.world_size[0])[:, None].repeat(self.world_size[1], axis=1)
                 ** self.gradient_steepness
@@ -140,7 +141,7 @@ class Carbon_env(BaseEnvironment):
 
         return {
             "Carbon_project": prob_gradient * self.layout_specs["Carbon_project"]["starting_coverage"],
-        }"""
+        }
 
     # The following methods must be implemented for each scenario
     # -----------------------------------------------------------
@@ -205,8 +206,6 @@ class Carbon_env(BaseEnvironment):
         regeneration.
         """
 
-    def make_source_prob_maps(self):
-        return {}
     def generate_observations(self):
         """
         Generate observations associated with this scenario.

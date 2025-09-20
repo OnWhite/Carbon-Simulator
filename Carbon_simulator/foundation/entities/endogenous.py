@@ -29,13 +29,23 @@ class Labor(Endogenous):
 
     name = "Labor"
 
+@endogenous_registry.add
+class LaborCost(Endogenous):
+    """Labor accumulated through working. Included in all environments by default."""
+
+    name = "LaborCost"
 
 @endogenous_registry.add
 class Carbon_emission(Endogenous):
     """Labor accumulated through working. Included in all environments by default."""
 
     name = "Carbon_emission"
+@endogenous_registry.add
+class Punishment(Endogenous):
+    """Labor accumulated through working. Included in all environments by default."""
 
+    name = "Punishment"
+    
 @endogenous_registry.add
 class Costs(Endogenous):
     """Costs associated with various activities, such as manufacturing or research."""

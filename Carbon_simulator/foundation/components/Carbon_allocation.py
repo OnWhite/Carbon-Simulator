@@ -8,7 +8,7 @@ from Carbon_simulator.foundation.base.base_component import (
 @component_registry.add
 class CarbonRedistribution(BaseComponent):
     name = "CarbonRedistribution"
-    required_entities = ["Carbon_idx", "Carbon_project"]
+    required_entities = ["Carbon_idx", "Carbon_project", "Punishment"]
     agent_subclasses = ["BasicMobileAgent", "BasicPlanner"]
 
     """
@@ -87,6 +87,7 @@ class CarbonRedistribution(BaseComponent):
                     punishment = world.planner.state["punishment"] * abs(agent.state["inventory"]["Carbon_idx"])
                     agent.state["inventory"]["Coin"] -= punishment
                     agent.state["endogenous"]["Costs"] +=punishment
+                    agent.state["endogenous"]["Punishment"] += punishment
 
             sum_Er = 0
             for agent in world.agents:
@@ -318,7 +319,7 @@ class CarbonRedistribution(BaseComponent):
 
         world.planner.state["mobile_idx"] = [0] * self.n_agents
         for agent in world.agents:
-            agent.state["endogenous"]["Cost"] = 0.0
+            agent.state["endogenous"]["Costs"] = 0.0
             agent.state["endogenous"]["Revenue"] = 0.0
 
     def get_dense_log(self):

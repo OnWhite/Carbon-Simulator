@@ -119,6 +119,7 @@ class Gather(BaseComponent):
                                 agent.state["endogenous"]["Labor"] += self.collect_labor
 
                                 agent.state["inventory"]["Coin"] -= self.collect_cost_coin
+                                agent.state["endogenous"]["Costs"] += self.collect_cost_coin
                                 # Log the gather
                                 gathers.append(
                                     dict(
