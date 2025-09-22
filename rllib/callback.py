@@ -40,11 +40,6 @@ class InfoMetricsCallback(DefaultCallbacks):
         "Research_count_1": lambda info: info.get("Research_count", [0, 0])[1],
         "Manufacture_volume": lambda info: info.get("Manufacture_volume"),
         "Carbon_idx": lambda info: info.get("inventory", {}).get("Carbon_idx"),
-        # settlement_idx only exists in the special "p" info-dict
-        "Index_Overdraft": lambda info: (
-            None if "settlement_idx" not in info
-            else float(np.sum(info["settlement_idx"]))
-        ),
         "Emission_rate": lambda info: info.get("Carbon_emission_rate"),
     }
 
@@ -75,7 +70,15 @@ class InfoMetricsCallback(DefaultCallbacks):
             if agent_id == 'p':
                 mobile_idx_list = agent_info.get("mobile_idx", [])
                 for i, v in enumerate(mobile_idx_list):
-                    episode.user_data.setdefault(f"worker_{wid}/agent_{i}/Certificates_Allocated", []).append(v)
+                    episode.user_data.setdefault(
+                        f"worker_{wid}/agent_{i}/Certificates_Allocated", []
+                    ).append(v)
+
+                if "settlement_idx" in agent_info:
+                    overdraft = float(np.sum(agent_info["settlement_idx"]))
+                    episode.user_data.setdefault(
+                        f"worker_{wid}/agent_p/Index_Overdraft", []
+                    ).append(overdraft)
                 continue
             if not isinstance(agent_info, dict):
                 continue
@@ -166,6 +169,7 @@ class InfoMetricsCallback(DefaultCallbacks):
             prf = rev - cst
             coin = inv.get("Coin", None)
             lc = endo.get("LaborCost", None)
+            pun = endo.get("Punishment", None)
             if wid <= self.worker_id and eid == 0:
                 base = f"worker_{wid}/agent_{k}"
                 episode.custom_metrics[f"{base}/Revenue_final"] = rev
@@ -188,10 +192,8 @@ class InfoMetricsCallback(DefaultCallbacks):
                 ce = endo.get("Carbon_emission", None)
                 if ce is not None:
                     episode.custom_metrics[f"{base}/Carbon_emission_final"] = float(ce)
-                pun = endo.get("Punishment", None)
                 if pun is not None:
                     episode.custom_metrics[f"{base}/Punishment_final"] = float(pun)
-                    tot_pun+=pun
                 if lc is not None:
                     episode.custom_metrics[f"{base}/Labor_Cost_final"] = float(lc)
                 if coin is not None and lc is not None:
@@ -200,6 +202,7 @@ class InfoMetricsCallback(DefaultCallbacks):
             tot_rev += rev
             tot_prf += prf
             tot_cost += cst
+            tot_pun += pun
             tot_coinlaborcost += float(coin - lc) if coin is not None and lc is not None else 0.0
 
         episode.custom_metrics[f"worker_{wid}/Episode_Revenue_final"] = tot_rev
