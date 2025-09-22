@@ -202,7 +202,7 @@ class InfoMetricsCallback(DefaultCallbacks):
             tot_rev += rev
             tot_prf += prf
             tot_cost += cst
-            tot_pun += pun
+            tot_pun += pun if pun is not None else 0.0
             tot_coinlaborcost += float(coin - lc) if coin is not None and lc is not None else 0.0
 
         episode.custom_metrics[f"worker_{wid}/Episode_Revenue_final"] = tot_rev
