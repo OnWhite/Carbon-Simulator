@@ -165,6 +165,7 @@ class InfoMetricsCallback(DefaultCallbacks):
             cst = float(endo.get("Costs", 0.0) or 0.0)
             prf = rev - cst
             coin = inv.get("Coin", None)
+            lc = endo.get("LaborCost", None)
             if wid <= self.worker_id and eid == 0:
                 base = f"worker_{wid}/agent_{k}"
                 episode.custom_metrics[f"{base}/Revenue_final"] = rev
@@ -191,7 +192,6 @@ class InfoMetricsCallback(DefaultCallbacks):
                 if pun is not None:
                     episode.custom_metrics[f"{base}/Punishment_final"] = float(pun)
                     tot_pun+=pun
-                lc = endo.get("LaborCost", None)
                 if lc is not None:
                     episode.custom_metrics[f"{base}/Labor_Cost_final"] = float(lc)
                 if coin is not None and lc is not None:
