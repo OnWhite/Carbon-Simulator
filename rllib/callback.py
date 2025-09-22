@@ -164,6 +164,7 @@ class InfoMetricsCallback(DefaultCallbacks):
             rev = float(endo.get("Revenue", 0.0) or 0.0)
             cst = float(endo.get("Costs", 0.0) or 0.0)
             prf = rev - cst
+            coin = inv.get("Coin", None)
             if wid <= self.worker_id and eid == 0:
                 base = f"worker_{wid}/agent_{k}"
                 episode.custom_metrics[f"{base}/Revenue_final"] = rev
@@ -175,7 +176,6 @@ class InfoMetricsCallback(DefaultCallbacks):
                 mv = info.get("Manufacture_volume", None)
                 if mv is not None:
                     episode.custom_metrics[f"{base}/Manufacture_volume_final"] = float(mv)
-                coin = inv.get("Coin", None)
                 if coin is not None:
                     episode.custom_metrics[f"{base}/Coin_final"] = float(coin)
                 carbon_idx = inv.get("Carbon_idx", None)
