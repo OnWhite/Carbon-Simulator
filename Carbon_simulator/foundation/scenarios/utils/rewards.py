@@ -40,15 +40,16 @@ def isoelastic_coin_minus_labor(
     return util
 
 
-def planner_strategy(coin_endowments, mobile_idx, remained_idx, mobile_coefficient):
-    n_agents = len(coin_endowments)
-    prod = get_productivity(coin_endowments) / n_agents
-    equality = get_equality(coin_endowments)
+def planner_strategy(profit, mobile_idx, remained_idx, mobile_coefficient):
+    n_agents = len(profit)
+    prod = get_productivity(profit) / n_agents  # around 200 that is baaad
+    equality = get_equality(profit)
 
-    idx_used_mobile = np.exp(sum([-1 * mobile_coefficient * idx for idx in mobile_idx]))
-    idx_used_planner = -10000 * int(remained_idx < 0)
+    idx_used_mobile = np.exp(sum([-1 * mobile_coefficient * idx for idx in
+                                  mobile_idx]))  # if agents spend more than allocated index, this term decreases to <1 other >1
+    idx_overspent = min(0, remained_idx)  # Penalty for overspending index
 
-    util = equality * prod * idx_used_mobile + idx_used_planner
+    util = equality * prod * idx_used_mobile + 50.0 * idx_overspent ** 2
     return util
 
 def planner_strategy_variable_penalty(coin_endowments, mobile_idx, remained_idx, mobile_coefficient, penalty_constant=1000, epsilon=1e-3):
@@ -98,26 +99,7 @@ def get_productivity(coin_endowments):
 
     return np.sum(coin_endowments)
 
-
-def planner_metrics(coin_endowments, mobile_idx, remained_idx, mobile_coefficient):
-    n_agents = len(coin_endowments)
-    prod = get_productivity(coin_endowments) / n_agents
-    equality = get_equality(coin_endowments)
-
-    idx_used_mobile = np.exp(sum([-1 * mobile_coefficient * idx for idx in mobile_idx]))
-    idx_used_planner = -10000 * int(remained_idx < 0)
-
-    util = equality * prod * idx_used_mobile + idx_used_planner
-
-    planner_metrix = {
-        "util": util,
-        "equality": equality,
-        "prod": prod,
-        "mobile_idx_used": mobile_idx
-    }
-    return planner_metrix
-
-def planner_metrics_scalar(profit, mobile_idx, remained_idx, mobile_coefficient, total_idx):
+def planner_metrics(profit, mobile_idx, remained_idx, mobile_coefficient, total_idx):
     n_agents = len(profit)
     prod = get_productivity(profit) / n_agents #around 200 that is baaad
     equality = get_equality(profit)
@@ -125,7 +107,7 @@ def planner_metrics_scalar(profit, mobile_idx, remained_idx, mobile_coefficient,
     idx_used_mobile = np.exp(sum([-1 * mobile_coefficient * idx for idx in mobile_idx])) # if agents spend more than allocated index, this term decreases to <1 other >1
     idx_overspent = min(0,remained_idx)  # Penalty for overspending index
 
-    util = equality *0.01 * prod * idx_used_mobile + idx_overspent**2
+    util = equality * prod * idx_used_mobile + 50.0 *idx_overspent**2
 
     planner_metrix = {
         "util": util,

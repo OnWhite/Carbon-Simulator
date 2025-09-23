@@ -9,10 +9,10 @@ from Carbon_simulator.foundation.scenarios.utils import rewards
 
 @scenario_registry.add
 class Carbon_env(BaseEnvironment):
-
     name = "Carbon/Carbon_env"
     agent_subclasses = ["BasicMobileAgent", "BasicPlanner"]
-    required_entities = ["Carbon_idx", "Carbon_emission", "Coin", "Property", "Carbon_pollution", "Labor", "LaborCost", "Costs", "Revenue"]
+    required_entities = ["Carbon_idx", "Carbon_emission", "Coin", "Property", "Carbon_pollution", "Labor", "LaborCost",
+                         "Costs", "Revenue"]
 
     def __init__(
             self,
@@ -114,8 +114,9 @@ class Carbon_env(BaseEnvironment):
 
         # (for the planner)
         curr_optimization_metric[self.world.planner.idx] = rewards.planner_strategy(
-            coin_endowments=np.array(
-                [agent.total_endowment("Coin") for agent in self.world.agents]
+            profit=np.array(
+                [agent.state["endogenous"]["Revenue"] - agent.state["endogenous"]["Costs"] for agent in
+                 self.world.agents]
             ),
             mobile_idx=self.world.planner.state["settlement_idx"],
             remained_idx=self.world.planner.state["remained_idx"],
