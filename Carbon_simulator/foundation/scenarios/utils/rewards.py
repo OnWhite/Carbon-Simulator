@@ -41,6 +41,8 @@ def isoelastic_coin_minus_labor(
 
 
 def planner_strategy(profit, mobile_idx, remained_idx, mobile_coefficient):
+    """remained idx is the indext that is still left for the planner to allocate"""
+
     n_agents = len(profit)
     prod = get_productivity(profit) / n_agents  # around 200 that is baaad
     equality = get_equality(profit)
@@ -51,23 +53,6 @@ def planner_strategy(profit, mobile_idx, remained_idx, mobile_coefficient):
 
     util = equality * prod * idx_used_mobile + 50.0 * idx_overspent ** 2
     return util
-
-def planner_strategy_variable_penalty(coin_endowments, mobile_idx, remained_idx, mobile_coefficient, penalty_constant=1000, epsilon=1e-3):
-    """remained idx is the indext that is still left for the planner to allocate"""
-    n_agents = len(coin_endowments)
-    prod = get_productivity(coin_endowments) / n_agents
-    equality = get_equality(coin_endowments)
-
-    idx_used_mobile = np.exp(sum([-1 * mobile_coefficient * idx for idx in mobile_idx]))
-
-    if remained_idx < 0:
-        idx_used_planner = -10000
-    else:
-        idx_used_planner = -penalty_constant / (remained_idx + epsilon)  # Increases as remained_idx -> 0
-
-    util = equality * prod * idx_used_mobile + idx_used_planner
-    return util
-
 
 def get_gini(endowments):
 
