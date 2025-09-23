@@ -84,7 +84,7 @@ def get_productivity(coin_endowments):
 
     return np.sum(coin_endowments)
 
-def planner_metrics(profit, mobile_idx, remained_idx, mobile_coefficient, total_idx):
+def planner_metrics(profit, mobile_idx, remained_idx, mobile_coefficient):
     n_agents = len(profit)
     prod = get_productivity(profit) / n_agents #around 200 that is baaad
     equality = get_equality(profit)
