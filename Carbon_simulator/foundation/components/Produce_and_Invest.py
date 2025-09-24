@@ -9,10 +9,10 @@ from Carbon_simulator.foundation.base.base_component import (
 
 @component_registry.add
 class Carbon_component(BaseComponent):
-
     name = "Carbon_component"
     component_type = "Carbon_component"
-    required_entities = ["Carbon_idx", "Carbon_emission", "Coin", "Revenue", "Property", "Carbon_pollution", "Labor", "Carbon_project", "Green_project"]
+    required_entities = ["Carbon_idx", "Carbon_emission", "Coin", "Revenue", "Property", "Carbon_pollution", "Labor",
+                         "Carbon_project", "Green_project"]
     agent_subclasses = ["BasicMobileAgent"]
 
     def __init__(
@@ -23,7 +23,7 @@ class Carbon_component(BaseComponent):
             labor=10.0,
             debuff=0.3,
             env_recover_ability=3,
-            research_setting=["e^-", 0.5], # ["-log"or"e^-", int]
+            research_setting=["e^-", 0.5],  # ["-log"or"e^-", int]
             labor_multiple=False,
             ability_independent=True,
 
@@ -98,7 +98,7 @@ class Carbon_component(BaseComponent):
         if self.world.location_landmarks(*agent.loc):
             return False
         # If we made it here, the agent can build.
-        return agent.state["inventory"]["Coin"]>0
+        return agent.state["inventory"]["Coin"] > 0
 
     # Required methods for implementing components
     # --------------------------------------------
@@ -163,29 +163,32 @@ class Carbon_component(BaseComponent):
 
                 # Update Emission rate
                 if self.research_type == "-log":
-                    """if agent.state["Start_Er"]==1:
-                        agent.state["Carbon_emission_rate"] = max(max(1-(self.world.timestep // self.period + 1)/(self.episode_length / self.period), self.lowest_rate), agent.state["Start_Er"] - np.log(
-                            1 + (agent.state["Research_ability"] * agent.state["Research_count"][0])
-                        ) / np.log(self.a + 1))
+                    if agent.state["Start_Er"] == 1:
+                        agent.state["Carbon_emission_rate"] = max(
+                            max(1 - (self.world.timestep // self.period + 1) / (self.episode_length / self.period),
+                                self.lowest_rate), agent.state["Start_Er"] - np.log(
+                                1 + (agent.state["Research_ability"] * agent.state["Research_count"][0])
+                            ) / np.log(self.a + 1))
                     else:
                         agent.state["Carbon_emission_rate"] = max(
                             max(1 - (self.world.timestep // self.period + 1) / (self.episode_length / self.period),
                                 self.lowest_rate), agent.state["Start_Er"] - np.log(
                                 1 + (agent.state["Research_ability"] * agent.state["Research_count"][1])
-                            ) / np.log(self.a + 1))"""
-                    agent.state["Carbon_emission_rate"] = max(
-                        1 - (self.world.timestep // self.period + 1) / (self.episode_length / self.period),
-                        self.lowest_rate
-                    )
+                            ) / np.log(self.a + 1))
+
                 elif self.research_type == "e^-":
-                    """assert agent.state["Start_Er"]==1, "Can't set research_type be e^- and tech_share_year be True at same time"
-                    power_efficiency = np.e**(-agent.state["Research_ability"] * agent.state["Research_count"][0] * self.a)
-                    sum_power_efficiency = np.sum([np.e**(-i_agent.state["Research_count"][0] * self.a) * i_agent.state["Manufacture_volume"] for i_agent in world.agents])
-                    green_rate = max(1-np.sum(world.maps.get("Green_project"))/(sum_power_efficiency + np.sum(world.maps.get("Green_project"))), 0)
-                    assert 0<= green_rate <=1
+                    assert agent.state[
+                               "Start_Er"] == 1, "Can't set research_type be e^- and tech_share_year be True at same time"
+                    power_efficiency = np.e ** (
+                            -agent.state["Research_ability"] * agent.state["Research_count"][0] * self.a)
+                    sum_power_efficiency = np.sum(
+                        [np.e ** (-i_agent.state["Research_count"][0] * self.a) * i_agent.state["Manufacture_volume"]
+                         for i_agent in world.agents])
+                    green_rate = max(1 - np.sum(world.maps.get("Green_project")) / (
+                            sum_power_efficiency + np.sum(world.maps.get("Green_project"))), 0)
+                    assert 0 <= green_rate <= 1
                     agent.state["Carbon_emission_rate"] = max(power_efficiency * green_rate, self.lowest_rate)
-                    """
-                    agent.state["Carbon_emission_rate"] = 1.0
+
                 # Update Research_history
                 agent.state["Research_history"][1:] = agent.state["Research_history"][:-1]
                 agent.state["Research_history"][0] = 0
@@ -270,8 +273,8 @@ class Carbon_component(BaseComponent):
                     agent.state["endogenous"]["Labor"] += self.labor * agent.state[
                         "Research_ability"] if self.labor_multiple else self.labor
 
-                    agent.state["inventory"]["Coin"] -= self.payment/(2* agent.state["Research_ability"])
-                    agent.state["endogenous"]["Costs"] += self.payment/(2* agent.state["Research_ability"])
+                    agent.state["inventory"]["Coin"] -= self.payment / (2 * agent.state["Research_ability"])
+                    agent.state["endogenous"]["Costs"] += self.payment / (2 * agent.state["Research_ability"])
 
                 else:
                     raise ValueError
@@ -326,7 +329,7 @@ class Carbon_component(BaseComponent):
         """
         world = self.world
 
-        build_stats = {a.idx: {"n_builds": 0, "emission":0} for a in world.agents}
+        build_stats = {a.idx: {"n_builds": 0, "emission": 0} for a in world.agents}
         for actions in self.Manufactures["builds"]:
             for action in actions:
                 idx = action["enterprise"]
