@@ -49,9 +49,9 @@ def planner_strategy(profit, mobile_idx, remained_idx, mobile_coefficient):
 
     idx_used_mobile = np.exp(sum([-1 * mobile_coefficient * idx for idx in
                                   mobile_idx]))  # if agents spend more than allocated index, this term decreases to <1 other >1
-    idx_overspent = min(0, remained_idx)  # Penalty for overspending index
+    idx_overspent = min(0, remained_idx)  # Penalty for overspending index by the planner
 
-    util = equality * prod * idx_used_mobile + 50.0 * idx_overspent ** 2
+    util = equality * prod * idx_used_mobile - 50.0 * idx_overspent ** 2
     return util
 
 def get_gini(endowments):
@@ -92,7 +92,7 @@ def planner_metrics(profit, mobile_idx, remained_idx, mobile_coefficient):
     idx_used_mobile = np.exp(sum([-1 * mobile_coefficient * idx for idx in mobile_idx])) # if agents spend more than allocated index, this term decreases to <1 other >1
     idx_overspent = min(0,remained_idx)  # Penalty for overspending index
 
-    util = equality * prod * idx_used_mobile + 50.0 *idx_overspent**2
+    util = equality * prod * idx_used_mobile - 50.0 *idx_overspent**2
 
     planner_metrix = {
         "util": util,
