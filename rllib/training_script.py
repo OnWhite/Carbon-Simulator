@@ -469,6 +469,6 @@ if __name__ == "__main__":
             saving.save_model_weights(trainer, ckpt_dir, global_step, suffix="planner")
             logger.info("Final snapshot saved! All done.")
     finally:
-        ray.timeline(os.path.join(run_dir, "timeline.json"))
+        #ray.timeline(os.path.join(run_dir, "timeline.json"))
         ray.shutdown()
         wandb.finish()
