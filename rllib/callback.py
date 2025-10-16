@@ -44,6 +44,7 @@ class InfoMetricsCallback(DefaultCallbacks):
         "Power_efficiency": lambda info: info.get("Power_efficiency"),
         "Green_rate": lambda info: info.get("Green_rate"),
         "Reward": lambda info: info.get("endogenous", {}).get("Reward"),
+        "Startidx": lambda info: info.get("inventory", {}).get("Startidx"),
 
     }
 
@@ -147,6 +148,9 @@ class InfoMetricsCallback(DefaultCallbacks):
         if wid <= self.worker_id and eid == 0:
             val = {}
             val1 = {}
+            startidx= {}
+            emissionrate= {}
+            manufacturevolume= {}
             total_optimal_capacity=0.0
             for key, series in episode.user_data.items():
                 if not key.startswith(f"worker_{wid}/") or not series:
@@ -160,36 +164,22 @@ class InfoMetricsCallback(DefaultCallbacks):
                     val1[agent] = float(np.sum(series))
                 elif name == "RewardPlanner" and agent== "p":
                     episode.custom_metrics[f"worker_{wid}/PlannerReward_final"] = float(np.sum(series))
+                elif name == "Startidx" and agent != "p":
+                    startidx[agent] = float(np.average(series))
+                elif name =="Emission_rate" and agent != "p":
+                    episode.custom_metrics[f"worker_{wid}/{agent}/Avg_Emission_rate"] = float(np.average(series))
+                    emissionrate[agent] = float(np.sum(series))
+                elif name == "Manufacture_volume" and agent != "p":
+                    manufacturevolume[agent] = float(np.sum(series))
+            optimal_capacity=0.0
             for agent, value in val.items():
                 episode.custom_metrics[f"worker_{wid}/{agent}/Remaining_Manufacturing_Potential"] = (
                     float(val1[agent] / value) if value != 0 and agent in val1 else 0.0
                 )
-                # Get certificates allocated (sum from user_data)
-                cert_key = f"worker_{wid}/agent_{agent}/Certificates_Allocated"
-                certificates = float(np.sum(episode.user_data.get(cert_key, [0])))
-
-                # Get remaining carbon index from agent state
-                remaining_idx = float(info.get("inventory", {}).get("Carbon_idx", 0.0))
-                # Calculate remaining manufacturing potential
-                episode.custom_metrics[f"worker_{wid}/agent_{agent}/Remaining_Manufacturing_Potential"] = (
-                    float(remaining_idx / certificates) if certificates != 0 else 0.0
+                optimal_capacity = startidx[agent]/(emissionrate[agent]*manufacturevolume[agent] )if agent in startidx and agent in emissionrate and agent in manufacturevolume else 0.0
+                episode.custom_metrics[f"worker_{wid}/{agent}/Optimal_Production_Capacity"] = (
+                    optimal_capacity
                 )
-                # Get average emission rate and manufacture volume from user_data
-                er_key = f"worker_{wid}/agent_{agent}/Emission_rate"
-                mv_key = f"worker_{wid}/agent_{agent}/Manufacture_volume"
-
-                avg_er = (
-                float(np.mean(episode.user_data[er_key]))
-                if er_key in episode.user_data and episode.user_data[er_key]
-                else agent.state["Carbon_emission_rate"])
-
-                avg_mv = (
-                float(np.mean(episode.user_data[mv_key]))
-                if mv_key in episode.user_data and episode.user_data[mv_key]
-                else agent.state["Manufacture_volume"] )
-                # Optimal production capacity: certificates / (avg_er * avg_mv)
-                optimal_capacity = certificates / (avg_er * avg_mv) if (avg_er * avg_mv) > 0 else 0.0
-                episode.custom_metrics[f"worker_{wid}/agent_{agent}/Optimal_Production_Capacity"] = float(optimal_capacity)
                 total_optimal_capacity += optimal_capacity
             episode.custom_metrics[f"worker_{wid}/Total_Optimal_Production_Capacity"] = float(total_optimal_capacity)
         tot_rev = 0.0

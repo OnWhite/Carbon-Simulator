@@ -67,3 +67,8 @@ class Reward(Endogenous):
 class RewardPlanner(Endogenous):
     """reward for every agent """
     name = "RewardPlanner"
+
+@endogenous_registry.add
+class Startidx(Endogenous):
+    """reward for every agent """
+    name = "Startidx"
