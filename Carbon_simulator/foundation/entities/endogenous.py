@@ -58,3 +58,12 @@ class Revenue(Endogenous):
     """Profit generated from activities such as manufacturing / carbontrade."""
 
     name = "Revenue"
+
+@endogenous_registry.add
+class Reward(Endogenous):
+    """reward for every agent """
+    name = "Reward"
+@endogenous_registry.add
+class RewardPlanner(Endogenous):
+    """reward for every agent """
+    name = "RewardPlanner"

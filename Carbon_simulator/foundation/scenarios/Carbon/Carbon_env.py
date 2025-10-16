@@ -12,7 +12,8 @@ class Carbon_env(BaseEnvironment):
     name = "Carbon/Carbon_env"
     agent_subclasses = ["BasicMobileAgent", "BasicPlanner"]
     required_entities = ["Carbon_idx", "Carbon_emission", "Coin", "Property", "Carbon_pollution", "Labor", "LaborCost",
-                         "Costs", "Revenue"]
+                         "Costs", "Revenue", "Reward"]
+
 
     def __init__(
             self,
@@ -343,6 +344,12 @@ class Carbon_env(BaseEnvironment):
             k: float(v - utility_at_end_of_last_time_step[k])
             for k, v in self.curr_optimization_metric.items()
         }
+
+        # Store rewards in agent state
+        for agent in self.world.agents:
+            agent.state["endogenous"]["Reward"] = rew[agent.idx]
+
+        self.world.planner.state["endogenous"]["Reward"] = rew[self.world.planner.idx]
 
         # store the previous objective values
         self.prev_optimization_metric.update(utility_at_end_of_last_time_step)

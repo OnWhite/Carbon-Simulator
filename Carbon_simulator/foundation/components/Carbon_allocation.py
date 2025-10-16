@@ -308,7 +308,7 @@ class CarbonRedistribution(BaseComponent):
         world.planner.state["year_num"] = 0
 
         world.planner.state["remained_idx"] = float(self.total_idx)
-
+        world.planner.state["total_idx"] = float(self.total_idx)
         world.planner.state["settlement_idx"] = np.zeros(self.n_agents)
 
         self.log = []
