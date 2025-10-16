@@ -169,8 +169,7 @@ class InfoMetricsCallback(DefaultCallbacks):
                 certificates = float(np.sum(episode.user_data.get(cert_key, [0])))
 
                 # Get remaining carbon index from agent state
-                remaining_idx = agent.state["inventory"]["Carbon_idx"]
-
+                remaining_idx = float(info.get("inventory", {}).get("Carbon_idx", 0.0))
                 # Calculate remaining manufacturing potential
                 episode.custom_metrics[f"worker_{wid}/agent_{agent}/Remaining_Manufacturing_Potential"] = (
                     float(remaining_idx / certificates) if certificates != 0 else 0.0
