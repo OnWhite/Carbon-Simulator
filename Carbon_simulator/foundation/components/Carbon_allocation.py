@@ -272,7 +272,7 @@ class CarbonRedistribution(BaseComponent):
             "agents_volume": [agent.state["Manufacture_volume"] for agent in self.world.agents],
             "agents_emission_rate": [agent.state["Carbon_emission_rate"] for agent in self.world.agents],
             "settlement_idx": self.world.planner.state["settlement_idx"],
-            "remained_idx": self.world.planner.state["remained_idx"],
+            "remained_idx": self.world.planner.state["remained_idx"], # total emissions
             "average_Er": self.world.planner.state["average_Er"],
         }
 
@@ -308,7 +308,7 @@ class CarbonRedistribution(BaseComponent):
         world.planner.state["year_num"] = 0
 
         world.planner.state["remained_idx"] = float(self.total_idx)
-
+        world.planner.state["total_idx"] = float(self.total_idx)
         world.planner.state["settlement_idx"] = np.zeros(self.n_agents)
 
         self.log = []
