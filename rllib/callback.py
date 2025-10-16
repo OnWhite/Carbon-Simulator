@@ -168,9 +168,9 @@ class InfoMetricsCallback(DefaultCallbacks):
                     startidx[agent] = float(np.average(series))
                 elif name =="Emission_rate" and agent != "p":
                     episode.custom_metrics[f"worker_{wid}/{agent}/Avg_Emission_rate"] = float(np.average(series))
-                    emissionrate[agent] = float(np.sum(series))
+                    emissionrate[agent] = float(np.average(series))
                 elif name == "Manufacture_volume" and agent != "p":
-                    manufacturevolume[agent] = float(np.sum(series))
+                    manufacturevolume[agent] = float(np.average(series))
             optimal_capacity=0.0
             for agent, value in val.items():
                 episode.custom_metrics[f"worker_{wid}/{agent}/Remaining_Manufacturing_Potential"] = (
