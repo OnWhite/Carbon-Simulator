@@ -180,6 +180,9 @@ class InfoMetricsCallback(DefaultCallbacks):
                 episode.custom_metrics[f"worker_{wid}/{agent}/Optimal_Production_Capacity"] = (
                     optimal_capacity
                 )
+                episode.custom_metrics[f"worker_{wid}/{agent}/emmissionrate"] = (emissionrate[agent])
+                episode.custom_metrics[f"worker_{wid}/{agent}/manufacturevolume"] = (manufacturevolume[agent])
+                episode.custom_metrics[f"worker_{wid}/{agent}/startidx"] = (startidx[agent])
                 total_optimal_capacity += optimal_capacity
             episode.custom_metrics[f"worker_{wid}/Total_Optimal_Production_Capacity"] = float(total_optimal_capacity)
         tot_rev = 0.0
