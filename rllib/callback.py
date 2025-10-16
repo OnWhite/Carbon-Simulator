@@ -176,7 +176,7 @@ class InfoMetricsCallback(DefaultCallbacks):
                 episode.custom_metrics[f"worker_{wid}/{agent}/Remaining_Manufacturing_Potential"] = (
                     float(val1[agent] / value) if value != 0 and agent in val1 else 0.0
                 )
-                optimal_capacity = startidx[agent]/(emissionrate[agent]*manufacturevolume[agent] )if agent in startidx and agent in emissionrate and agent in manufacturevolume else 0.0
+                optimal_capacity = float(startidx[agent]/(emissionrate[agent]*manufacturevolume[agent] )if agent in startidx and agent in emissionrate and agent in manufacturevolume else 0.0)
                 episode.custom_metrics[f"worker_{wid}/{agent}/Optimal_Production_Capacity"] = (
                     optimal_capacity
                 )
