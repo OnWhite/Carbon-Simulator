@@ -11,7 +11,7 @@ import logging
 import socket
 from ray.rllib.algorithms.callbacks import DefaultCallbacks
 
-PROFILE_DIR = os.environ.get("PROFILE_DIR", "/tmp/rllib_profiles")
+PROFILE_DIR = os.environ.get("PROFILE_DIR", "/nas/ucb/sophialudewig/rllib_profiles")
 os.makedirs(PROFILE_DIR, exist_ok=True)
 logging.basicConfig(stream=sys.stdout, format="%(asctime)s %(message)s")
 logger = logging.getLogger("main")
