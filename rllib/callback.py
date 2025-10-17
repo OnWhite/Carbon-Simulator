@@ -2,6 +2,11 @@ import numpy as np
 from ray.rllib.evaluation.episode import Episode
 from ray.rllib.algorithms.callbacks import DefaultCallbacks
 import cProfile
+import sys
+import logging
+logging.basicConfig(stream=sys.stdout, format="%(asctime)s %(message)s")
+logger = logging.getLogger("main")
+logger.setLevel(logging.DEBUG)
 
 class ProfilingCallbacks(DefaultCallbacks):
     def __init__(self):
@@ -12,7 +17,7 @@ class ProfilingCallbacks(DefaultCallbacks):
         worker_id = worker.worker_index
         self.worker_profiles[worker_id] = cProfile.Profile()
         self.worker_profiles[worker_id].enable()
-        print(f"Started profiling for worker {worker_id}")
+        logger.info(f"Started profiling for worker {worker_id}")
         return
 
     def on_episode_end(self, *, worker, base_env, policies, episode, **kwargs):
@@ -27,7 +32,7 @@ class ProfilingCallbacks(DefaultCallbacks):
         for worker_id, profile in self.worker_profiles.items():
             profile.disable()
             profile.dump_stats(f'/nas/ucb/sophialudewig/worker_{worker_id}_profile.prof')
-            print(f"Saved profile for worker {worker_id}")
+            logger.info(f"Saved profile for worker {worker_id}")
 
 
 def get_gini(endowments):

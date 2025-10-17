@@ -340,6 +340,7 @@ if __name__ == "__main__":
             include_dashboard=False,
             object_store_memory=8 * 1024 ** 3,
             _temp_dir = TMP_DIR,  # belt-and-suspenders with RAY_TMPDIR
+            profile=True,  # Add this line
             _system_config = {
                 "object_spilling_config": json.dumps({
                     "type": "filesystem",
