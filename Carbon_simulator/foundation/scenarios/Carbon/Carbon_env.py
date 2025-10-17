@@ -12,7 +12,7 @@ class Carbon_env(BaseEnvironment):
     name = "Carbon/Carbon_env"
     agent_subclasses = ["BasicMobileAgent", "BasicPlanner"]
     required_entities = ["Carbon_idx", "Carbon_emission", "Coin", "Property", "Carbon_pollution", "Labor", "LaborCost",
-                         "Costs", "Revenue", "Reward"]
+                         "Costs", "Revenue", "Reward", "LaborUtility", "CoinUtility", "CurrentUtility", "PastUtility"]
 
 
     def __init__(
@@ -136,12 +136,12 @@ class Carbon_env(BaseEnvironment):
 
                 # Make sure these fields exist before incrementing them
                 if "LaborUtility" not in agent.state:
-                    agent.state["LaborUtility"] = 0.0
+                    agent.state["endogenous"]["LaborUtility"] = 0.0
                 if "CoinUtility" not in agent.state:
-                    agent.state["CoinUtility"] = 0.0
+                    agent.state["endogenous"]["CoinUtility"] = 0.0
 
-                agent.state["LaborUtility"] += util_l
-                agent.state["CoinUtility"] += util_c
+                agent.state["endogenous"]["LaborUtility"] += util_l
+                agent.state["endogenous"]["CoinUtility"] += util_c
 
         # (for the planner)
         curr_optimization_metric[self.world.planner.idx] = rewards.planner_strategy(
@@ -203,11 +203,6 @@ class Carbon_env(BaseEnvironment):
             agent.state["escrow"] = {k: 0 for k in agent.inventory.keys()}
             agent.state["endogenous"] = {k: 0 for k in agent.endogenous.keys()}
             # Add starting coin
-            agent.state["inventory"]["Coin"] = float(self.starting_agent_coin)
-            agent.state["LaborUtility"] = 0.0
-            agent.state["CoinUtility"] = 0.0
-            agent.state["CurrentUtility"] = 0.0
-            agent.state["PastUtility"] = 0.0
 
         # Clear everything for the planner
         self.world.planner.state["inventory"] = {

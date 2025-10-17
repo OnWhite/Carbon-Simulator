@@ -72,3 +72,23 @@ class RewardPlanner(Endogenous):
 class Startidx(Endogenous):
     """reward for every agent """
     name = "Startidx"
+
+@endogenous_registry.add
+class PastUtility(Endogenous):
+    """reward for every agent """
+    name = "PastUtility"
+
+@endogenous_registry.add
+class LaborUtility(Endogenous):
+    """reward for every agent """
+    name = "LaborUtility"
+
+@endogenous_registry.add
+class CoinUtility(Endogenous):
+    """reward for every agent """
+    name = "CoinUtility"
+
+@endogenous_registry.add
+class CurrentUtility(Endogenous):
+    """reward for every agent """
+    name = "CurrentUtility"
