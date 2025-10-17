@@ -45,10 +45,11 @@ class InfoMetricsCallback(DefaultCallbacks):
         "Green_rate": lambda info: info.get("Green_rate"),
         "Reward": lambda info: info.get("endogenous", {}).get("Reward"),
         "Startidx": lambda info: info.get("inventory", {}).get("Startidx"),
-        "Laborutilty": lambda info: info.get("Laborutilty", 0.0),
-        "Coinutilty": lambda info: info.get("Coinutilty", 0.0),
+        "LaborUtility": lambda info: info.get("LaborUtility", 0.0),
+        "CoinUtility": lambda info: info.get("CoinUtility", 0.0),
         "CurrentUtility": lambda info: info.get("CurrentUtility", 0.0),
         "PastUtility": lambda info: info.get("PastUtility", 0.0),
+
     }
 
     FINAL_METRICS = {
