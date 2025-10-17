@@ -5,7 +5,7 @@ import os
 import ray
 import sys
 import time
-from callback import InfoMetricsCallback
+from callback import InfoMetricsCallback, ProfilingCallbacks
 import matplotlib.pyplot as plt
 import numpy as np
 import wandb
@@ -128,11 +128,15 @@ def build_trainer(run_configuration, tune_params=None):
     def logger_creator(config):
         return NoopLogger({}, "/tmp")
 
+    from ray.rllib.algorithms.callbacks import MultiCallbacks
+
     ppo_trainer = PPOConfig().update_from_dict(trainer_config).callbacks(
-        lambda: InfoMetricsCallback(worker_id=1)).reporting(keep_per_episode_custom_metrics=False,
-                                                            metrics_num_episodes_for_smoothing=1).build(
+            ProfilingCallbacks()
+        ).reporting(keep_per_episode_custom_metrics=False,
+                      metrics_num_episodes_for_smoothing=1).build(
         env=RLlibEnvWrapper, logger_creator=logger_creator)
     return ppo_trainer
+
 
 def set_up_dirs_and_maybe_restore(run_directory, run_configuration, trainer_obj):
     # === Set up Logging & Saving, or Restore ===

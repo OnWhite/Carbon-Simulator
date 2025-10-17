@@ -1,8 +1,34 @@
-import sys
-
 import numpy as np
-from ray.rllib.algorithms.callbacks import DefaultCallbacks
 from ray.rllib.evaluation.episode import Episode
+from ray.rllib.algorithms.callbacks import DefaultCallbacks
+import cProfile
+
+class ProfilingCallbacks(DefaultCallbacks):
+    def __init__(self):
+        super().__init__()
+        self.worker_profiles = {}
+
+    def on_worker_init(self, *, worker, **kwargs):
+        worker_id = worker.worker_index
+        self.worker_profiles[worker_id] = cProfile.Profile()
+        self.worker_profiles[worker_id].enable()
+        print(f"Started profiling for worker {worker_id}")
+        return
+
+    def on_episode_end(self, *, worker, base_env, policies, episode, **kwargs):
+        # Optionally disable and save periodically
+        pass
+
+    def on_train_result(self, *, trainer, result, **kwargs):
+        # You could save profiles periodically here
+        pass
+
+    def on_algorithm_shutdown(self, *, algorithm, **kwargs):
+        for worker_id, profile in self.worker_profiles.items():
+            profile.disable()
+            profile.dump_stats(f'worker_{worker_id}_profile.prof')
+            print(f"Saved profile for worker {worker_id}")
+
 
 def get_gini(endowments):
     n_agents = len(endowments)
