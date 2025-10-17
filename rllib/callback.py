@@ -8,6 +8,7 @@ import os
 import atexit
 import cProfile
 import logging
+import socket
 from ray.rllib.algorithms.callbacks import DefaultCallbacks
 
 PROFILE_DIR = os.environ.get("PROFILE_DIR", "/tmp/rllib_profiles")
@@ -17,48 +18,54 @@ logger = logging.getLogger("main")
 logger.setLevel(logging.DEBUG)
 
 class ProfilingCallbacks(DefaultCallbacks):
-    def __init__(self):
-        super().__init__()
-        self.worker_profiles = {}
-
     def on_worker_init(self, *, worker, **kwargs):
-        wid = worker.worker_index  # 0 = local worker on driver, >=1 = remote
-        pid = os.getpid()
+        wid, pid, host = worker.worker_index, os.getpid(), socket.gethostname()
+        base = f"worker_{wid}_{pid}_{host}"
+        log_path = os.path.join(PROFILE_DIR, f"{base}.log")
+        prof_path = os.path.join(PROFILE_DIR, f"{base}.prof")
+        alive = os.path.join(PROFILE_DIR, f"{base}.alive")
 
-        # Per-worker logger (file only)
-        log_path = os.path.join(PROFILE_DIR, f"worker_{wid}_{pid}.log")
-        logger = logging.getLogger(f"rllib.worker.{wid}.{pid}")
+        # prove this worker initialized
+        open(alive, "w").close()
+
+        # simple file logger (per worker)
+        logger = logging.getLogger(base)
         logger.setLevel(logging.INFO)
-        with open(os.path.join(PROFILE_DIR, f"worker_{wid}_{pid}.started"), "w") as f:
-            f.write(f"Profiling started for worker {wid}, pid {pid}\n")
         if not any(isinstance(h, logging.FileHandler) for h in logger.handlers):
             fh = logging.FileHandler(log_path)
             fh.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
             logger.addHandler(fh)
             logger.propagate = False
 
-        # Start profiler in this worker process
-        prof_path = os.path.join(PROFILE_DIR, f"worker_{wid}_{pid}.prof")
         profiler = cProfile.Profile()
         profiler.enable()
 
-        # Store on worker for potential future use
         worker._profiler = profiler
         worker._profiler_path = prof_path
         worker._profiler_logger = logger
 
-        logger.info(f"Profiling started (wid={wid}, pid={pid}) -> {prof_path}")
+        logger.info(f"Profiling started wid={wid} pid={pid} host={host} -> {prof_path}")
 
-        # Ensure profile is saved when the worker process exits
         def _dump_on_exit():
             try:
                 profiler.disable()
                 profiler.dump_stats(prof_path)
                 logger.info("Profile saved on exit")
             except Exception as e:
-                logger.exception(f"Failed to save profile: {e}")
+                logger.exception(f"Exit dump failed: {e}")
 
         atexit.register(_dump_on_exit)
+
+    def on_episode_end(self, *, worker, episode, **kwargs):
+        # periodic snapshot so you see files during training
+        if episode.episode_id % 10 == 0:
+            try:
+                worker._profiler.disable()
+                worker._profiler.dump_stats(worker._profiler_path)
+                worker._profiler.enable()
+                worker._profiler_logger.info(f"Snapshot at episode {episode.episode_id}")
+            except Exception as e:
+                worker._profiler_logger.exception(f"Snapshot failed: {e}")
 
 
 def get_gini(endowments):
