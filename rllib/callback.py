@@ -18,54 +18,69 @@ logger = logging.getLogger("main")
 logger.setLevel(logging.DEBUG)
 
 class ProfilingCallbacks(DefaultCallbacks):
-    def on_worker_init(self, *, worker, **kwargs):
+    SNAPSHOT_EVERY = 10  # episodes
+
+    def _ensure_profiler(self, worker):
+        if getattr(worker, "_profiler", None) is not None:
+            return
         wid, pid, host = worker.worker_index, os.getpid(), socket.gethostname()
         base = f"worker_{wid}_{pid}_{host}"
-        log_path = os.path.join(PROFILE_DIR, f"{base}.log")
         prof_path = os.path.join(PROFILE_DIR, f"{base}.prof")
-        alive = os.path.join(PROFILE_DIR, f"{base}.alive")
+        log_path  = os.path.join(PROFILE_DIR, f"{base}.log")
+        open(os.path.join(PROFILE_DIR, f"{base}.alive"), "a").close()
 
-        # prove this worker initialized
-        open(alive, "w").close()
-
-        # simple file logger (per worker)
-        logger = logging.getLogger(base)
-        logger.setLevel(logging.INFO)
-        if not any(isinstance(h, logging.FileHandler) for h in logger.handlers):
+        lg = logging.getLogger(base)
+        if not any(isinstance(h, logging.FileHandler) for h in lg.handlers):
             fh = logging.FileHandler(log_path)
             fh.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
-            logger.addHandler(fh)
-            logger.propagate = False
+            lg.addHandler(fh)
+            lg.setLevel(logging.INFO)
+            lg.propagate = False
 
         profiler = cProfile.Profile()
         profiler.enable()
-
         worker._profiler = profiler
         worker._profiler_path = prof_path
-        worker._profiler_logger = logger
-
-        logger.info(f"Profiling started wid={wid} pid={pid} host={host} -> {prof_path}")
+        worker._profiler_logger = lg
+        worker._profiler_inited = True
+        lg.info(f"Profiling started wid={wid} pid={pid} host={host} -> {prof_path}")
 
         def _dump_on_exit():
             try:
                 profiler.disable()
                 profiler.dump_stats(prof_path)
-                logger.info("Profile saved on exit")
+                lg.info("Profile saved on exit")
             except Exception as e:
-                logger.exception(f"Exit dump failed: {e}")
-
+                lg.exception(f"Exit dump failed: {e}")
         atexit.register(_dump_on_exit)
 
+    # Try to init as early as possible, but always guard.
+    def on_worker_init(self, *, worker, **kwargs):
+        self._ensure_profiler(worker)
+
+    def on_episode_start(self, *, worker, **kwargs):
+        self._ensure_profiler(worker)
+
     def on_episode_end(self, *, worker, episode, **kwargs):
-        # periodic snapshot so you see files during training
-        if episode.episode_id % 10 == 0:
+        self._ensure_profiler(worker)
+        # breadcrumb so you can see this on the driver
+        episode.custom_metrics[f"profiler_inited/w{worker.worker_index}"] = \
+            1.0 if getattr(worker, "_profiler_inited", False) else 0.0
+        # periodic snapshot
+        if episode.episode_id % self.SNAPSHOT_EVERY == 0:
             try:
                 worker._profiler.disable()
                 worker._profiler.dump_stats(worker._profiler_path)
                 worker._profiler.enable()
                 worker._profiler_logger.info(f"Snapshot at episode {episode.episode_id}")
             except Exception as e:
-                worker._profiler_logger.exception(f"Snapshot failed: {e}")
+                getattr(worker, "_profiler_logger", logging.getLogger(__name__)).exception(
+                    f"Snapshot failed: {e}"
+                )
+
+    # Extra safety: fires on sampling/learning paths even if no episodes finish.
+    def on_sample_end(self, *, worker, samples, **kwargs):
+        self._ensure_profiler(worker)
 
 
 def get_gini(endowments):
