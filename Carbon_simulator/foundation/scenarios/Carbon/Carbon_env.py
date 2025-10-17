@@ -69,6 +69,17 @@ class Carbon_env(BaseEnvironment):
         self.prev_optimization_metric = {agent.idx: 0 for agent in self.all_agents}
         self.curr_optimization_metric = {agent.idx: 0 for agent in self.all_agents}
 
+        def get_additional_state_fields(self, agent_cls_name):
+            """
+            See base_component.py for detailed description.
+
+            For mobile agents, add state fields for building skill.
+            """
+            if agent_cls_name not in self.agent_subclasses:
+                return {}
+            if agent_cls_name == "BasicMobileAgent":
+                return {"Laborutilty": 0.0, "Coinutilty": 0.0, "CurrentUtility": 0.0, "PastUtility": 0.0}
+            raise NotImplementedError
     @property
     def energy_weight(self):
         """
@@ -112,6 +123,22 @@ class Carbon_env(BaseEnvironment):
                 agent.state["endogenous"]["Costs"] += delta_labor * self.energy_weight * self.energy_cost
                 agent.state["endogenous"]["LaborCost"] += delta_labor * self.energy_weight * self.energy_cost
             self._prev_labor[agent.idx] = labor_now
+            if  0 <= self.isoelastic_eta <= 1.0:
+
+                # Utility from coin endowment
+                if self.isoelastic_eta == 1.0:  # dangerous
+                    util_c = np.log(np.max(1, agent.total_endowment("Coin")))
+                else:  # isoelastic_eta >= 0
+                    if np.all(agent.total_endowment("Coin")>= 0):
+                        util_c = (agent.total_endowment("Coin") ** (1 - agent.total_endowment("Coin")) - 1) / (1 - self.isoelastic_eta)
+                    else:
+                        util_c = agent.total_endowment("Coin") - 1
+
+                # disutility from labor
+                util_l = agent.state["endogenous"]["Labor"] * self.energy_weight * self.energy_cost
+
+                agent.state["Laborutilty"] += util_l
+                agent.state["Coinutilty"] += util_c
 
         # (for the planner)
         curr_optimization_metric[self.world.planner.idx] = rewards.planner_strategy(
@@ -348,6 +375,8 @@ class Carbon_env(BaseEnvironment):
         # Store rewards in agent state
         for agent in self.world.agents:
             agent.state["endogenous"]["Reward"] = rew[agent.idx]
+            agent.state["CurrentUtility"] = self.curr_optimization_metric[agent.idx]
+            agent.state["PastUtility"] = utility_at_end_of_last_time_step[agent.idx]
 
         self.world.planner.state["endogenous"]["Reward"] = rew[self.world.planner.idx]
 
