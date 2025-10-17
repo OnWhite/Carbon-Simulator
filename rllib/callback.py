@@ -26,7 +26,7 @@ class ProfilingCallbacks(DefaultCallbacks):
     def on_algorithm_shutdown(self, *, algorithm, **kwargs):
         for worker_id, profile in self.worker_profiles.items():
             profile.disable()
-            profile.dump_stats(f'worker_{worker_id}_profile.prof')
+            profile.dump_stats(f'/nas/ucb/sophialudewig/worker_{worker_id}_profile.prof')
             print(f"Saved profile for worker {worker_id}")
 
 
