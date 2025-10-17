@@ -4,6 +4,14 @@ from ray.rllib.algorithms.callbacks import DefaultCallbacks
 import cProfile
 import sys
 import logging
+import os
+import atexit
+import cProfile
+import logging
+from ray.rllib.algorithms.callbacks import DefaultCallbacks
+
+PROFILE_DIR = os.environ.get("PROFILE_DIR", "/tmp/rllib_profiles")
+os.makedirs(PROFILE_DIR, exist_ok=True)
 logging.basicConfig(stream=sys.stdout, format="%(asctime)s %(message)s")
 logger = logging.getLogger("main")
 logger.setLevel(logging.DEBUG)
@@ -14,25 +22,44 @@ class ProfilingCallbacks(DefaultCallbacks):
         self.worker_profiles = {}
 
     def on_worker_init(self, *, worker, **kwargs):
-        worker_id = worker.worker_index
-        self.worker_profiles[worker_id] = cProfile.Profile()
-        self.worker_profiles[worker_id].enable()
-        logger.info(f"Started profiling for worker {worker_id}")
-        return
+        wid = worker.worker_index  # 0 = local worker on driver, >=1 = remote
+        pid = os.getpid()
 
-    def on_episode_end(self, *, worker, base_env, policies, episode, **kwargs):
-        # Optionally disable and save periodically
-        pass
+        # Per-worker logger (file only)
+        log_path = os.path.join(PROFILE_DIR, f"worker_{wid}_{pid}.log")
+        logger = logging.getLogger(f"rllib.worker.{wid}.{pid}")
+        logger.setLevel(logging.INFO)
+        with open(os.path.join(PROFILE_DIR, f"worker_{wid}_{pid}.started"), "w") as f:
+            f.write(f"Profiling started for worker {wid}, pid {pid}\n")
+        atexit.register(_dump_on_exit)
+        if not any(isinstance(h, logging.FileHandler) for h in logger.handlers):
+            fh = logging.FileHandler(log_path)
+            fh.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
+            logger.addHandler(fh)
+            logger.propagate = False
 
-    def on_train_result(self, *, algorithm, result, **kwargs):
-        # You could save profiles periodically here
-        pass
+        # Start profiler in this worker process
+        prof_path = os.path.join(PROFILE_DIR, f"worker_{wid}_{pid}.prof")
+        profiler = cProfile.Profile()
+        profiler.enable()
 
-    def on_algorithm_shutdown(self, *, algorithm, **kwargs):
-        for worker_id, profile in self.worker_profiles.items():
-            profile.disable()
-            profile.dump_stats(f'/nas/ucb/sophialudewig/worker_{worker_id}_profile.prof')
-            logger.info(f"Saved profile for worker {worker_id}")
+        # Store on worker for potential future use
+        worker._profiler = profiler
+        worker._profiler_path = prof_path
+        worker._profiler_logger = logger
+
+        logger.info(f"Profiling started (wid={wid}, pid={pid}) -> {prof_path}")
+
+        # Ensure profile is saved when the worker process exits
+        def _dump_on_exit():
+            try:
+                profiler.disable()
+                profiler.dump_stats(prof_path)
+                logger.info("Profile saved on exit")
+            except Exception as e:
+                logger.exception(f"Failed to save profile: {e}")
+
+        atexit.register(_dump_on_exit)
 
 
 def get_gini(endowments):
