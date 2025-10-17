@@ -69,7 +69,7 @@ class Carbon_env(BaseEnvironment):
         self.prev_optimization_metric = {agent.idx: 0 for agent in self.all_agents}
         self.curr_optimization_metric = {agent.idx: 0 for agent in self.all_agents}
 
-        def get_additional_state_fields(self, agent_cls_name):
+    def get_additional_state_fields(self, agent_cls_name):
             """
             See base_component.py for detailed description.
 
