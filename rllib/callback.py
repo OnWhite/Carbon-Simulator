@@ -19,7 +19,7 @@ class ProfilingCallbacks(DefaultCallbacks):
         # Optionally disable and save periodically
         pass
 
-    def on_train_result(self, *, trainer, result, **kwargs):
+    def on_train_result(self, *, algorithm, result, **kwargs):
         # You could save profiles periodically here
         pass
 
