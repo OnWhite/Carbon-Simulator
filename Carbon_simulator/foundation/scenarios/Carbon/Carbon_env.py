@@ -70,16 +70,16 @@ class Carbon_env(BaseEnvironment):
         self.curr_optimization_metric = {agent.idx: 0 for agent in self.all_agents}
 
     def get_additional_state_fields(self, agent_cls_name):
-            """
-            See base_component.py for detailed description.
+        """
+        See base_component.py for detailed description.
 
-            For mobile agents, add state fields for building skill.
-            """
-            if agent_cls_name not in self.agent_subclasses:
-                return {}
-            if agent_cls_name == "BasicMobileAgent":
-                return {"Laborutilty": 0.0, "Coinutilty": 0.0, "CurrentUtility": 0.0, "PastUtility": 0.0}
-            raise NotImplementedError
+        For mobile agents, add state fields for building skill.
+        """
+        if agent_cls_name not in self.agent_subclasses:
+            return {}
+        if agent_cls_name == "BasicMobileAgent":
+            return {"LaborUtility": 0.0, "CoinUtility": 0.0, "CurrentUtility": 0.0, "PastUtility": 0.0}
+        raise NotImplementedError
     @property
     def energy_weight(self):
         """
@@ -103,10 +103,6 @@ class Carbon_env(BaseEnvironment):
     def get_current_optimization_metrics(self):
         """
         Compute optimization metrics based on the current state. Used to compute reward.
-
-        Returns:
-            curr_optimization_metric (dict): A dictionary of {agent.idx: metric}
-                with an entry for each agent (including the planner) in the env.
         """
         curr_optimization_metric = {}
         # (for agents)
@@ -123,22 +119,29 @@ class Carbon_env(BaseEnvironment):
                 agent.state["endogenous"]["Costs"] += delta_labor * self.energy_weight * self.energy_cost
                 agent.state["endogenous"]["LaborCost"] += delta_labor * self.energy_weight * self.energy_cost
             self._prev_labor[agent.idx] = labor_now
-            if  0 <= self.isoelastic_eta <= 1.0:
 
+            if 0 <= self.isoelastic_eta <= 1.0:
                 # Utility from coin endowment
                 if self.isoelastic_eta == 1.0:  # dangerous
                     util_c = np.log(np.max(1, agent.total_endowment("Coin")))
                 else:  # isoelastic_eta >= 0
-                    if np.all(agent.total_endowment("Coin")>= 0):
-                        util_c = (agent.total_endowment("Coin") ** (1 - agent.total_endowment("Coin")) - 1) / (1 - self.isoelastic_eta)
+                    if np.all(agent.total_endowment("Coin") >= 0):
+                        util_c = (agent.total_endowment("Coin") ** (1 - agent.total_endowment("Coin")) - 1) / (
+                                    1 - self.isoelastic_eta)
                     else:
                         util_c = agent.total_endowment("Coin") - 1
 
                 # disutility from labor
                 util_l = agent.state["endogenous"]["Labor"] * self.energy_weight * self.energy_cost
 
-                agent.state["Laborutilty"] += util_l
-                agent.state["Coinutilty"] += util_c
+                # Make sure these fields exist before incrementing them
+                if "LaborUtility" not in agent.state:
+                    agent.state["LaborUtility"] = 0.0
+                if "CoinUtility" not in agent.state:
+                    agent.state["CoinUtility"] = 0.0
+
+                agent.state["LaborUtility"] += util_l
+                agent.state["CoinUtility"] += util_c
 
         # (for the planner)
         curr_optimization_metric[self.world.planner.idx] = rewards.planner_strategy(
@@ -201,6 +204,10 @@ class Carbon_env(BaseEnvironment):
             agent.state["endogenous"] = {k: 0 for k in agent.endogenous.keys()}
             # Add starting coin
             agent.state["inventory"]["Coin"] = float(self.starting_agent_coin)
+            agent.state["LaborUtility"] = 0.0
+            agent.state["CoinUtility"] = 0.0
+            agent.state["CurrentUtility"] = 0.0
+            agent.state["PastUtility"] = 0.0
 
         # Clear everything for the planner
         self.world.planner.state["inventory"] = {
