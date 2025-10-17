@@ -31,7 +31,6 @@ class ProfilingCallbacks(DefaultCallbacks):
         logger.setLevel(logging.INFO)
         with open(os.path.join(PROFILE_DIR, f"worker_{wid}_{pid}.started"), "w") as f:
             f.write(f"Profiling started for worker {wid}, pid {pid}\n")
-        atexit.register(_dump_on_exit)
         if not any(isinstance(h, logging.FileHandler) for h in logger.handlers):
             fh = logging.FileHandler(log_path)
             fh.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
