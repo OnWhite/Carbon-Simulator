@@ -69,17 +69,6 @@ class Carbon_env(BaseEnvironment):
         self.prev_optimization_metric = {agent.idx: 0 for agent in self.all_agents}
         self.curr_optimization_metric = {agent.idx: 0 for agent in self.all_agents}
 
-    def get_additional_state_fields(self, agent_cls_name):
-        """
-        See base_component.py for detailed description.
-
-        For mobile agents, add state fields for building skill.
-        """
-        if agent_cls_name not in self.agent_subclasses:
-            return {}
-        if agent_cls_name == "BasicMobileAgent":
-            return {"LaborUtility": 0.0, "CoinUtility": 0.0, "CurrentUtility": 0.0, "PastUtility": 0.0}
-        raise NotImplementedError
     @property
     def energy_weight(self):
         """
@@ -133,13 +122,6 @@ class Carbon_env(BaseEnvironment):
 
                 # disutility from labor
                 util_l = agent.state["endogenous"]["Labor"] * self.energy_weight * self.energy_cost
-
-                # Make sure these fields exist before incrementing them
-                if "LaborUtility" not in agent.state:
-                    agent.state["endogenous"]["LaborUtility"] = 0.0
-                if "CoinUtility" not in agent.state:
-                    agent.state["endogenous"]["CoinUtility"] = 0.0
-
                 agent.state["endogenous"]["LaborUtility"] += util_l
                 agent.state["endogenous"]["CoinUtility"] += util_c
 
