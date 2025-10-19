@@ -122,8 +122,8 @@ class Carbon_env(BaseEnvironment):
 
                 # disutility from labor
                 util_l = agent.state["endogenous"]["Labor"] * self.energy_weight * self.energy_cost
-                agent.state["endogenous"]["LaborUtility"] += util_l
-                agent.state["endogenous"]["CoinUtility"] += util_c
+                agent.state["endogenous"]["LaborUtility"] = 4
+                agent.state["endogenous"]["CoinUtility"] = 5
 
         # (for the planner)
         curr_optimization_metric[self.world.planner.idx] = rewards.planner_strategy(
@@ -218,34 +218,6 @@ class Carbon_env(BaseEnvironment):
         In this class of scenarios, the scenario step handles stochastic resource
         regeneration.
         """
-
-        # Calculate utilities using the isoelastic_coin_minus_labor function
-        for agent in self.world.agents:
-            # Get agent's coin and labor
-            coin = agent.state["inventory"]["Coin"]
-            labor = agent.state["endogenous"]["Labor"]
-
-            # Calculate utility values using the utility function from rewards.py
-            labor_utility = -labor * self.energy_cost  # Negative utility from labor
-
-            # For coin utility, use the isoelastic function
-            if self.isoelastic_eta == 1.0:
-                coin_utility = np.log(max(1, coin))
-            else:
-                coin_utility = (coin ** (1 - self.isoelastic_eta) - 1) / (1 - self.isoelastic_eta)
-
-            # Current utility is the sum
-            current_utility = coin_utility + labor_utility
-
-            # Store past utility before updating
-            past_utility = agent.state["endogenous"]["CurrentUtility"] if agent.state["endogenous"][
-                                                                              "CurrentUtility"] > 0 else current_utility
-
-            # Update all utility values
-            agent.state["endogenous"]["LaborUtility"] = labor_utility
-            agent.state["endogenous"]["CoinUtility"] = coin_utility
-            agent.state["endogenous"]["CurrentUtility"] = current_utility
-            agent.state["endogenous"]["PastUtility"] = past_utility
 
     def generate_observations(self):
         """
@@ -387,8 +359,8 @@ class Carbon_env(BaseEnvironment):
         # Store rewards in agent state
         for agent in self.world.agents:
             agent.state["endogenous"]["Reward"] = rew[agent.idx]
-            agent.state["CurrentUtility"] = self.curr_optimization_metric[agent.idx]
-            agent.state["PastUtility"] = utility_at_end_of_last_time_step[agent.idx]
+            agent.state["endogenous"]["CurrentUtility"] = 2
+            agent.state["endogenous"]["PastUtility"] = 1
 
         self.world.planner.state["endogenous"]["Reward"] = rew[self.world.planner.idx]
 
