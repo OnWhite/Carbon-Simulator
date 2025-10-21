@@ -14,6 +14,7 @@ logging.basicConfig(stream=sys.stdout, format="%(asctime)s %(message)s")
 logger = logging.getLogger("main")
 logger.setLevel(logging.DEBUG)
 
+
 class ProfilingCallbacks(DefaultCallbacks):
     SNAPSHOT_EVERY = 10  # episodes
 
@@ -23,7 +24,7 @@ class ProfilingCallbacks(DefaultCallbacks):
         wid, pid, host = worker.worker_index, os.getpid(), socket.gethostname()
         base = f"worker_{wid}_{pid}_{host}"
         prof_path = os.path.join(PROFILE_DIR, f"{base}.prof")
-        log_path  = os.path.join(PROFILE_DIR, f"{base}.log")
+        log_path = os.path.join(PROFILE_DIR, f"{base}.log")
         open(os.path.join(PROFILE_DIR, f"{base}.alive"), "a").close()
 
         lg = logging.getLogger(base)
@@ -49,6 +50,7 @@ class ProfilingCallbacks(DefaultCallbacks):
                 lg.info("Profile saved on exit")
             except Exception as e:
                 lg.exception(f"Exit dump failed: {e}")
+
         atexit.register(_dump_on_exit)
 
     # Try to init as early as possible, but always guard.
@@ -125,7 +127,8 @@ class InfoMetricsCallback(DefaultCallbacks):
         "CurrentUtility": lambda info: info.get("endogenous", {}).get("CurrentUtility", 0.0),
         "PastUtility": lambda info: info.get("endogenous", {}).get("PastUtility", 0.0),
         "CoinEndowment": lambda info: info.get("endogenous", {}).get("CoinEndowment", 0.0),
-        "Building_count": lambda info: info.get("endogenous", {}).get("Build", 0.0)
+        "Building_count": lambda info: info.get("endogenous", {}).get("Build", 0.0),
+        "Researchability": lambda info: info.get("Researchability", 0.0),
     }
 
     FINAL_METRICS = {
@@ -140,7 +143,10 @@ class InfoMetricsCallback(DefaultCallbacks):
         "Power_efficiency": lambda info: info.get("Power_efficiency"),
         "Green_rate": lambda info: info.get("Green_rate"),
         "Reward": lambda info: info.get("endogenous", {}).get("CurrentUtility", 0.0),
-        "Building_count": lambda info: info.get("endogenous", {}).get("Build", 0.0)
+        "Building_count": lambda info: info.get("endogenous", {}).get("Build", 0.0),
+        "BidCost": lambda info: info.get("endogenous", {}).get("BidCost", 0.0),
+        "BidIncome": lambda info: info.get("endogenous", {}).get("BidIncome", 0.0),
+        "Researchability": lambda info: info.get("Researchability", 0.0),
     }
 
     def __init__(self, worker_id: int = 1):
@@ -227,10 +233,10 @@ class InfoMetricsCallback(DefaultCallbacks):
         if wid <= self.worker_id and eid == 0:
             val = {}
             val1 = {}
-            startidx= {}
-            emissionrate= {}
-            manufacturevolume= {}
-            total_optimal_capacity=0.0
+            startidx = {}
+            emissionrate = {}
+            manufacturevolume = {}
+            total_optimal_capacity = 0.0
             for key, series in episode.user_data.items():
                 if not key.startswith(f"worker_{wid}/") or not series:
                     continue
@@ -241,21 +247,22 @@ class InfoMetricsCallback(DefaultCallbacks):
                     val[agent] = float(np.sum(series))
                 elif name == "Carbon_idx" and agent != "p":
                     val1[agent] = float(np.sum(series))
-                elif name == "RewardPlanner" and agent== "p":
+                elif name == "RewardPlanner" and agent == "p":
                     episode.custom_metrics[f"worker_{wid}/PlannerReward_final"] = float(np.sum(series))
                 elif name == "Startidx" and agent != "p":
                     startidx[agent] = float(np.average(series))
-                elif name =="Emission_rate" and agent != "p":
+                elif name == "Emission_rate" and agent != "p":
                     episode.custom_metrics[f"worker_{wid}/{agent}/Avg_Emission_rate"] = float(np.average(series))
                     emissionrate[agent] = float(np.average(series))
                 elif name == "Manufacture_volume" and agent != "p":
                     manufacturevolume[agent] = float(np.average(series))
-            optimal_capacity=0.0
+            optimal_capacity = 0.0
             for agent, value in val.items():
                 episode.custom_metrics[f"worker_{wid}/{agent}/Remaining_Manufacturing_Potential"] = (
                     float(val1[agent] / value) if value != 0 and agent in val1 else 0.0
                 )
-                optimal_capacity = float(startidx[agent]/(emissionrate[agent]*manufacturevolume[agent] )if agent in startidx and agent in emissionrate and agent in manufacturevolume else 0.0)
+                optimal_capacity = float(startidx[agent] / (emissionrate[agent] * manufacturevolume[
+                    agent]) if agent in startidx and agent in emissionrate and agent in manufacturevolume else 0.0)
                 episode.custom_metrics[f"worker_{wid}/{agent}/Optimal_Production_Capacity"] = (
                     optimal_capacity
                 )
@@ -267,8 +274,8 @@ class InfoMetricsCallback(DefaultCallbacks):
         tot_rev = 0.0
         tot_prf = 0.0
         tot_cost = 0.0
-        tot_coinlaborcost=0.0
-        tot_pun=0.0
+        tot_coinlaborcost = 0.0
+        tot_pun = 0.0
         for k, info in episode._last_infos.items():
             if k == 'p' or not isinstance(info, dict):
                 continue
@@ -309,7 +316,7 @@ class InfoMetricsCallback(DefaultCallbacks):
                     episode.custom_metrics[f"{base}/Labor_Cost_final"] = float(lc)
                 if coin is not None and lc is not None:
                     episode.custom_metrics[f"{base}/Coin-LaborCost_final"] = float(coin - lc)
-                    episode.custom_metrics[f"{base}/Profit-(Coin-LaborCost)_final"] = prf-float(coin - lc)
+                    episode.custom_metrics[f"{base}/Profit-(Coin-LaborCost)_final"] = prf - float(coin - lc)
             tot_rev += rev
             tot_prf += prf
             tot_cost += cst
@@ -320,7 +327,7 @@ class InfoMetricsCallback(DefaultCallbacks):
         episode.custom_metrics[f"worker_{wid}/Episode_Profit_final"] = tot_prf
         episode.custom_metrics[f"worker_{wid}/Episode_Cost_final"] = tot_cost
         episode.custom_metrics[f"worker_{wid}/Episode_Coin-LaborCost_final"] = tot_coinlaborcost
-        episode.custom_metrics[f"worker_{wid}/Episode_Profit-(Coin-LaborCost)_final"] = tot_prf-tot_coinlaborcost
+        episode.custom_metrics[f"worker_{wid}/Episode_Profit-(Coin-LaborCost)_final"] = tot_prf - tot_coinlaborcost
         episode.custom_metrics[f"worker_{wid}/Episode_Punishment_final"] = tot_pun
         episode.custom_metrics[f"worker_{wid}/Episode_ProfitMargin_final"] = (
             float(tot_prf / tot_rev) if tot_rev != 0 else 0.0

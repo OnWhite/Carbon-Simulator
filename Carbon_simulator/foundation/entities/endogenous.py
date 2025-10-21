@@ -102,3 +102,18 @@ class CoinEndowment(Endogenous):
 class Build(Endogenous):
     """reward for every agent """
     name = "Build"
+
+@endogenous_registry.add
+class BidCost(Endogenous):
+    """reward for every agent """
+    name ="BidCost"
+
+@endogenous_registry.add
+class BidIncome(Endogenous):
+    """reward for every agent """
+    name = "BidIncome"
+
+@endogenous_registry.add
+class MoveLabor(Endogenous):
+    """reward for every agent """
+    name = "MoveLabor"

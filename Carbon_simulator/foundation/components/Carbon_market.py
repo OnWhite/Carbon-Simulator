@@ -12,7 +12,7 @@ class Carbon_auction(BaseComponent):
 
     name = "Carbon_auction"
     component_type = "Trade"
-    required_entities = ["Coin", "Labor", "Costs", "Revenue"]
+    required_entities = ["Coin", "Labor", "Costs", "Revenue", "BidCost", "BidIncome"]
     agent_subclasses = ["BasicMobileAgent"]
 
     def __init__(
@@ -306,6 +306,7 @@ class Carbon_auction(BaseComponent):
                         # Buyer's money (already set aside) leaves escrow
                         pre_payment = int(trade["bid"])
                         buyer.state["escrow"]["Coin"] -= pre_payment
+                        buyer.state["endogenous"]["BidCost"] -= pre_payment
                         buyer.state["endogenous"]["Costs"] += pre_payment
                         assert buyer.state["escrow"]["Coin"] >= 0
 
@@ -318,8 +319,8 @@ class Carbon_auction(BaseComponent):
                         seller.state["inventory"]["Coin"] += payment_to_seller
                         buyer.state["endogenous"]["Costs"] -= excess_payment_from_buyer
                         buyer.state["inventory"]["Coin"] += excess_payment_from_buyer
-
-                        # Restart the inner loop
+                        seller.state["endogenous"]["BidIncome"] += payment_to_seller
+                        buyer.state["endogenous"]["BidCost"] += excess_payment_from_buyer
                         break
 
             # Keep the unfilled bids/asks

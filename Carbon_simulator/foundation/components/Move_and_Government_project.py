@@ -11,7 +11,7 @@ from Carbon_simulator.foundation.base.base_component import (
 class Gather(BaseComponent):
 
     name = "Gather"
-    required_entities = ["Carbon_idx", "Carbon_emission", "Coin", "Green_project", "Labor"]
+    required_entities = ["Carbon_idx", "Carbon_emission", "Coin", "Green_project", "Labor", "MoveLabor"]
     agent_subclasses = ["BasicMobileAgent"]
 
     def __init__(
@@ -137,6 +137,7 @@ class Gather(BaseComponent):
                     # If the agent did move, incur the labor cost of moving
                     if (new_r != r) or (new_c != c):
                         agent.state["endogenous"]["Labor"] += self.move_labor
+                        agent.state["inventory"]["MoveLabor"] += self.move_labor
 
                 else:
                     raise ValueError
