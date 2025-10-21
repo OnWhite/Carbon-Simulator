@@ -12,7 +12,7 @@ class Carbon_env(BaseEnvironment):
     name = "Carbon/Carbon_env"
     agent_subclasses = ["BasicMobileAgent", "BasicPlanner"]
     required_entities = ["Carbon_idx", "Carbon_emission", "Coin", "Property", "Carbon_pollution", "Labor", "LaborCost",
-                         "Costs", "Revenue", "Reward", "LaborUtility", "CoinUtility", "CurrentUtility", "PastUtility"]
+                         "Costs", "Revenue","CoinEndowment", "Reward", "LaborUtility", "CoinUtility", "CurrentUtility", "PastUtility"]
 
 
     def __init__(
@@ -124,6 +124,10 @@ class Carbon_env(BaseEnvironment):
                 util_l = agent.state["endogenous"]["Labor"] * self.energy_weight * self.energy_cost
                 agent.state["endogenous"]["LaborUtility"] = util_l
                 agent.state["endogenous"]["CoinUtility"] = util_c
+                agent.state["endogenous"]["CoinEndowment"] = agent.total_endowment("Coin")
+
+
+
 
         # (for the planner)
         curr_optimization_metric[self.world.planner.idx] = rewards.planner_strategy(

@@ -92,3 +92,8 @@ class CoinUtility(Endogenous):
 class CurrentUtility(Endogenous):
     """reward for every agent """
     name = "CurrentUtility"
+
+@endogenous_registry.add
+class CoinEndowment(Endogenous):
+    """reward for every agent """
+    name = "CoinEndowment"

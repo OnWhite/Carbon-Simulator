@@ -125,6 +125,7 @@ class InfoMetricsCallback(DefaultCallbacks):
         "CoinUtility": lambda info: info.get("endogenous", {}).get("CoinUtility", 0.0),
         "CurrentUtility": lambda info: info.get("endogenous", {}).get("CurrentUtility", 0.0),
         "PastUtility": lambda info: info.get("endogenous", {}).get("PastUtility", 0.0),
+        "CoinEndowment": lambda info: info.get("endogenous", {}).get("CoinEndowment", 0.0),
 
     }
 
