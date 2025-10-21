@@ -128,7 +128,7 @@ class InfoMetricsCallback(DefaultCallbacks):
         "PastUtility": lambda info: info.get("endogenous", {}).get("PastUtility", 0.0),
         "CoinEndowment": lambda info: info.get("endogenous", {}).get("CoinEndowment", 0.0),
         "Building_count": lambda info: info.get("endogenous", {}).get("Build", 0.0),
-        "Researchability": lambda info: info.get("endogenous", {}).get("Researchability", 0.0),
+        "Researchability": lambda info: info.get("endogenous", {}).get("Research_ability", 0.0),
     }
 
     FINAL_METRICS = {
@@ -146,7 +146,7 @@ class InfoMetricsCallback(DefaultCallbacks):
         "Building_count": lambda info: info.get("endogenous", {}).get("Build", 0.0),
         "BidCost": lambda info: info.get("endogenous", {}).get("BidCost", 0.0),
         "BidIncome": lambda info: info.get("endogenous", {}).get("BidIncome", 0.0),
-        "Researchability": lambda info: info.get("endogenous", {}).get("Researchability", 0.0),
+        "Researchability": lambda info: info.get("endogenous", {}).get("Research_ability", 0.0),
     }
 
     def __init__(self, worker_id: int = 1):
