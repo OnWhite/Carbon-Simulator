@@ -119,14 +119,13 @@ class InfoMetricsCallback(DefaultCallbacks):
         "Emission_rate": lambda info: info.get("Carbon_emission_rate"),
         "Power_efficiency": lambda info: info.get("Power_efficiency"),
         "Green_rate": lambda info: info.get("Green_rate"),
-        "Reward": lambda info: info.get("endogenous", {}).get("Reward"),
         "Startidx": lambda info: info.get("inventory", {}).get("Startidx"),
         "LaborUtility": lambda info: info.get("endogenous", {}).get("LaborUtility", 0.0),
         "CoinUtility": lambda info: info.get("endogenous", {}).get("CoinUtility", 0.0),
         "CurrentUtility": lambda info: info.get("endogenous", {}).get("CurrentUtility", 0.0),
         "PastUtility": lambda info: info.get("endogenous", {}).get("PastUtility", 0.0),
         "CoinEndowment": lambda info: info.get("endogenous", {}).get("CoinEndowment", 0.0),
-
+        "Building_count": lambda info: info.get("endogenous", {}).get("Build", 0.0)
     }
 
     FINAL_METRICS = {
@@ -140,9 +139,7 @@ class InfoMetricsCallback(DefaultCallbacks):
         "Labor_Cost": lambda info: info.get("endogenous", {}).get("LaborCost"),
         "Power_efficiency": lambda info: info.get("Power_efficiency"),
         "Green_rate": lambda info: info.get("Green_rate"),
-        "Reward": lambda info: info.get("endogenous", {}).get("Reward"),
-        "PlannerReward": lambda info: info.get("endogenous", {}).get("RewardPlanner"),
-
+        "Reward": lambda info: info.get("endogenous", {}).get("CurrentUtility", 0.0),
     }
 
     def __init__(self, worker_id: int = 1):
