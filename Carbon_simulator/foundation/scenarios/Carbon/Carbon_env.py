@@ -115,8 +115,7 @@ class Carbon_env(BaseEnvironment):
                     util_c = np.log(np.max(1, agent.total_endowment("Coin")))
                 else:  # isoelastic_eta >= 0
                     if np.all(agent.total_endowment("Coin") >= 0):
-                        util_c = (agent.total_endowment("Coin") ** (1 - agent.total_endowment("Coin")) - 1) / (
-                                    1 - self.isoelastic_eta)
+                        util_c = (agent.total_endowment("Coin") ** (1 - self.isoelastic_eta) - 1) / (1 - self.isoelastic_eta)
                     else:
                         util_c = agent.total_endowment("Coin") - 1
 
