@@ -359,8 +359,8 @@ class Carbon_env(BaseEnvironment):
         # Store rewards in agent state
         for agent in self.world.agents:
             agent.state["endogenous"]["Reward"] = rew[agent.idx]
-            agent.state["endogenous"]["CurrentUtility"] = 2
-            agent.state["endogenous"]["PastUtility"] = 1
+            agent.state["endogenous"]["CurrentUtility"] = self.curr_optimization_metric[agent.idx]
+            agent.state["endogenous"]["PastUtility"] = utility_at_end_of_last_time_step[agent.idx]
 
         self.world.planner.state["endogenous"]["Reward"] = rew[self.world.planner.idx]
 
