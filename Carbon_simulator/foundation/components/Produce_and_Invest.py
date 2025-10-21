@@ -12,7 +12,7 @@ class Carbon_component(BaseComponent):
 
     name = "Carbon_component"
     component_type = "Carbon_component"
-    required_entities = ["Carbon_idx", "Carbon_emission", "Coin", "Revenue", "Property", "Carbon_pollution", "Labor", "Carbon_project", "Green_project", "Build"]
+    required_entities = ["Carbon_idx", "Carbon_emission", "Coin", "Revenue", "Property", "Carbon_pollution", "Labor", "Carbon_project", "Green_project", "Build", "Research_ability"]
     agent_subclasses = ["BasicMobileAgent"]
 
     def __init__(
@@ -189,6 +189,7 @@ class Carbon_component(BaseComponent):
                     agent.state["Power_efficiency"] = power_efficiency
                     agent.state["Green_rate"] = green_rate
                 # Update Research_history
+                agent.state["inventory"]["Research_ability"]=agent.state["Research_ability"]
                 agent.state["Research_history"][1:] = agent.state["Research_history"][:-1]
                 agent.state["Research_history"][0] = 0
 
