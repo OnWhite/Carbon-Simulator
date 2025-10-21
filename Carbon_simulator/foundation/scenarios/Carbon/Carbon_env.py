@@ -122,8 +122,8 @@ class Carbon_env(BaseEnvironment):
 
                 # disutility from labor
                 util_l = agent.state["endogenous"]["Labor"] * self.energy_weight * self.energy_cost
-                agent.state["endogenous"]["LaborUtility"] = 4
-                agent.state["endogenous"]["CoinUtility"] = 5
+                agent.state["endogenous"]["LaborUtility"] = util_l
+                agent.state["endogenous"]["CoinUtility"] = util_c
 
         # (for the planner)
         curr_optimization_metric[self.world.planner.idx] = rewards.planner_strategy(
