@@ -189,7 +189,7 @@ class Carbon_component(BaseComponent):
                     agent.state["Power_efficiency"] = power_efficiency
                     agent.state["Green_rate"] = green_rate
                 # Update Research_history
-                agent.state["inventory"]["Research_ability"]=agent.state["Research_ability"]
+                agent.state["endogenous"]["Research_ability"]=agent.state["Research_ability"]
                 agent.state["Research_history"][1:] = agent.state["Research_history"][:-1]
                 agent.state["Research_history"][0] = 0
 
