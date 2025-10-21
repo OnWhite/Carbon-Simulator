@@ -140,6 +140,7 @@ class InfoMetricsCallback(DefaultCallbacks):
         "Power_efficiency": lambda info: info.get("Power_efficiency"),
         "Green_rate": lambda info: info.get("Green_rate"),
         "Reward": lambda info: info.get("endogenous", {}).get("CurrentUtility", 0.0),
+        "Building_count": lambda info: info.get("endogenous", {}).get("Build", 0.0)
     }
 
     def __init__(self, worker_id: int = 1):
