@@ -137,7 +137,7 @@ class Gather(BaseComponent):
                     # If the agent did move, incur the labor cost of moving
                     if (new_r != r) or (new_c != c):
                         agent.state["endogenous"]["Labor"] += self.move_labor
-                        agent.state["inventory"]["MoveLabor"] += self.move_labor
+                        agent.state["endogenous"]["MoveLabor"] += self.move_labor
 
                 else:
                     raise ValueError
