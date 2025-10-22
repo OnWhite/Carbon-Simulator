@@ -11,7 +11,7 @@ from Carbon_simulator.foundation.base.base_component import (
 class Gather(BaseComponent):
 
     name = "Gather"
-    required_entities = ["Carbon_idx", "Carbon_emission", "Coin", "Green_project", "Labor", "MoveLabor"]
+    required_entities = ["Carbon_idx", "Carbon_emission", "Coin", "Green_project", "Labor", "MoveLabor", "Carbon_project_it"]
     agent_subclasses = ["BasicMobileAgent"]
 
     def __init__(
@@ -120,6 +120,7 @@ class Gather(BaseComponent):
 
                                 agent.state["inventory"]["Coin"] -= self.collect_cost_coin
                                 agent.state["endogenous"]["Costs"] += self.collect_cost_coin
+                                agent.state["endogenous"]["Carbon_project_it"] += 1  # each time an agent collects carbon, it emits 5 units of carbon
                                 # Log the gather
                                 gathers.append(
                                     dict(

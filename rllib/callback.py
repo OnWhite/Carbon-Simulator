@@ -121,14 +121,15 @@ class InfoMetricsCallback(DefaultCallbacks):
         "Emission_rate": lambda info: info.get("Carbon_emission_rate"),
         "Power_efficiency": lambda info: info.get("Power_efficiency"),
         "Green_rate": lambda info: info.get("Green_rate"),
-        "Startidx": lambda info: info.get("inventory", {}).get("Startidx"),
+        "Startidx": lambda info: info.get("endogenous", {}).get("Startidx"),
         "LaborUtility": lambda info: info.get("endogenous", {}).get("LaborUtility", 0.0),
         "CoinUtility": lambda info: info.get("endogenous", {}).get("CoinUtility", 0.0),
         "CurrentUtility": lambda info: info.get("endogenous", {}).get("CurrentUtility", 0.0),
         "PastUtility": lambda info: info.get("endogenous", {}).get("PastUtility", 0.0),
         "CoinEndowment": lambda info: info.get("endogenous", {}).get("CoinEndowment", 0.0),
         "Building_count": lambda info: info.get("endogenous", {}).get("Build", 0.0),
-        "Researchability": lambda info: info.get("endogenous", {}).get("Research_ability", 0.0),
+        "Research_ability": lambda info: info.get("endogenous", {}).get("Research_ability", 0.0),
+        "MoveLabor": lambda info: info.get("endogenous", {}).get("MoveLabor", 0.0),
     }
 
     FINAL_METRICS = {
@@ -141,12 +142,15 @@ class InfoMetricsCallback(DefaultCallbacks):
         "Punishment": lambda info: info.get("endogenous", {}).get("Punishment"),
         "Labor_Cost": lambda info: info.get("endogenous", {}).get("LaborCost"),
         "Power_efficiency": lambda info: info.get("Power_efficiency"),
-        "Green_rate": lambda info: info.get("Green_rate"),
+        "Green_rate": lambda info: info.get("Green_project"),
+        "CoinEndowment": lambda info: info.get("endogenous", {}).get("CoinEndowment", 0.0),
         "Reward": lambda info: info.get("endogenous", {}).get("CurrentUtility", 0.0),
         "Building_count": lambda info: info.get("endogenous", {}).get("Build", 0.0),
         "BidCost": lambda info: info.get("endogenous", {}).get("BidCost", 0.0),
         "BidIncome": lambda info: info.get("endogenous", {}).get("BidIncome", 0.0),
-        "Researchability": lambda info: info.get("endogenous", {}).get("Research_ability", 0.0),
+        "Research_ability": lambda info: info.get("endogenous", {}).get("Research_ability", 0.0),
+        "MoveLabor": lambda info: info.get("endogenous", {}).get("MoveLabor", 0.0),
+        "Carbon_project_it": lambda info: info.get("endogenous", {}).get("Carbon_project_it",0.0),
     }
 
     def __init__(self, worker_id: int = 1):
@@ -242,7 +246,7 @@ class InfoMetricsCallback(DefaultCallbacks):
                     continue
                 agent, name = key.split("/", 2)[1], key.split("/", 2)[2]
                 series = np.asarray(series, dtype=float)
-                episode.custom_metrics[f"worker_{wid}/{agent}/Med_{name}"] = float(np.median(series))
+                episode.custom_metrics[f"worker_{wid}/{agent}/Avg_{name}"] = float(np.average(series))
                 if name == "Certificates_Allocated" and agent != "p":
                     val[agent] = float(np.sum(series))
                 elif name == "Carbon_idx" and agent != "p":

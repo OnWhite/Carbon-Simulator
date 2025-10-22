@@ -121,3 +121,8 @@ class MoveLabor(Endogenous):
 class Research_ability(Endogenous):
     """reward for every agent """
     name = "Research_ability"
+
+    @endogenous_registry.add
+    class Carbon_project_it(Endogenous):
+        """reward for every agent """
+        name = "Carbon_project_it"
