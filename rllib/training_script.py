@@ -389,6 +389,31 @@ if __name__ == "__main__":
 
         reward_result_a, reward_result_p = [], []
 
+        if run_config["general"].get("eval_only", False):
+            logger.info("Running in evaluation-only mode — no training will occur.")
+
+            eval_results = trainer.evaluate(
+                evaluation_config={
+                    "explore": False,
+                    "num_workers": 0,  # local eval
+                    "callbacks": lambda: InfoMetricsCallback(worker_id="eval"),
+                },
+            )
+
+            eval_data = eval_results.get("evaluation", {})
+            # Reuse your helper to format callback outputs (histograms, heatmaps, etc.)
+            metrics = log_custom_metrics(eval_data)
+
+            wandb.log({
+                "evaluation/episode_reward_mean": eval_data.get("episode_reward_mean", 0),
+                "evaluation/episode_len_mean": eval_data.get("episode_len_mean", 0),
+                "evaluation/reward/agent": eval_data.get("policy_reward_mean", {}).get("a", 0),
+                "evaluation/reward/planner": eval_data.get("policy_reward_mean", {}).get("p", 0),
+                **metrics,  # <- from your callback via custom_metrics
+            })
+
+            logger.info(pretty_print(eval_results))
+            sys.exit(0)
         if False:
             search_space = {
                 "lr": tune.loguniform(1e-5, 5e-4),
