@@ -498,6 +498,7 @@ if __name__ == "__main__":
                 step_last_ckpt = maybe_save(
                     trainer, result, ckpt_frequency, ckpt_dir, step_last_ckpt
                 )
+
             # Finish up
             logger.info("Completing! Saving final snapshot...\n\n")
             # saving.save_snapshot(trainer, ckpt_dir)
