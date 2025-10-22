@@ -43,7 +43,7 @@ env:
 general:
   ckpt_frequency_steps: 500
   cpus: 32
-  episodes: 5000
+  episodes: 1
   gpus: 1
   restore_weights_agents: '/nas/ucb/sophialudewig/Minimalist/rllib/exp/allinone/ckpts25/agent.weights.train-step-125008000'
   restore_weights_planner: '/nas/ucb/sophialudewig/Minimalist/rllib/exp/allinone/ckpts25/planner.weights.train-step-125008000'
