@@ -9,6 +9,7 @@ from callback import InfoMetricsCallback, ProfilingCallbacks
 import matplotlib.pyplot as plt
 import numpy as np
 import wandb
+from callback import EpisodeInfoCallback
 import shutil
 
 wandb.login(key="2c1f8f77f938086f691891b269af9d5e4925c425")
@@ -396,7 +397,7 @@ if __name__ == "__main__":
                 evaluation_config={
                     "explore": False,
                     "num_workers": 0,  # local eval
-                    "callbacks": lambda: InfoMetricsCallback(worker_id="eval"),
+                    "callbacks": lambda: EpisodeInfoCallback(worker_id=0),
                 },
             )
 
