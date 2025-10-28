@@ -44,7 +44,7 @@ def planner_strategy(profit, mobile_idx, remained_idx, mobile_coefficient):
     """remained idx is the indext that is still left for the planner to allocate"""
 
     n_agents = len(profit)
-    prod = get_productivity(profit) / n_agents  # around 200 that is baaad
+    prod = get_productivity(profit) / n_agents
     equality = get_equality(profit)
 
     idx_used_mobile = np.exp(sum([-1 * mobile_coefficient * idx for idx in
