@@ -188,7 +188,7 @@ class Carbon_env(BaseEnvironment):
             agent.state["escrow"] = {k: 0 for k in agent.inventory.keys()}
             agent.state["endogenous"] = {k: 0 for k in agent.endogenous.keys()}
             # Add starting coin
-
+            agent.state["inventory"]["Coin"] = self.starting_agent_coin
         # Clear everything for the planner
         self.world.planner.state["inventory"] = {
             k: 0 for k in self.world.planner.inventory.keys()
