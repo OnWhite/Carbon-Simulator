@@ -122,10 +122,7 @@ class MoveLabor(Endogenous):
 class BidLabor(Endogenous):
     """reward for every agent """
     name = "BidLabor"
-@endogenous_registry.add
-class LaborEndowment(Endogenous):
-    """reward for every agent """
-    name = "LaborEndowment"
+
 @endogenous_registry.add
 class Research_ability(Endogenous):
     """reward for every agent """
