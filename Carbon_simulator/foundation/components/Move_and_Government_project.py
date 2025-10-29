@@ -118,7 +118,7 @@ class Gather(BaseComponent):
                                 # Incur the labor cost of collecting a resource
                                 agent.state["endogenous"]["Labor"] += self.collect_labor
 
-                                agent.state["inventory"]["Coin"] -= self.collect_cost_coin
+                                #agent.state["inventory"]["Coin"] -= self.collect_cost_coin
                                 agent.state["endogenous"]["Costs"] += self.collect_cost_coin
                                 agent.state["endogenous"]["Carbon_project_it"] += 1  # each time an agent collects carbon, it emits 5 units of carbon
                                 # Log the gather

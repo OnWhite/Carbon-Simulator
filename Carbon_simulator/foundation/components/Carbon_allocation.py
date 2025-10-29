@@ -85,7 +85,7 @@ class CarbonRedistribution(BaseComponent):
             for agent in world.agents:
                 if agent.state["inventory"]["Carbon_idx"] < 0:
                     punishment = world.planner.state["punishment"] * abs(agent.state["inventory"]["Carbon_idx"])
-                    agent.state["inventory"]["Coin"] -= punishment
+                    #agent.state["inventory"]["Coin"] -= punishment
                     agent.state["endogenous"]["Costs"] +=punishment
                     agent.state["endogenous"]["Punishment"] += punishment
 

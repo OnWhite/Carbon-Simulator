@@ -305,7 +305,7 @@ class Carbon_auction(BaseComponent):
 
                         # Buyer's money (already set aside) leaves escrow
                         pre_payment = int(trade["bid"])
-                        buyer.state["escrow"]["Coin"] -= pre_payment
+                        #buyer.state["escrow"]["Coin"] -= pre_payment
                         buyer.state["endogenous"]["BidCost"] -= pre_payment
                         buyer.state["endogenous"]["Costs"] += pre_payment
                         assert buyer.state["escrow"]["Coin"] >= 0
@@ -316,9 +316,9 @@ class Carbon_auction(BaseComponent):
                         excess_payment_from_buyer = pre_payment - payment_to_seller
                         assert excess_payment_from_buyer >= 0
                         seller.state["endogenous"]["Revenue"] += payment_to_seller
-                        seller.state["inventory"]["Coin"] += payment_to_seller
+                        #seller.state["inventory"]["Coin"] += payment_to_seller
                         buyer.state["endogenous"]["Costs"] -= excess_payment_from_buyer
-                        buyer.state["inventory"]["Coin"] += excess_payment_from_buyer
+                        #buyer.state["inventory"]["Coin"] += excess_payment_from_buyer
                         seller.state["endogenous"]["BidIncome"] += payment_to_seller
                         buyer.state["endogenous"]["BidCost"] += excess_payment_from_buyer
                         break
