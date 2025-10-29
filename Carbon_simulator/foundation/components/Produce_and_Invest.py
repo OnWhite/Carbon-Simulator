@@ -24,7 +24,7 @@ class Carbon_component(BaseComponent):
             debuff=0.3,
             env_recover_ability=3,
             research_setting=["e^-", 0.5], # ["-log"or"e^-", int]
-            labor_multiple=False,
+            labor_multiple=True,
             ability_independent=True,
 
             evaluate=False,

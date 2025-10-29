@@ -9,20 +9,19 @@ from Carbon_simulator.foundation.entities import resource_registry
 
 @component_registry.add
 class Carbon_auction(BaseComponent):
-
     name = "Carbon_auction"
     component_type = "Trade"
-    required_entities = ["Coin", "Labor", "BidLabor","Costs", "Revenue", "BidCost", "BidIncome"]
+    required_entities = ["Coin", "Labor", "BidLabor", "Costs", "Revenue", "BidCost", "BidIncome"]
     agent_subclasses = ["BasicMobileAgent"]
 
     def __init__(
-        self,
-        *args,
-        max_bid_ask=10,
-        order_labor=0.25,
-        order_duration=50,
-        max_num_orders=None,
-        **kwargs
+            self,
+            *args,
+            max_bid_ask=10,
+            order_labor=0.25,
+            order_duration=50,
+            max_num_orders=None,
+            **kwargs
     ):
         super().__init__(*args, **kwargs)
 
@@ -170,7 +169,7 @@ class Carbon_auction(BaseComponent):
 
         # Incur the labor cost of creating an order
         agent.state["endogenous"]["Labor"] += self.order_labor
-        agent.state["endogenous"]["BidLabor"]+=self.order_labor
+        agent.state["endogenous"]["BidLabor"] += self.order_labor
 
     def create_ask(self, resource, agent, min_income):
         """
@@ -202,7 +201,7 @@ class Carbon_auction(BaseComponent):
 
         # Incur the labor cost of creating an order
         agent.state["endogenous"]["Labor"] += self.order_labor
-        agent.state["endogenous"]["BidLabor"]+=self.order_labor
+        agent.state["endogenous"]["BidLabor"] += self.order_labor
 
     def match_orders(self):
         """
@@ -307,7 +306,7 @@ class Carbon_auction(BaseComponent):
 
                         # Buyer's money (already set aside) leaves escrow
                         pre_payment = int(trade["bid"])
-                        #buyer.state["escrow"]["Coin"] -= pre_payment
+                        # buyer.state["escrow"]["Coin"] -= pre_payment
                         buyer.state["endogenous"]["BidCost"] -= pre_payment
                         buyer.state["endogenous"]["Costs"] += pre_payment
                         assert buyer.state["escrow"]["Coin"] >= 0
@@ -318,9 +317,9 @@ class Carbon_auction(BaseComponent):
                         excess_payment_from_buyer = pre_payment - payment_to_seller
                         assert excess_payment_from_buyer >= 0
                         seller.state["endogenous"]["Revenue"] += payment_to_seller
-                        #seller.state["inventory"]["Coin"] += payment_to_seller
+                        # seller.state["inventory"]["Coin"] += payment_to_seller
                         buyer.state["endogenous"]["Costs"] -= excess_payment_from_buyer
-                        #buyer.state["inventory"]["Coin"] += excess_payment_from_buyer
+                        # buyer.state["inventory"]["Coin"] += excess_payment_from_buyer
                         seller.state["endogenous"]["BidIncome"] += payment_to_seller
                         buyer.state["endogenous"]["BidCost"] += excess_payment_from_buyer
                         break
@@ -427,7 +426,6 @@ class Carbon_auction(BaseComponent):
                     ] -= 1
                 # Adjust the order counter
                 self.n_orders[resource][ask["seller"]] -= 1
-
 
             self.bids[resource] = bids_
             self.asks[resource] = asks_
@@ -559,9 +557,9 @@ class Carbon_auction(BaseComponent):
                         "market_rate-{}".format(c): market_rate,
                         "price_history-{}".format(c): scaled_price_history,
                         "available_asks-{}".format(c): full_asks
-                        - self.ask_hists[c][agent.idx],
+                                                       - self.ask_hists[c][agent.idx],
                         "available_bids-{}".format(c): full_bids
-                        - self.bid_hists[c][agent.idx],
+                                                       - self.bid_hists[c][agent.idx],
                         "my_asks-{}".format(c): self.ask_hists[c][agent.idx],
                         "my_bids-{}".format(c): self.bid_hists[c][agent.idx],
                     }
