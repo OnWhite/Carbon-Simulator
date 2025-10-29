@@ -12,7 +12,7 @@ class Carbon_auction(BaseComponent):
 
     name = "Carbon_auction"
     component_type = "Trade"
-    required_entities = ["Coin", "Labor", "Costs", "Revenue", "BidCost", "BidIncome"]
+    required_entities = ["Coin", "Labor", "BidLabor","Costs", "Revenue", "BidCost", "BidIncome"]
     agent_subclasses = ["BasicMobileAgent"]
 
     def __init__(
@@ -170,6 +170,7 @@ class Carbon_auction(BaseComponent):
 
         # Incur the labor cost of creating an order
         agent.state["endogenous"]["Labor"] += self.order_labor
+        agent.state["endogenous"]["BidLabor"]+=self.order_labor
 
     def create_ask(self, resource, agent, min_income):
         """
@@ -201,6 +202,7 @@ class Carbon_auction(BaseComponent):
 
         # Incur the labor cost of creating an order
         agent.state["endogenous"]["Labor"] += self.order_labor
+        agent.state["endogenous"]["BidLabor"]+=self.order_labor
 
     def match_orders(self):
         """

@@ -107,28 +107,30 @@ class Gather(BaseComponent):
                     # nothing will happen)
                     for resource, health in world.location_resources(new_r, new_c).items():
                         if resource == "Carbon_project" and health >= 1:
-                            #if agent.state["inventory"]["Coin"]>self.collect_cost_coin:
-                            agent.state["inventory"][resource] += world.location_resources(new_r, new_c)[resource]
+                            if agent.state["inventory"]["Coin"]>self.collect_cost_coin:
+                                agent.state["inventory"][resource] += world.location_resources(new_r, new_c)[resource]
 
-                            world.consume_resource(resource, new_r, new_c)
+                                world.consume_resource(resource, new_r, new_c)
 
-                            world.create_landmark("Green_project", new_r, new_c, agent.idx)
-                            agent.state["inventory"]["Carbon_idx"] += self.collect_idx
+                                world.create_landmark("Green_project", new_r, new_c, agent.idx)
+                                agent.state["inventory"]["Carbon_idx"] += self.collect_idx
 
-                            # Incur the labor cost of collecting a resource
-                            agent.state["endogenous"]["Labor"] += self.collect_labor
+                                # Incur the labor cost of collecting a resource
+                                agent.state["endogenous"]["Labor"] += self.collect_labor
 
-                            #agent.state["inventory"]["Coin"] += 10*self.collect_cost_coin
-                            agent.state["endogenous"]["Costs"] += self.collect_cost_coin
-                            agent.state["endogenous"]["Carbon_project_it"] += 1  # each time an agent collects carbon, it emits 5 units of carbon
-                            # Log the gather
-                            gathers.append(
-                                dict(
-                                    agent=agent.idx,
-                                    resource=resource,
-                                    loc=[new_r, new_c],
+                                agent.state["inventory"]["Coin"] += self.collect_cost_coin
+                                agent.state["endogenous"]["Costs"] += self.collect_cost_coin
+                                agent.state["endogenous"]["Carbon_project_it"] += 1  # each time an agent collects carbon, it emits 5 units of carbon
+                                # Log the gather
+                                gathers.append(
+                                    dict(
+                                        agent=agent.idx,
+                                        resource=resource,
+                                        loc=[new_r, new_c],
+                                    )
                                 )
-                            )
+                            else:
+                                new_r, new_c = r, c
 
 
                     new_r, new_c = world.set_agent_loc(agent, new_r, new_c)

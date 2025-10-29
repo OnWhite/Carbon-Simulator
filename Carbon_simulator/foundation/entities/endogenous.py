@@ -117,6 +117,15 @@ class BidIncome(Endogenous):
 class MoveLabor(Endogenous):
     """reward for every agent """
     name = "MoveLabor"
+
+@endogenous_registry.add
+class BidLabor(Endogenous):
+    """reward for every agent """
+    name = "BidLabor"
+@endogenous_registry.add
+class LaborEndowment(Endogenous):
+    """reward for every agent """
+    name = "LaborEndowment"
 @endogenous_registry.add
 class Research_ability(Endogenous):
     """reward for every agent """

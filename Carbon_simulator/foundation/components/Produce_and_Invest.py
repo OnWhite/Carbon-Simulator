@@ -232,7 +232,7 @@ class Carbon_component(BaseComponent):
 
                         # Receive payment for the house
                         income = self.payment * agent.state["Manufacture_volume"]
-                        #agent.state["inventory"]["Coin"] += income
+                        agent.state["inventory"]["Coin"] += income
                         agent.state["endogenous"]["Revenue"] += income
                         agent.state["endogenous"]["Build"] += agent.state["Manufacture_volume"]
                         assert income > 0, income
@@ -274,7 +274,7 @@ class Carbon_component(BaseComponent):
                     agent.state["endogenous"]["Labor"] += self.labor * agent.state[
                         "Research_ability"] if self.labor_multiple else self.labor
 
-                   # agent.state["inventory"]["Coin"] -= self.payment/(2* agent.state["Research_ability"])
+                    agent.state["inventory"]["Coin"] -= self.payment/(2* agent.state["Research_ability"])
                     agent.state["endogenous"]["Costs"] += self.payment/(2* agent.state["Research_ability"])
 
                 else:
