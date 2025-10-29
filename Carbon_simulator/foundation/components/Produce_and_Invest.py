@@ -232,7 +232,7 @@ class Carbon_component(BaseComponent):
 
                         # Receive payment for the house
                         income = self.payment * agent.state["Manufacture_volume"]
-                        agent.state["inventory"]["Coin"] += income
+                        #agent.state["inventory"]["Coin"] += income
                         agent.state["endogenous"]["Revenue"] += income
                         agent.state["endogenous"]["Build"] += agent.state["Manufacture_volume"]
                         assert income > 0, income
