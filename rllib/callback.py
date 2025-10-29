@@ -357,25 +357,6 @@ class EpisodeInfoCallback(DefaultCallbacks):
     – Final metrics: last-step values (episode-final snapshot) per agent and totals.
     """
 
-    STEP_METRICS = {
-        # name               extractor – receives the agent_info dict
-        "Research_count_1": lambda info: info.get("Research_count", [0, 0])[1],
-        "Manufacture_volume": lambda info: info.get("Manufacture_volume"),
-        "Carbon_idx": lambda info: info.get("inventory", {}).get("Carbon_idx"),
-        "Emission_rate": lambda info: info.get("Carbon_emission_rate"),
-        "Power_efficiency": lambda info: info.get("Power_efficiency"),
-        "Green_rate": lambda info: info.get("Green_rate"),
-        "Startidx": lambda info: info.get("endogenous", {}).get("Startidx"),
-        "LaborUtility": lambda info: info.get("endogenous", {}).get("LaborUtility", 0.0),
-        "CoinUtility": lambda info: info.get("endogenous", {}).get("CoinUtility", 0.0),
-        "CurrentUtility": lambda info: info.get("endogenous", {}).get("CurrentUtility", 0.0),
-        "PastUtility": lambda info: info.get("endogenous", {}).get("PastUtility", 0.0),
-        "CoinEndowment": lambda info: info.get("endogenous", {}).get("CoinEndowment", 0.0),
-        "Building_count": lambda info: info.get("endogenous", {}).get("Build", 0.0),
-        "Research_ability": lambda info: info.get("endogenous", {}).get("Research_ability", 0.0),
-        "MoveLabor": lambda info: info.get("endogenous", {}).get("MoveLabor", 0.0),
-    }
-
     FINAL_METRICS = {
         "Costs": lambda info: info.get("endogenous", {}).get("Costs"),
         "Revenue": lambda info: info.get("endogenous", {}).get("Revenue"),
@@ -401,38 +382,6 @@ class EpisodeInfoCallback(DefaultCallbacks):
         super().__init__()
         self.worker_id = worker_id
 
-    def on_episode_step(
-            self, *, worker, base_env, policies, episode: Episode, **kwargs
-    ):
-        # tracks metrics in STEP_METRICS every step per worker for all agents
-        infos = episode._last_infos
-        if not infos:
-            return
-        wid = worker.worker_index
-        for agent_id, agent_info in infos.items():
-            if agent_id == 'p':
-                mobile_idx_list = agent_info.get("mobile_idx", [])
-                for i, v in enumerate(mobile_idx_list):
-                    episode.user_data.setdefault(
-                        f"worker_{wid}/agent_{i}/Certificates_Allocated", []
-                    ).append(v)
-
-                if "settlement_idx" in agent_info:
-                    overdraft = float(np.sum(agent_info["settlement_idx"]))
-                    episode.user_data.setdefault(
-                        f"worker_{wid}/agent_p/Index_Overdraft", []
-                    ).append(overdraft)
-                continue
-            if not isinstance(agent_info, dict):
-                continue
-            for name, fn in self.STEP_METRICS.items():
-                value = fn(agent_info)
-                # (keep step collection minimal; profit is computed at episode end)
-                if value is None:
-                    continue
-                key = f"worker_{wid}/agent_{agent_id}/{name}"
-                episode.user_data.setdefault(key, []).append(value)
-
     def on_episode_end(
             self, *, worker, base_env, policies, episode: Episode, **kwargs
     ):
@@ -448,7 +397,6 @@ class EpisodeInfoCallback(DefaultCallbacks):
                         metric.append(float(valf))
             if not metric:
                 continue
-            episode.custom_metrics[f"worker_{wid}/Avg_{name}_final"] = float(np.mean(metric))
             episode.custom_metrics[f"worker_{wid}/Total_{name}_final"] = float(np.sum(metric))
             if name == "Coin":
                 episode.custom_metrics[f"worker_{wid}/Gini_idx_final"] = get_gini(np.array(metric, float))
