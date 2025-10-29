@@ -377,6 +377,7 @@ class EpisodeInfoCallback(DefaultCallbacks):
         "MoveLabor": lambda info: info.get("endogenous", {}).get("MoveLabor", 0.0),
         "Carbon_project_it": lambda info: info.get("endogenous", {}).get("Carbon_project_it",0.0),
         "BidLabor": lambda info: info.get("endogenous", {}).get("BidLabor",0.0),
+        "ResearchCount": lambda info: info.get("endogenous", {}).get("ResearchCount", 0.0),
     }
 
     def __init__(self, worker_id: int = 1):

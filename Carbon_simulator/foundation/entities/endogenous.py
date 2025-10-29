@@ -132,3 +132,7 @@ class Research_ability(Endogenous):
 class Carbon_project_it(Endogenous):
     """reward for every agent """
     name = "Carbon_project_it"
+@endogenous_registry.add
+class ResearchCount(Endogenous):
+    """reward for every agent """
+    name = "ResearchCount"
