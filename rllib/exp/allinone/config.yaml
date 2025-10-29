@@ -43,7 +43,7 @@ env:
 general:
   ckpt_frequency_steps: 500
   cpus: 32
-  episodes: 250000
+  episodes: 2500
   gpus: 1
   restore_weights_agents: ''   # start from scratch
   restore_weights_planner: ''  # start from scratch
@@ -113,9 +113,9 @@ trainer:
   num_gpus: 1
   num_envs_per_worker: 1
   num_sgd_iter: 1
-  num_workers: 1
+  num_workers: 32
   shuffle_sequences: true
   sgd_minibatch_size: 2000
-  train_batch_size: 5000
+  train_batch_size: 8000
   observation_filter: NoFilter
-  rollout_fragment_length: 5000
+  rollout_fragment_length: 250
