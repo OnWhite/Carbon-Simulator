@@ -11,7 +11,7 @@ from Carbon_simulator.foundation.base.base_component import (
 class Gather(BaseComponent):
 
     name = "Gather"
-    required_entities = ["Carbon_idx", "Carbon_emission", "Coin", "Green_project", "Labor", "MoveLabor", "Carbon_project_it"]
+    required_entities = ["Carbon_idx", "Carbon_emission", "Coin", "Green_project", "Labor"]
     agent_subclasses = ["BasicMobileAgent"]
 
     def __init__(
@@ -67,7 +67,7 @@ class Gather(BaseComponent):
         if agent_cls_name not in self.agent_subclasses:
             return {}
         if agent_cls_name == "BasicMobileAgent":
-            return {}
+            return {"Carbon_project_it":0.0, "MoveLabor":0.0, "Move":0.0}
         raise NotImplementedError
 
     def component_step(self):
@@ -120,7 +120,7 @@ class Gather(BaseComponent):
 
                                 agent.state["inventory"]["Coin"] += self.collect_cost_coin
                                 agent.state["endogenous"]["Costs"] += self.collect_cost_coin
-                                agent.state["endogenous"]["Carbon_project_it"] += 1  # each time an agent collects carbon, it emits 5 units of carbon
+                                agent.state["Carbon_project_it"] += 1  # each time an agent collects carbon, it emits 5 units of carbon
                                 # Log the gather
                                 gathers.append(
                                     dict(
@@ -138,7 +138,8 @@ class Gather(BaseComponent):
                     # If the agent did move, incur the labor cost of moving
                     if (new_r != r) or (new_c != c):
                         agent.state["endogenous"]["Labor"] += self.move_labor
-                        agent.state["endogenous"]["MoveLabor"] += self.move_labor
+                        agent.state["MoveLabor"] += self.move_labor
+                        agent.state["Move"] += 1
 
                 else:
                     raise ValueError

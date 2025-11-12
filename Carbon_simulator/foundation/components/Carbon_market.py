@@ -11,7 +11,7 @@ from Carbon_simulator.foundation.entities import resource_registry
 class Carbon_auction(BaseComponent):
     name = "Carbon_auction"
     component_type = "Trade"
-    required_entities = ["Coin", "Labor", "BidLabor", "Costs", "Revenue", "BidCost", "BidIncome"]
+    required_entities = ["Coin", "Labor","Costs", "Revenue"]
     agent_subclasses = ["BasicMobileAgent"]
 
     def __init__(
@@ -169,7 +169,7 @@ class Carbon_auction(BaseComponent):
 
         # Incur the labor cost of creating an order
         agent.state["endogenous"]["Labor"] += self.order_labor
-        agent.state["endogenous"]["BidLabor"] += self.order_labor
+        agent.state["BidLabor"] += self.order_labor
 
     def create_ask(self, resource, agent, min_income):
         """
@@ -201,7 +201,7 @@ class Carbon_auction(BaseComponent):
 
         # Incur the labor cost of creating an order
         agent.state["endogenous"]["Labor"] += self.order_labor
-        agent.state["endogenous"]["BidLabor"] += self.order_labor
+        agent.state["BidLabor"] += self.order_labor
 
     def match_orders(self):
         """
@@ -303,13 +303,13 @@ class Carbon_auction(BaseComponent):
                         # to the buyer's inventory
                         seller.state["escrow"][resource] -= 1
                         buyer.state["inventory"][resource] += 1
-                        buyer.state["Buy_count"]+=1
-                        seller.state["Sell_count"]+=1
+                        buyer.state["Buy_count"] += 1
+                        seller.state["Sell_count"] += 1
 
                         # Buyer's money (already set aside) leaves escrow
                         pre_payment = int(trade["bid"])
                         # buyer.state["escrow"]["Coin"] -= pre_payment
-                        buyer.state["endogenous"]["BidCost"] -= pre_payment
+                        buyer.state["BidCost"] -= pre_payment
                         buyer.state["endogenous"]["Costs"] += pre_payment
                         assert buyer.state["escrow"]["Coin"] >= 0
 
@@ -322,8 +322,8 @@ class Carbon_auction(BaseComponent):
                         # seller.state["inventory"]["Coin"] += payment_to_seller
                         buyer.state["endogenous"]["Costs"] -= excess_payment_from_buyer
                         # buyer.state["inventory"]["Coin"] += excess_payment_from_buyer
-                        seller.state["endogenous"]["BidIncome"] += payment_to_seller
-                        buyer.state["endogenous"]["BidCost"] += excess_payment_from_buyer
+                        seller.state["BidIncome"] += payment_to_seller
+                        buyer.state["BidCost"] += excess_payment_from_buyer
                         break
 
             # Keep the unfilled bids/asks
@@ -462,7 +462,7 @@ class Carbon_auction(BaseComponent):
         if agent_cls_name not in self.agent_subclasses:
             return {}
         if agent_cls_name == "BasicMobileAgent":
-            return {"Buy_count":0, "Sell_count":0}
+            return {"Buy_count": 0.0, "Sell_count": 0.0, "BidCost": 0.0, "BidIncome": 0.0, "BidLabor":0.0}
         raise NotImplementedError
 
     def component_step(self):

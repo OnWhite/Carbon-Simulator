@@ -29,23 +29,21 @@ class Labor(Endogenous):
 
     name = "Labor"
 
+
 @endogenous_registry.add
 class LaborCost(Endogenous):
     """Labor accumulated through working. Included in all environments by default."""
 
     name = "LaborCost"
 
+
 @endogenous_registry.add
 class Carbon_emission(Endogenous):
     """Labor accumulated through working. Included in all environments by default."""
 
     name = "Carbon_emission"
-@endogenous_registry.add
-class Punishment(Endogenous):
-    """Labor accumulated through working. Included in all environments by default."""
 
-    name = "Punishment"
-    
+
 @endogenous_registry.add
 class Costs(Endogenous):
     """Costs associated with various activities, such as manufacturing or research."""
@@ -59,80 +57,50 @@ class Revenue(Endogenous):
 
     name = "Revenue"
 
+
 @endogenous_registry.add
 class Reward(Endogenous):
     """reward for every agent """
     name = "Reward"
+
+
 @endogenous_registry.add
 class RewardPlanner(Endogenous):
     """reward for every agent """
     name = "RewardPlanner"
+
 
 @endogenous_registry.add
 class Startidx(Endogenous):
     """reward for every agent """
     name = "Startidx"
 
+
 @endogenous_registry.add
 class PastUtility(Endogenous):
     """reward for every agent """
     name = "PastUtility"
+
 
 @endogenous_registry.add
 class LaborUtility(Endogenous):
     """reward for every agent """
     name = "LaborUtility"
 
+
 @endogenous_registry.add
 class CoinUtility(Endogenous):
     """reward for every agent """
     name = "CoinUtility"
+
 
 @endogenous_registry.add
 class CurrentUtility(Endogenous):
     """reward for every agent """
     name = "CurrentUtility"
 
+
 @endogenous_registry.add
 class CoinEndowment(Endogenous):
     """reward for every agent """
     name = "CoinEndowment"
-
-@endogenous_registry.add
-class Build(Endogenous):
-    """reward for every agent """
-    name = "Build"
-
-@endogenous_registry.add
-class BidCost(Endogenous):
-    """reward for every agent """
-    name ="BidCost"
-
-@endogenous_registry.add
-class BidIncome(Endogenous):
-    """reward for every agent """
-    name = "BidIncome"
-
-@endogenous_registry.add
-class MoveLabor(Endogenous):
-    """reward for every agent """
-    name = "MoveLabor"
-
-@endogenous_registry.add
-class BidLabor(Endogenous):
-    """reward for every agent """
-    name = "BidLabor"
-
-@endogenous_registry.add
-class Research_ability(Endogenous):
-    """reward for every agent """
-    name = "Research_ability"
-
-@endogenous_registry.add
-class Carbon_project_it(Endogenous):
-    """reward for every agent """
-    name = "Carbon_project_it"
-@endogenous_registry.add
-class ResearchCount(Endogenous):
-    """reward for every agent """
-    name = "ResearchCount"

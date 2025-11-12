@@ -5,6 +5,7 @@ from Carbon_simulator.foundation.base.base_component import (
     BaseComponent,
     component_registry,
 )
+from Carbon_simulator.foundation.entities.endogenous import ResearchCount
 
 
 @component_registry.add
@@ -12,7 +13,7 @@ class Carbon_component(BaseComponent):
 
     name = "Carbon_component"
     component_type = "Carbon_component"
-    required_entities = ["Carbon_idx", "Carbon_emission", "Coin", "Revenue", "Property", "Carbon_pollution", "Labor","ResearchCount", "Carbon_project", "Green_project", "Build", "Research_ability"]
+    required_entities = ["Carbon_idx", "Carbon_emission", "Coin", "Revenue", "Property", "Carbon_pollution", "Labor", "Green_project"]
     agent_subclasses = ["BasicMobileAgent"]
 
     def __init__(
@@ -124,9 +125,9 @@ class Carbon_component(BaseComponent):
         if agent_cls_name not in self.agent_subclasses:
             return {}
         if agent_cls_name == "BasicMobileAgent":
-            return {"Manufacture_volume": 1, "Research_ability": 1, "Carbon_emission_rate": 1, "Start_Er": 1,
+            return {"Manufacture_volume": 1.0, "Research_ability": 1, "Carbon_emission_rate": 1, "Start_Er": 1,
                     "Research_count": [0, 0], "Research_history": [0] * max(self.delay, self.forget),  "Power_efficiency": 1.0,
-        "Green_rate": 1.0,}
+        "Green_rate": 1.0, "ResearchCount":0.0, "Last_emission":0.0, "Build":0.0}
         raise NotImplementedError
 
     def component_step(self):
@@ -189,7 +190,6 @@ class Carbon_component(BaseComponent):
                     agent.state["Power_efficiency"] = power_efficiency
                     agent.state["Green_rate"] = green_rate
                 # Update Research_history
-                agent.state["endogenous"]["Research_ability"] = agent.state["Research_ability"]
                 agent.state["Research_history"][1:] = agent.state["Research_history"][:-1]
                 agent.state["Research_history"][0] = 0
 
@@ -234,7 +234,7 @@ class Carbon_component(BaseComponent):
                         income = self.payment * agent.state["Manufacture_volume"]
                         agent.state["inventory"]["Coin"] += income
                         agent.state["endogenous"]["Revenue"] += income
-                        agent.state["endogenous"]["Build"] += agent.state["Manufacture_volume"]
+                        agent.state["Build"] += agent.state["Manufacture_volume"]
                         assert income > 0, income
 
                         # Incur the Labor cost and Carbon_emission for building
@@ -275,7 +275,7 @@ class Carbon_component(BaseComponent):
                         "Research_ability"] if self.labor_multiple else self.labor
                     agent.state["inventory"]["Coin"] -= self.payment/(2* agent.state["Research_ability"])
                     agent.state["endogenous"]["Costs"] += self.payment/(2* agent.state["Research_ability"])
-                    agent.state["endogenous"]["ResearchCount"] += self.labor * agent.state[
+                    agent.state["ResearchCount"] += self.labor * agent.state[
                         "Research_ability"] if self.labor_multiple else self.labor
                 else:
                     raise ValueError

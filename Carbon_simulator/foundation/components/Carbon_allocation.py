@@ -65,9 +65,10 @@ class CarbonRedistribution(BaseComponent):
     def get_additional_state_fields(self, agent_cls_name):
         """This component does not add any state fields."""
         if agent_cls_name == "BasicMobileAgent":
-            return {}
+            return {"Cum_Punishment": 0,}
         if agent_cls_name == "BasicPlanner":
-            return {"punishment": 0,
+            return {
+                    "punishment": 0,
                     "year_num": 0,
                     "env_idx": [0 * self._episode_length / self.period],
                     "mobile_idx": [[0 * self._episode_length / self.period] * self.n_agents],
@@ -86,8 +87,8 @@ class CarbonRedistribution(BaseComponent):
                 if agent.state["inventory"]["Carbon_idx"] < 0:
                     punishment = world.planner.state["punishment"] * abs(agent.state["inventory"]["Carbon_idx"])
                     agent.state["inventory"]["Coin"] -= punishment
-                    agent.state["endogenous"]["Costs"] +=punishment
-                    agent.state["endogenous"]["Punishment"] += punishment
+                    agent.state["endogenous"]["Costs"] += punishment
+                    agent.state["Cum_Punishment"] += punishment
 
             sum_Er = 0
             for agent in world.agents:
@@ -149,7 +150,7 @@ class CarbonRedistribution(BaseComponent):
                 for agent in world.agents:
                     agent.state["inventory"]["Carbon_idx"] = world.planner.state["mobile_idx"][agent.idx]
                     agent.state["escrow"]["Carbon_idx"] = 0
-                    agent.state["inventory"]["Startidx"] =  world.planner.state["mobile_idx"][agent.idx]
+                    agent.state["inventory"]["Startidx"] = world.planner.state["mobile_idx"][agent.idx]
             elif self.planner_mode == "inactive":
                 if self.years_predefined == "flat":
                     if self.agents_predefined != "None":
