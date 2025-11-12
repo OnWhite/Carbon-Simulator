@@ -170,10 +170,6 @@ class InfoMetricsCallback(DefaultCallbacks):
         for agent_id, agent_info in infos.items():
             if agent_id == 'p':
                 punishment = agent_info.get("punishment", [])
-                if wid==1:
-                    path = f"/nas/ucb/sophialudewig/Minimalist/rllib/worker_{wid}_episode_info.log"
-                    with open(path, "a") as fh:
-                        fh.write(f"episode={episode.episode_id} agent_id={agent_id} info={agent_info}\n")
                 episode.hist_data.setdefault(f"worker_{wid}/punishment", []).append(punishment)
                 mobile_idx_list = agent_info.get("mobile_idx", [])
                 for i, v in enumerate(mobile_idx_list):
@@ -194,6 +190,10 @@ class InfoMetricsCallback(DefaultCallbacks):
                 continue
             if not isinstance(agent_info, dict):
                 continue
+            if wid == 1 and agent_id != 'p':
+                path = f"/nas/ucb/sophialudewig/Minimalist/rllib/worker_{wid}_episode_info.log"
+                with open(path, "a") as fh:
+                    fh.write(f"episode={episode.episode_id} agent_id={agent_id} info={agent_info}\n")
             for name, fn in self.STEP_METRICS.items():
                 value = fn(agent_info)
                 # (keep step collection minimal; profit is computed at episode end)
