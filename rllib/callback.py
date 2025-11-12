@@ -169,11 +169,10 @@ class InfoMetricsCallback(DefaultCallbacks):
         wid = worker.worker_index
         for agent_id, agent_info in infos.items():
             if agent_id == 'p':
-
+                punishment = agent_info.get("punishment", [])
                 if wid==1:
                     path = f"/nas/ucb/sophialudewig/Minimalist/rllib/worker_{wid}_episode_info.log"
                     with open(path, "a") as fh:
-                        punishment=agent_info.get("punishment", [])
                         fh.write(f"episode={episode.episode_id} agent_id={agent_id} info={punishment}\n")
                 episode.hist_data.setdefault(f"worker_{wid}/punishment", []).append(punishment)
                 mobile_idx_list = agent_info.get("mobile_idx", [])
