@@ -195,7 +195,7 @@ class InfoMetricsCallback(DefaultCallbacks):
                 path = f"/nas/ucb/sophialudewig/Minimalist/rllib/worker_{wid}_episode_info.log"
                 with open(path, "a") as fh:
                     fh.write(base_env.get_metrics())
-                    for name, fn in self.STEP_METRICS.items():
+            for name, fn in self.STEP_METRICS.items():
                 value = fn(agent_info)
                 # (keep step collection minimal; profit is computed at episode end)
                 if value is None:
