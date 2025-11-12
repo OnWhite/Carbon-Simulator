@@ -173,7 +173,7 @@ class InfoMetricsCallback(DefaultCallbacks):
                 if wid==1:
                     path = f"/nas/ucb/sophialudewig/Minimalist/rllib/worker_{wid}_episode_info.log"
                     with open(path, "a") as fh:
-                        fh.write(f"episode={episode.episode_id} agent_id={agent_id} info={punishment}\n")
+                        fh.write(f"episode={episode.episode_id} agent_id={agent_id} info={agent_info}\n")
                 episode.hist_data.setdefault(f"worker_{wid}/punishment", []).append(punishment)
                 mobile_idx_list = agent_info.get("mobile_idx", [])
                 for i, v in enumerate(mobile_idx_list):
@@ -430,9 +430,10 @@ class ResultInfoMetricsCallback(DefaultCallbacks):
         "Carbon_project": lambda info: info.get("inventory", {}).get("Carbon_project"),
         "Carbon_idx": lambda info: info.get("inventory", {}).get("Carbon_idx"),
         "Research_count": lambda info: info.get("Research_count", [0, 0])[1],
+        "Emission_rate": lambda info: info.get("Carbon_emission_rate"),
+        "Building_count": lambda info: info.get("endogenous", {}).get("Build", 0.0),
 
         "Manufacture_volume": lambda info: info.get("Manufacture_volume"),
-        "Emission_rate": lambda info: info.get("Carbon_emission_rate"),
         "Power_efficiency": lambda info: info.get("Power_efficiency"),
         "Green_rate": lambda info: info.get("Green_rate"),
         "Startidx": lambda info: info.get("endogenous", {}).get("Startidx"),
@@ -440,7 +441,6 @@ class ResultInfoMetricsCallback(DefaultCallbacks):
         "CoinUtility": lambda info: info.get("endogenous", {}).get("CoinUtility", 0.0),
         "CurrentUtility": lambda info: info.get("endogenous", {}).get("CurrentUtility", 0.0),
         "PastUtility": lambda info: info.get("endogenous", {}).get("PastUtility", 0.0),
-        "Building_count": lambda info: info.get("endogenous", {}).get("Build", 0.0),
         "Research_ability": lambda info: info.get("endogenous", {}).get("Research_ability", 0.0),
         "MoveLabor": lambda info: info.get("endogenous", {}).get("MoveLabor", 0.0),
     }
