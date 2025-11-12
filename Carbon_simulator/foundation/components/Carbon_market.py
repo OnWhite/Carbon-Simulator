@@ -303,6 +303,8 @@ class Carbon_auction(BaseComponent):
                         # to the buyer's inventory
                         seller.state["escrow"][resource] -= 1
                         buyer.state["inventory"][resource] += 1
+                        buyer.state["Buy_count"]+=1
+                        seller.state["Sell_count"]+=1
 
                         # Buyer's money (already set aside) leaves escrow
                         pre_payment = int(trade["bid"])
@@ -457,7 +459,11 @@ class Carbon_auction(BaseComponent):
         See base_component.py for detailed description.
         """
         # This component doesn't add any state fields
-        return {}
+        if agent_cls_name not in self.agent_subclasses:
+            return {}
+        if agent_cls_name == "BasicMobileAgent":
+            return {"Buy_count":0, "Sell_count":0}
+        raise NotImplementedError
 
     def component_step(self):
         """
