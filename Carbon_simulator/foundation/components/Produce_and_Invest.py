@@ -5,7 +5,6 @@ from Carbon_simulator.foundation.base.base_component import (
     BaseComponent,
     component_registry,
 )
-from Carbon_simulator.foundation.entities.endogenous import ResearchCount
 
 
 @component_registry.add
