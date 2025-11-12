@@ -139,7 +139,7 @@ class InfoMetricsCallback(DefaultCallbacks):
         "Labor": lambda info: info.get("endogenous", {}).get("Labor"),
         "Carbon_project": lambda info: info.get("inventory", {}).get("Carbon_project"),
         "Carbon_emission": lambda info: info.get("endogenous", {}).get("Carbon_emission"),
-        "Punishment": lambda info: info.get("Punishment"),
+        "Punishment": lambda info: info.get("Cum_Punishment"),
         "Labor_Cost": lambda info: info.get("endogenous", {}).get("LaborCost"),
         "Power_efficiency": lambda info: info.get("Power_efficiency"),
         "Green_rate": lambda info: info.get("Green_project"),
@@ -306,7 +306,7 @@ class InfoMetricsCallback(DefaultCallbacks):
             prf = rev - cst
             coin = inv.get("Coin", None)
             lc = endo.get("LaborCost", None)
-            pun = endo.get("Punishment", None)
+            pun = endo.get("Cum_Punishment", None)
             if wid <= self.worker_id and eid == 0:
                 base = f"worker_{wid}/agent_{k}"
                 episode.custom_metrics[f"{base}/Revenue_final"] = rev
@@ -380,7 +380,7 @@ class EpisodeInfoCallback(DefaultCallbacks):
         "Labor": lambda info: info.get("endogenous", {}).get("Labor"),
         "Carbon_project": lambda info: info.get("inventory", {}).get("Carbon_project"),
         "Carbon_emission": lambda info: info.get("endogenous", {}).get("Carbon_emission"),
-        "Punishment": lambda info: info.get("Punishment"),
+        "Punishment": lambda info: info.get("Cum_Punishment"),
         "Labor_Cost": lambda info: info.get("endogenous", {}).get("LaborCost"),
         "Power_efficiency": lambda info: info.get("Power_efficiency"),
         "Green_rate": lambda info: info.get("Green_project"),
