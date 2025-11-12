@@ -413,7 +413,6 @@ if __name__ == "__main__":
                 **metrics,  # <- from your callback via custom_metrics
             })
 
-            logger.info(pretty_print(eval_results))
             sys.exit(0)
         if False:
             search_space = {
@@ -473,18 +472,9 @@ if __name__ == "__main__":
                 num_parallel_episodes_done = result["episodes_total"]
                 global_step = result["timesteps_total"]
                 curr_iter = result["training_iteration"]
-                if num_parallel_episodes_done % run_config["general"]["episodes"] / 50 == 0:
-                    logger.info(
-                        "Iter %d: episodes this-iter %d total %d step -> %d/%d episodes done",
-                        curr_iter,
-                        result["episodes_this_iter"],
-                        global_step,
-                        num_parallel_episodes_done,
-                        run_config["general"]["episodes"],
-                    )
-
-                if curr_iter == 1 or result["episodes_this_iter"] > 0:
-                    logger.info(pretty_print(result))
+                logger.info("=== Iteration %d results ===", curr_iter)
+                logger.info(pretty_print(result["hist_stats"]))
+                logger.info("=== Finished logging results ===\n\n")
 
                 reward_result_a.append(result.get('policy_reward_mean')["a"] if result.get('policy_reward_mean') else 0)
                 reward_result_p.append(result.get('policy_reward_mean')["p"] if result.get('policy_reward_mean') else 0)
