@@ -294,10 +294,10 @@ def tune_train(config, run_dir="exp", run_config=None):
         })
 
 
-def log_custom_metrics(result):
+def log_custom_metrics(result, mode="custom_metrics"):
     """Format RLlib custom metrics for W&B with media types."""
     metrics = {}
-    cm = result.get("custom_metrics", {})
+    cm = result.get(mode, {})
 
     for key, val in cm.items():
         if val is None:
@@ -458,7 +458,7 @@ if __name__ == "__main__":
                 # Training
                 result = trainer.train()
                 # Get formatted metrics
-                metrics = log_custom_metrics(result)
+                metrics = log_custom_metrics(result, mode="hist_stats")
                 wandb.log({
                     "iteration": result["training_iteration"],
                     "timesteps_total": result["timesteps_total"],
