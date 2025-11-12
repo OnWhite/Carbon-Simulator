@@ -135,7 +135,7 @@ def build_trainer(run_configuration, tune_params=None):
     from ray.rllib.algorithms.callbacks import MultiCallbacks
 
     ppo_trainer = PPOConfig().update_from_dict(trainer_config).callbacks(
-        lambda: EpisodeInfoCallback(worker_id=0)).reporting(keep_per_episode_custom_metrics=False,
+        lambda: InfoMetricsCallback(worker_id=1)).reporting(keep_per_episode_custom_metrics=False,
                                                             metrics_num_episodes_for_smoothing=1).build(
         env=RLlibEnvWrapper, logger_creator=logger_creator)
     return ppo_trainer
@@ -402,7 +402,6 @@ if __name__ == "__main__":
             )
 
             eval_data = eval_results.get("evaluation", {})
-            # Reuse your helper to format callback outputs (histograms, heatmaps, etc.)
             metrics = log_custom_metrics(eval_data)
 
             wandb.log({
@@ -410,9 +409,10 @@ if __name__ == "__main__":
                 "evaluation/episode_len_mean": eval_data.get("episode_len_mean", 0),
                 "evaluation/reward/agent": eval_data.get("policy_reward_mean", {}).get("a", 0),
                 "evaluation/reward/planner": eval_data.get("policy_reward_mean", {}).get("p", 0),
-                **metrics,  # <- from your callback via custom_metrics
+                **metrics,
             })
 
+            logger.info(pretty_print(eval_results))
             sys.exit(0)
         if False:
             search_space = {
@@ -472,6 +472,7 @@ if __name__ == "__main__":
                 num_parallel_episodes_done = result["episodes_total"]
                 global_step = result["timesteps_total"]
                 curr_iter = result["training_iteration"]
+
                 logger.info("=== Iteration %d results ===", curr_iter)
                 logger.info(pretty_print(result["hist_stats"]))
                 logger.info("=== Finished logging results ===\n\n")
