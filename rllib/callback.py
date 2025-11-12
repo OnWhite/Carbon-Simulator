@@ -463,9 +463,14 @@ class ResultInfoMetricsCallback(DefaultCallbacks):
         if not infos:
             return
         wid = worker.worker_index
-        env = base_env.get_sub_environments()[0]
+        # Access the unwrapped environment
+        env = base_env.get_sub_environments()[env_index]
 
-        # Access the world maps
+        # If env is still wrapped, unwrap it
+        if hasattr(env, 'env'):
+            env = env.env
+
+        # Now access world
         world = env.world
         maps = world.maps
         path = f"/nas/ucb/sophialudewig/Minimalist/rllib/worker_{wid}_episode_info.log"
