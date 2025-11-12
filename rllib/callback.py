@@ -481,7 +481,7 @@ class ResultInfoMetricsCallback(DefaultCallbacks):
             # Get specific landmark maps
             for landmark_name in maps.keys():
                 landmark_map = maps.get(landmark_name)
-                fh.write(landmark_map)
+                fh.write(np.array2string(landmark_map))
         for agent_id, agent_info in infos.items():
             if agent_id == 'p':
                 punishment = agent_info.get("punishment", [])
