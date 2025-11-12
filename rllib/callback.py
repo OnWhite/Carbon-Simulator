@@ -1,3 +1,5 @@
+from typing import Optional
+
 import numpy as np
 from ray.rllib.evaluation.episode import Episode
 import sys
@@ -456,7 +458,8 @@ class ResultInfoMetricsCallback(DefaultCallbacks):
         self.worker_id = worker_id
 
     def on_episode_step(
-            self, *, worker, base_env, policies, episode: Episode, **kwargs
+            self, *, worker, base_env, policies, episode: Episode, env_index: Optional[int] = None,
+ **kwargs
     ):
         # tracks metrics in STEP_METRICS every step per worker for all agents
         infos = episode._last_infos
