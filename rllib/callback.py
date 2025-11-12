@@ -171,7 +171,7 @@ class InfoMetricsCallback(DefaultCallbacks):
             if agent_id == 'p':
 
                 if wid==1:
-                    path = f"/nas/ucb/sophialudewig/rllib/worker_{wid}_episode_info.log"
+                    path = f"/nas/ucb/sophialudewig/Minimalist/rllib/worker_{wid}_episode_info.log"
                     with open(path, "a") as fh:
                         fh.write(f"episode={episode.episode_id} agent_id={agent_id} info={agent_info!r}\n")
                 mobile_idx_list = agent_info.get("mobile_idx", [])
