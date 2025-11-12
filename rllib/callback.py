@@ -169,7 +169,7 @@ class InfoMetricsCallback(DefaultCallbacks):
         wid = worker.worker_index
         for agent_id, agent_info in infos.items():
             if agent_id == 'p':
-                episode.hist_data.setdefault(agent_info)
+                episode.hist_data.setdefault(agent_info.get("punishment", 0.0), [])
                 mobile_idx_list = agent_info.get("mobile_idx", [])
                 for i, v in enumerate(mobile_idx_list):
                     episode.user_data.setdefault(
