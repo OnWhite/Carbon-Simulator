@@ -488,19 +488,19 @@ class ResultInfoMetricsCallback(DefaultCallbacks):
         for agent_id, agent_info in infos.items():
             if agent_id == 'p':
                 punishment = agent_info.get("punishment", [])
-                episode.hist_data.setdefault(f"worker_{wid}/punishment", []).append(punishment)
+                episode.hist_data.setdefault(f"worker_{wid}/punishment_ts", []).append(punishment)
                 mobile_idx_list = agent_info.get("mobile_idx", [])
                 for i, v in enumerate(mobile_idx_list):
-                    episode.hist_data.setdefault(f"worker_{wid}/agent_{i}/Certificates_Allocated", []
+                    episode.hist_data.setdefault(f"worker_{wid}/agent_{i}/Certificates_Allocated_ts", []
                                                  ).append(v)
                 if "settlement_idx" in agent_info:
-                    overdraft = float(np.sum(agent_info["settlement_idx"]))
+                    overdraft = float(np.sum(agent_info["settlement_idx_ts"]))
                     episode.hist_data.setdefault(
-                        f"worker_{wid}/agent_p/Index_Overdraft", []
+                        f"worker_{wid}/agent_p/Index_Overdraft_ts", []
                     ).append(overdraft)
-                    for i, v in enumerate(agent_info["settlement_idx"]):
+                    for i, v in enumerate(agent_info["settlement_idx_ts"]):
                         episode.hist_data.setdefault(
-                            f"worker_{wid}/agent_{i}/Index_Overdraft", []
+                            f"worker_{wid}/agent_{i}/Index_Overdraft_ts", []
                         ).append(v)
                 continue
             if not isinstance(agent_info, dict):
@@ -511,26 +511,7 @@ class ResultInfoMetricsCallback(DefaultCallbacks):
                 # (keep step collection minimal; profit is computed at episode end)
                 if value is None:
                     continue
-                key = f"worker_{wid}/agent_{agent_id}/{name}"
+                key = f"worker_{wid}/agent_{agent_id}/{name}_ts"
                 episode.hist_data.setdefault(key, []).append(value)
 
-class SimpleWandbStepLogger(DefaultCallbacks):
-    """Log a single per-timestep metric to W&B (no TensorBoard, no aggregation)."""
-
-    def on_episode_step(
-            self, *, worker, base_env, policies, episode: Episode,
-            env_index: Optional[int] = None, **kwargs
-    ):
-        infos = episode._last_infos
-        if not infos:
-            return
-        wid = worker.worker_index
-
-        for agent_id, info in infos.items():
-            if agent_id == "p" or not isinstance(info, dict):
-                continue
-            val = info.get("Carbon_emission_rate", None)
-            if val is not None:
-                # One scalar per env step; W&B auto-increments the step.
-                wandb.log({f"step/w{wid}/agent_{agent_id}/Emission_rate": float(val)})
 
