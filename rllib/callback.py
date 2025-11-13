@@ -2,20 +2,16 @@ from typing import Optional
 
 import numpy as np
 import wandb
-from ray.rllib.evaluation.episode import Episode
 import sys
-import os
 import atexit
 import cProfile
 import logging
 import socket
-from ray.rllib.algorithms.callbacks import DefaultCallbacks
 from typing import Optional
 import os
 import numpy as np
 from ray.rllib.algorithms.callbacks import DefaultCallbacks
 from ray.rllib.evaluation.episode import Episode
-from torch.utils.tensorboard import SummaryWriter
 
 PROFILE_DIR = os.environ.get("PROFILE_DIR", "/nas/ucb/sophialudewig/rllib_profiles")
 os.makedirs(PROFILE_DIR, exist_ok=True)
