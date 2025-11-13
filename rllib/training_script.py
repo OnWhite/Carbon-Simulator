@@ -320,6 +320,55 @@ def create_unique_temp_dir():
     return temp_dir
 
 
+def run_single_episode_and_plot(trainer, run_dir):
+    """Run one episode with detailed logging and plot timestep graphs to wandb."""
+    import matplotlib.pyplot as plt
+    from collections import defaultdict
+
+    logger.info("Running final detailed episode...")
+
+    # Evaluate for exactly 1 episode with ResultInfoMetricsCallback
+    eval_results = trainer.evaluate(
+        evaluation_config={
+            "explore": False,
+            "num_workers": 0,
+            "callbacks": lambda: ResultInfoMetricsCallback(worker_id=0),
+        },
+    )
+
+    # Extract timestep data from hist_stats
+    hist_data = eval_results.get("evaluation", {}).get("hist_stats", {})
+
+    # Group metrics by agent and metric name
+    agent_metrics = defaultdict(dict)
+
+    for key, values in hist_data.items():
+        if "_ts" not in key or not isinstance(values, list):
+            continue
+
+        parts = key.split("/")
+        if len(parts) >= 3:
+            agent = parts[1]  # e.g., "agent_0"
+            metric = parts[2].replace("_ts", "")  # e.g., "CoinEndowment"
+            agent_metrics[agent][metric] = values
+
+    # Plot and log each metric to wandb
+    for agent, metrics in agent_metrics.items():
+        for metric_name, timesteps in metrics.items():
+            plt.figure(figsize=(12, 6))
+            plt.plot(timesteps)
+            plt.xlabel("Timestep")
+            plt.ylabel(metric_name)
+            plt.title(f"{agent} - {metric_name}")
+            plt.grid(True)
+
+            # Log to wandb
+            wandb.log({f"final_episode/{agent}/{metric_name}": wandb.Image(plt)})
+            plt.close()
+
+    logger.info("Final episode plots logged to wandb")
+
+
 if __name__ == "__main__":
     try:
         # Process the args first
@@ -467,6 +516,7 @@ if __name__ == "__main__":
                 step_last_ckpt = maybe_save(
                     trainer, result, ckpt_frequency, ckpt_dir, step_last_ckpt
                 )
+            run_single_episode_and_plot(trainer, run_dir)
 
             # Finish up
             logger.info("Completing! Saving final snapshot...\n\n")
