@@ -1,6 +1,7 @@
 from typing import Optional
 
 import numpy as np
+import wandb
 from ray.rllib.evaluation.episode import Episode
 import sys
 import os
@@ -9,6 +10,12 @@ import cProfile
 import logging
 import socket
 from ray.rllib.algorithms.callbacks import DefaultCallbacks
+from typing import Optional
+import os
+import numpy as np
+from ray.rllib.algorithms.callbacks import DefaultCallbacks
+from ray.rllib.evaluation.episode import Episode
+from torch.utils.tensorboard import SummaryWriter
 
 PROFILE_DIR = os.environ.get("PROFILE_DIR", "/nas/ucb/sophialudewig/rllib_profiles")
 os.makedirs(PROFILE_DIR, exist_ok=True)
@@ -510,3 +517,24 @@ class ResultInfoMetricsCallback(DefaultCallbacks):
                     continue
                 key = f"worker_{wid}/agent_{agent_id}/{name}"
                 episode.hist_data.setdefault(key, []).append(value)
+
+class SimpleWandbStepLogger(DefaultCallbacks):
+    """Log a single per-timestep metric to W&B (no TensorBoard, no aggregation)."""
+
+    def on_episode_step(
+            self, *, worker, base_env, policies, episode: Episode,
+            env_index: Optional[int] = None, **kwargs
+    ):
+        infos = episode._last_infos
+        if not infos:
+            return
+        wid = worker.worker_index
+
+        for agent_id, info in infos.items():
+            if agent_id == "p" or not isinstance(info, dict):
+                continue
+            val = info.get("Carbon_emission_rate", None)
+            if val is not None:
+                # One scalar per env step; W&B auto-increments the step.
+                wandb.log({f"step/w{wid}/agent_{agent_id}/Emission_rate": float(val)})
+
