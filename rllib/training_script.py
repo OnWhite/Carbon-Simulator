@@ -294,20 +294,37 @@ def tune_train(config, run_dir="exp", run_config=None):
         })
 
 
-def log_custom_metrics(result, mode="hist_stats"):
-    metrics, cm = {}, result.get(mode, {})
+def log_custom_metrics(result, mode="custom_metrics"):
+    """Format RLlib custom metrics for W&B with media types."""
+    metrics = {}
+    cm = result.get(mode, {})
+
     for key, val in cm.items():
-        if isinstance(val, list):
+        if val is None:
+            continue
+
+        # Lists/arrays -> media
+        if isinstance(val, (list, np.ndarray)):
             arr = np.asarray(val)
-            # Treat *_ts keys as time series: also log the last value as a scalar
-            if key.endswith("_ts") and arr.size:
-                metrics[f"last/{key}"] = float(arr[-1])
-            # Keep your existing histogram/heatmap logic if you want
-            metrics[f"hist/{key}"] = wandb.Histogram(arr)
-        elif isinstance(val, (np.floating, np.integer)):
-            metrics[key] = val.item()
-        elif isinstance(val, (int, float)):
-            metrics[key] = val
+            if arr.ndim == 1:
+                # Recreates the automatic histogram panel
+                metrics[f"hist/{key}"] = wandb.Histogram(arr)
+            elif arr.ndim == 2:
+                # Heat map as an image
+                fig, ax = plt.subplots()
+                ax.imshow(arr, aspect="auto")
+                ax.set_title(key)
+                fig.tight_layout()
+                metrics[f"heatmap/{key}"] = wandb.Image(fig)
+                plt.close(fig)
+            # Higher dims: skip or reduce as needed
+            continue
+
+        # Scalars stay scalars
+        if isinstance(val, (np.floating, np.integer)):
+            val = val.item()
+        metrics[key] = val
+
     return metrics
 
 
