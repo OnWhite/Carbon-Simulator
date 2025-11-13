@@ -494,11 +494,11 @@ class ResultInfoMetricsCallback(DefaultCallbacks):
                     episode.hist_data.setdefault(f"worker_{wid}/agent_{i}/Certificates_Allocated_ts", []
                                                  ).append(v)
                 if "settlement_idx" in agent_info:
-                    overdraft = float(np.sum(agent_info["settlement_idx_ts"]))
+                    overdraft = float(np.sum(agent_info["settlement_idx"]))
                     episode.hist_data.setdefault(
                         f"worker_{wid}/agent_p/Index_Overdraft_ts", []
                     ).append(overdraft)
-                    for i, v in enumerate(agent_info["settlement_idx_ts"]):
+                    for i, v in enumerate(agent_info["settlement_idx"]):
                         episode.hist_data.setdefault(
                             f"worker_{wid}/agent_{i}/Index_Overdraft_ts", []
                         ).append(v)
