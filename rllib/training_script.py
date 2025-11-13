@@ -5,7 +5,7 @@ import os
 import ray
 import sys
 import time
-from callback import InfoMetricsCallback, ProfilingCallbacks, ResultInfoMetricsCallback, SimpleWandbStepLogger
+from callback import InfoMetricsCallback, ProfilingCallbacks, ResultInfoMetricsCallback
 import matplotlib.pyplot as plt
 import numpy as np
 import wandb
