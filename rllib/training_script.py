@@ -126,7 +126,13 @@ def build_trainer(run_configuration, tune_params=None):
             },
             "metrics_smoothing_episodes": trainer_config.get("num_workers")
                                           * trainer_config.get("num_envs_per_worker"),
-        }
+            "evaluation_interval": None,  # Don't auto-evaluate during training
+            "evaluation_duration": 1,  # Run 1 episode when evaluate() is called
+            "evaluation_num_workers": 0,  # Use local worker
+            "evaluation_config": {
+                "explore": False,
+                "callbacks": lambda: ResultInfoMetricsCallback(worker_id=0),
+        },}
     )
 
     def logger_creator(config):
@@ -344,46 +350,50 @@ def run_single_episode_and_plot(trainer, run_dir):
 
     logger.info("Running final detailed episode...")
 
-    # Evaluate for exactly 1 episode with ResultInfoMetricsCallback
-    eval_results = trainer.evaluate(
-        evaluation_config={
-            "explore": False,
-            "num_workers": 0,
-            "callbacks": lambda: ResultInfoMetricsCallback(worker_id=0),
-        },
-    )
+    # Call evaluate() without arguments - it uses the trainer's evaluation config
+    eval_results = trainer.evaluate()
 
-    # Extract timestep data from hist_stats
+    # Extract timestep data from evaluation/hist_stats
     hist_data = eval_results.get("evaluation", {}).get("hist_stats", {})
 
+    # Debug: log what keys are available
+    logger.info(f"Available hist_data keys: {list(hist_data.keys())}")
+
     # Group metrics by agent and metric name
-    agent_metrics = defaultdict(dict)
+    agent_metrics = defaultdict(lambda: defaultdict(list))
 
     for key, values in hist_data.items():
-        if "_ts" not in key or not isinstance(values, list):
+        if not isinstance(values, list) or len(values) == 0:
             continue
 
-        parts = key.split("/")
-        if len(parts) >= 3:
-            agent = parts[1]  # e.g., "agent_0"
-            metric = parts[2].replace("_ts", "")  # e.g., "CoinEndowment"
-            agent_metrics[agent][metric] = values
+        # Keys are formatted as: evaluation/agent_X/MetricName_ts or evaluation/p/MetricName_ts
+        if "_ts" in key:
+            parts = key.split("/")
+            if len(parts) >= 3:
+                agent = parts[1]  # e.g., "agent_0" or "p"
+                metric = parts[2].replace("_ts", "")  # e.g., "CoinEndowment"
+                agent_metrics[agent][metric] = values
 
     # Plot and log each metric to wandb
+    if not agent_metrics:
+        logger.warning("No timestep metrics found! Check ResultInfoMetricsCallback output.")
+        return
+
     for agent, metrics in agent_metrics.items():
         for metric_name, timesteps in metrics.items():
             plt.figure(figsize=(12, 6))
-            plt.plot(timesteps)
-            plt.xlabel("Timestep")
-            plt.ylabel(metric_name)
-            plt.title(f"{agent} - {metric_name}")
-            plt.grid(True)
+            plt.plot(timesteps, linewidth=1.5)
+            plt.xlabel("Timestep", fontsize=12)
+            plt.ylabel(metric_name, fontsize=12)
+            plt.title(f"{agent} - {metric_name}", fontsize=14)
+            plt.grid(True, alpha=0.3)
 
             # Log to wandb
             wandb.log({f"final_episode/{agent}/{metric_name}": wandb.Image(plt)})
             plt.close()
 
-    logger.info("Final episode plots logged to wandb")
+    logger.info(f"Final episode plots logged to wandb ({len(agent_metrics)} agents)")
+
 
 
 if __name__ == "__main__":
