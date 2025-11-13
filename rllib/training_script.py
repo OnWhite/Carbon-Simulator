@@ -460,11 +460,6 @@ if __name__ == "__main__":
                 # Get formatted metrics
                 metrics = log_custom_metrics(result, mode="hist_stats")
                 wandb.log({
-                    "iteration": result["training_iteration"],
-                    "timesteps_total": result["timesteps_total"],
-                    "episodes_total": result["episodes_total"],
-                    "reward/agent": result.get("policy_reward_mean", {}).get("a", 0),
-                    "reward/planner": result.get("policy_reward_mean", {}).get("p", 0),
                     **metrics
                 }, step=result["episodes_total"])  # <-- add step to align by episode
 
