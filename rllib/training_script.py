@@ -10,11 +10,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import wandb
 from callback import EpisodeInfoCallback
-import shutil
 
 wandb.login(key="2c1f8f77f938086f691891b269af9d5e4925c425")
-from torch_models import ConvRnn
-
 from ray import train
 import utils.saving as saving
 import yaml
@@ -23,7 +20,7 @@ from ray.rllib.algorithms.ppo import PPOConfig
 from ray.tune.logger import NoopLogger, pretty_print
 import pathlib
 
-BASE = "/scratch/$USER"  # or an absolute path you own, e.g. "/nas/ucb/yourid/ray"
+BASE = "/scratch/$USER"
 BASE = os.path.expandvars(BASE)
 TMP_DIR = os.path.join(BASE, "ray_tmp")
 SPILL_DIR = os.path.join(BASE, "ray_spill")
@@ -396,7 +393,6 @@ def run_single_episode_and_plot(trainer, run_dir):
     logger.info(f"Final episode plots logged to wandb ({len(agent_metrics)} agents)")
 
 
-
 if __name__ == "__main__":
     try:
         # Process the args first
@@ -514,7 +510,6 @@ if __name__ == "__main__":
         elif True:
 
             while num_parallel_episodes_done < run_config["general"]["episodes"]:
-
                 # Training
                 result = trainer.train()
                 # Get formatted metrics
