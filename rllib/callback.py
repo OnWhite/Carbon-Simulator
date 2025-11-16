@@ -158,6 +158,7 @@ class InfoMetricsCallback(DefaultCallbacks):
         "Carbon_project_it": lambda info: info.get("Carbon_project_it", 0.0),
         "BidLabor": lambda info: info.get("BidLabor", 0.0),
         "ResearchCount": lambda info: info.get("ResearchCount", 0.0),
+        "Debuff": lambda info: info.get("Debuff", 0.0),
     }
 
     def __init__(self, worker_id: int = 1):

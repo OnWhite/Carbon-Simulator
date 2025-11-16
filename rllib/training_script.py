@@ -142,7 +142,7 @@ def build_trainer(run_configuration, tune_params=None):
     from ray.rllib.algorithms.callbacks import MultiCallbacks
 
     ppo_trainer = PPOConfig().update_from_dict(trainer_config).callbacks(
-        lambda: ResultInfoMetricsCallback(worker_id=1)).reporting(keep_per_episode_custom_metrics=False,
+        lambda: InfoMetricsCallback(worker_id=1)).reporting(keep_per_episode_custom_metrics=False,
                                                             metrics_num_episodes_for_smoothing=1).build(
         env=RLlibEnvWrapper, logger_creator=logger_creator)
     return ppo_trainer

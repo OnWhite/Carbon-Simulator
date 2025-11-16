@@ -126,7 +126,7 @@ class Carbon_component(BaseComponent):
         if agent_cls_name == "BasicMobileAgent":
             return {"Manufacture_volume": 1.0, "Research_ability": 1, "Carbon_emission_rate": 1, "Start_Er": 1,
                     "Research_count": [0, 0], "Research_history": [0] * max(self.delay, self.forget),  "Power_efficiency": 1.0,
-        "Green_rate": 1.0, "ResearchCount":0.0, "Last_emission":0.0, "Build":0.0}
+        "Green_rate": 1.0, "ResearchCount":0.0, "Last_emission":0.0, "Build":0.0, "Debuff":0.0}
         raise NotImplementedError
 
     def component_step(self):
@@ -215,6 +215,7 @@ class Carbon_component(BaseComponent):
                         for public, health in world.location_public(loc_r, loc_c).items():
                             if public == "Carbon_pollution" and health >= 1:
                                 Carbon_emission = (1 + self.debuff) * Carbon_emission
+                                agent.state["Debuff"] += 1
 
                         # Update Carbon_idx
                         agent.state["inventory"]["Carbon_idx"] -= Carbon_emission
