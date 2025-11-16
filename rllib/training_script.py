@@ -515,6 +515,11 @@ if __name__ == "__main__":
                 # Get formatted metrics
                 metrics = log_custom_metrics(result, mode="custom_metrics")
                 wandb.log({
+                    "iteration": result["training_iteration"],
+                    "timesteps_total": result["timesteps_total"],
+                    "episodes_total": result["episodes_total"],
+                    "reward/agent": result.get("policy_reward_mean", {}).get("a", 0),
+                    "reward/planner": result.get("policy_reward_mean", {}).get("p", 0),
                     **metrics
                 }, step=result["episodes_total"])  # <-- add step to align by episode
 
@@ -539,7 +544,7 @@ if __name__ == "__main__":
                 step_last_ckpt = maybe_save(
                     trainer, result, ckpt_frequency, ckpt_dir, step_last_ckpt
                 )
-            run_single_episode_and_plot(trainer, run_dir)
+            #run_single_episode_and_plot(trainer, run_dir)
 
             # Finish up
             logger.info("Completing! Saving final snapshot...\n\n")
