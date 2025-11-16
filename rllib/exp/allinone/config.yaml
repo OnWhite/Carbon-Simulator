@@ -24,10 +24,6 @@ env:
         random_fails: 0.1
         delay: 1
         forget: 1
-    - Carbon_auction:
-        max_bid_ask: 20
-        max_num_orders: 5
-        order_duration: 10
     - Gather:
         collect_labor: 1
         collect_cost_coin: 1
