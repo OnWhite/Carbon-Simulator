@@ -142,143 +142,143 @@ class Carbon_component(BaseComponent):
 
             # Apply any building or research actions taken by the mobile agents
             for agent in world.get_random_order_agents():
+                if agent.idx == 0:
+                    action = agent.get_component_action(self.name)
 
-                action = agent.get_component_action(self.name)
+                    # Update the Carbon_emission_rate
+                    previous_rate = agent.state["Carbon_emission_rate"]
+                    research_activity = ''
+                    # forget if more than self.forget time steps do not do research
+                    if agent.state["Research_count"][1] > 0:
+                        if sum(agent.state["Research_history"][:self.forget]) == 0:
+                            research_activity += 'Forget'
+                            agent.state["Research_count"][0] -= 1
+                            agent.state["Research_count"][1] -= 1
+                            agent.state["Research_history"][0] = 2
+                    # Delay research
+                    if agent.state["Research_history"][self.delay] == 1:
+                        research_activity += 'Delayed improve'
+                        # Research_count +1.0.0
+                        agent.state["Research_count"][0] += 1
+                        agent.state["Research_count"][1] += 1
 
-                # Update the Carbon_emission_rate
-                previous_rate = agent.state["Carbon_emission_rate"]
-                research_activity = ''
-                # forget if more than self.forget time steps do not do research
-                if agent.state["Research_count"][1] > 0:
-                    if sum(agent.state["Research_history"][:self.forget]) == 0:
-                        research_activity += 'Forget'
-                        agent.state["Research_count"][0] -= 1
-                        agent.state["Research_count"][1] -= 1
-                        agent.state["Research_history"][0] = 2
-                # Delay research
-                if agent.state["Research_history"][self.delay] == 1:
-                    research_activity += 'Delayed improve'
-                    # Research_count +1.0.0
-                    agent.state["Research_count"][0] += 1
-                    agent.state["Research_count"][1] += 1
-
-                # Update Emission rate
-                if self.research_type == "-log":
-                    """if agent.state["Start_Er"]==1:
-                        agent.state["Carbon_emission_rate"] = max(max(1-(self.world.timestep // self.period + 1)/(self.episode_length / self.period), self.lowest_rate), agent.state["Start_Er"] - np.log(
-                            1 + (agent.state["Research_ability"] * agent.state["Research_count"][0])
-                        ) / np.log(self.a + 1))
-                    else:
+                    # Update Emission rate
+                    if self.research_type == "-log":
+                        """if agent.state["Start_Er"]==1:
+                            agent.state["Carbon_emission_rate"] = max(max(1-(self.world.timestep // self.period + 1)/(self.episode_length / self.period), self.lowest_rate), agent.state["Start_Er"] - np.log(
+                                1 + (agent.state["Research_ability"] * agent.state["Research_count"][0])
+                            ) / np.log(self.a + 1))
+                        else:
+                            agent.state["Carbon_emission_rate"] = max(
+                                max(1 - (self.world.timestep // self.period + 1) / (self.episode_length / self.period),
+                                    self.lowest_rate), agent.state["Start_Er"] - np.log(
+                                    1 + (agent.state["Research_ability"] * agent.state["Research_count"][1])
+                                ) / np.log(self.a + 1))"""
                         agent.state["Carbon_emission_rate"] = max(
-                            max(1 - (self.world.timestep // self.period + 1) / (self.episode_length / self.period),
-                                self.lowest_rate), agent.state["Start_Er"] - np.log(
-                                1 + (agent.state["Research_ability"] * agent.state["Research_count"][1])
-                            ) / np.log(self.a + 1))"""
-                    agent.state["Carbon_emission_rate"] = max(
-                        1 - (self.world.timestep // self.period + 1) / (self.episode_length / self.period),
-                        self.lowest_rate
-                    )
-                elif self.research_type == "e^-":
-                    assert agent.state["Start_Er"]==1
-                    # Can't set research_type be e^- and tech_share_year be True at same time
-                    power_efficiency = np.e**(-agent.state["Research_ability"] * agent.state["Research_count"][0] * self.a)
-                    sum_power_efficiency = np.sum([np.e**(-i_agent.state["Research_count"][0] * self.a) * i_agent.state["Manufacture_volume"] for i_agent in world.agents])
-                    green_rate = max(1-np.sum(world.maps.get("Green_project"))/(sum_power_efficiency + np.sum(world.maps.get("Green_project"))), 0)
-                    assert 0<= green_rate <=1
-                    agent.state["Carbon_emission_rate"] = max(power_efficiency * green_rate, self.lowest_rate)
-                    agent.state["Power_efficiency"] = power_efficiency
-                    agent.state["Green_rate"] = green_rate
-                # Update Research_history
-                agent.state["Research_history"][1:] = agent.state["Research_history"][:-1]
-                agent.state["Research_history"][0] = 0
+                            1 - (self.world.timestep // self.period + 1) / (self.episode_length / self.period),
+                            self.lowest_rate
+                        )
+                    elif self.research_type == "e^-":
+                        assert agent.state["Start_Er"]==1
+                        # Can't set research_type be e^- and tech_share_year be True at same time
+                        power_efficiency = np.e**(-agent.state["Research_ability"] * agent.state["Research_count"][0] * self.a)
+                        sum_power_efficiency = np.sum([np.e**(-i_agent.state["Research_count"][0] * self.a) * i_agent.state["Manufacture_volume"] for i_agent in world.agents])
+                        green_rate = max(1-np.sum(world.maps.get("Green_project"))/(sum_power_efficiency + np.sum(world.maps.get("Green_project"))), 0)
+                        assert 0<= green_rate <=1
+                        agent.state["Carbon_emission_rate"] = max(power_efficiency * green_rate, self.lowest_rate)
+                        agent.state["Power_efficiency"] = power_efficiency
+                        agent.state["Green_rate"] = green_rate
+                    # Update Research_history
+                    agent.state["Research_history"][1:] = agent.state["Research_history"][:-1]
+                    agent.state["Research_history"][0] = 0
 
-                # This component doesn't apply to this agent!
-                if action is None:
-                    continue
+                    # This component doesn't apply to this agent!
+                    if action is None:
+                        continue
 
-                # NO-OP!
-                if action == 0:
-                    pass
+                    # NO-OP!
+                    if action == 0:
+                        pass
 
-                # Build! (If you can.)
-                elif action == 1:
-                    if self.agent_can_build(agent):
+                    # Build! (If you can.)
+                    elif action == 1:
+                        if self.agent_can_build(agent):
 
-                        # Obtain agent's location
-                        loc_r, loc_c = agent.loc
+                            # Obtain agent's location
+                            loc_r, loc_c = agent.loc
 
-                        # Calculate the Carbon_emission
-                        Carbon_emission = self.require_Carbon_idx * agent.state["Manufacture_volume"] * agent.state[
-                            "Carbon_emission_rate"]
+                            # Calculate the Carbon_emission
+                            Carbon_emission = self.require_Carbon_idx * agent.state["Manufacture_volume"] * agent.state[
+                                "Carbon_emission_rate"]
 
-                        # Get debuff
-                        for public, health in world.location_public(loc_r, loc_c).items():
-                            if public == "Carbon_pollution" and health >= 1:
-                                Carbon_emission = (1 + self.debuff) * Carbon_emission
-                                agent.state["Debuff"] += 1
+                            # Get debuff
+                            for public, health in world.location_public(loc_r, loc_c).items():
+                                if public == "Carbon_pollution" and health >= 1:
+                                    Carbon_emission = (1 + self.debuff) * Carbon_emission
+                                    agent.state["Debuff"] += 1
 
-                        # Update Carbon_idx
-                        agent.state["inventory"]["Carbon_idx"] -= Carbon_emission
+                            # Update Carbon_idx
+                            agent.state["inventory"]["Carbon_idx"] -= Carbon_emission
 
-                        # Place a Property where the agent is standing
-                        world.create_landmark("Property", loc_r, loc_c, agent.idx)
+                            # Place a Property where the agent is standing
+                            world.create_landmark("Property", loc_r, loc_c, agent.idx)
 
-                        # Generate pollution block
-                        if Carbon_emission > self.env_recover_ability:
-                            blanks = world.get_near_blank_grid(loc_r, loc_c)
-                            if blanks:
-                                pollute_r, pollute_c = random.choice(blanks)
-                                world.maps.set_point("Carbon_pollution", pollute_r, pollute_c, 1)
+                            # Generate pollution block
+                            if Carbon_emission > self.env_recover_ability:
+                                blanks = world.get_near_blank_grid(loc_r, loc_c)
+                                if blanks:
+                                    pollute_r, pollute_c = random.choice(blanks)
+                                    world.maps.set_point("Carbon_pollution", pollute_r, pollute_c, 1)
 
-                        # Receive payment for the house
-                        income = self.payment * agent.state["Manufacture_volume"]
-                        agent.state["inventory"]["Coin"] += income
-                        agent.state["endogenous"]["Revenue"] += income
-                        agent.state["Build"] += agent.state["Manufacture_volume"]
-                        assert income > 0, income
+                            # Receive payment for the house
+                            income = self.payment * agent.state["Manufacture_volume"]
+                            agent.state["inventory"]["Coin"] += income
+                            agent.state["endogenous"]["Revenue"] += income
+                            agent.state["Build"] += agent.state["Manufacture_volume"]
+                            assert income > 0, income
 
-                        # Incur the Labor cost and Carbon_emission for building
-                        agent.state["endogenous"]["Labor"] += self.labor * agent.state[
-                            "Manufacture_volume"] if self.labor_multiple else self.labor
-                        agent.state["endogenous"]["Carbon_emission"] += Carbon_emission
-                        agent.state["Last_emission"] += Carbon_emission
+                            # Incur the Labor cost and Carbon_emission for building
+                            agent.state["endogenous"]["Labor"] += self.labor * agent.state[
+                                "Manufacture_volume"] if self.labor_multiple else self.labor
+                            agent.state["endogenous"]["Carbon_emission"] += Carbon_emission
+                            agent.state["Last_emission"] += Carbon_emission
 
-                        builds.append(
+                            builds.append(
+                                {
+                                    "enterprise": agent.idx,
+                                    "research_activity": research_activity,
+                                    "Carbon_emission_rate_change": previous_rate - agent.state["Carbon_emission_rate"],
+                                    "loc": np.array(agent.loc),
+                                    "Carbon_emission": Carbon_emission,
+                                    "Income": income,
+                                }
+                            )
+                    elif action == 2:
+                        # Action Success
+                        if random.random() > self.random_fails:
+                            action_result = 'Success'
+                            # Newest history add Research_mark
+                            agent.state["Research_history"][0] = 1
+                        else:
+                            action_result = 'Fails'
+
+                        research.append(
                             {
                                 "enterprise": agent.idx,
                                 "research_activity": research_activity,
                                 "Carbon_emission_rate_change": previous_rate - agent.state["Carbon_emission_rate"],
-                                "loc": np.array(agent.loc),
-                                "Carbon_emission": Carbon_emission,
-                                "Income": income,
+                                "action_result": action_result,
+                                "Research_count": agent.state["Research_count"][0]
                             }
                         )
-                elif action == 2:
-                    # Action Success
-                    if random.random() > self.random_fails:
-                        action_result = 'Success'
-                        # Newest history add Research_mark
-                        agent.state["Research_history"][0] = 1
+                        agent.state["endogenous"]["Labor"] += self.labor * agent.state[
+                            "Research_ability"] if self.labor_multiple else self.labor
+                        agent.state["inventory"]["Coin"] -= self.payment/(2* agent.state["Research_ability"])
+                        agent.state["endogenous"]["Costs"] += self.payment/(2* agent.state["Research_ability"])
+                        agent.state["ResearchCount"] += self.labor * agent.state[
+                            "Research_ability"] if self.labor_multiple else self.labor
                     else:
-                        action_result = 'Fails'
-
-                    research.append(
-                        {
-                            "enterprise": agent.idx,
-                            "research_activity": research_activity,
-                            "Carbon_emission_rate_change": previous_rate - agent.state["Carbon_emission_rate"],
-                            "action_result": action_result,
-                            "Research_count": agent.state["Research_count"][0]
-                        }
-                    )
-                    agent.state["endogenous"]["Labor"] += self.labor * agent.state[
-                        "Research_ability"] if self.labor_multiple else self.labor
-                    agent.state["inventory"]["Coin"] -= self.payment/(2* agent.state["Research_ability"])
-                    agent.state["endogenous"]["Costs"] += self.payment/(2* agent.state["Research_ability"])
-                    agent.state["ResearchCount"] += self.labor * agent.state[
-                        "Research_ability"] if self.labor_multiple else self.labor
-                else:
-                    raise ValueError
+                        raise ValueError
 
         self.Manufactures["builds"].append(builds)
         self.Manufactures["research"].append(research)

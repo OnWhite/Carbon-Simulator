@@ -82,67 +82,66 @@ class Gather(BaseComponent):
         gathers = []
         if self.world.timestep % self.period != 1:
             for agent in world.get_random_order_agents():
+                if agent.idx == 0:
+                    action = agent.get_component_action(self.name)
 
-                action = agent.get_component_action(self.name)
+                    r, c = [int(x) for x in agent.loc]
 
-                r, c = [int(x) for x in agent.loc]
+                    if action is None:
+                        continue
 
-                if action is None:
-                    continue
+                    if action == 0:  # NO-OP!
+                        new_r, new_c = r, c
 
-                if action == 0:  # NO-OP!
-                    new_r, new_c = r, c
+                    elif action <= 4:
+                        if action == 1:  # Left
+                            new_r, new_c = r, c - 1
+                        elif action == 2:  # Right
+                            new_r, new_c = r, c + 1
+                        elif action == 3:  # Up
+                            new_r, new_c = r - 1, c
+                        else:  # action == 4, # Down
+                            new_r, new_c = r + 1, c
 
-                elif action <= 4:
-                    if action == 1:  # Left
-                        new_r, new_c = r, c - 1
-                    elif action == 2:  # Right
-                        new_r, new_c = r, c + 1
-                    elif action == 3:  # Up
-                        new_r, new_c = r - 1, c
-                    else:  # action == 4, # Down
-                        new_r, new_c = r + 1, c
+                        # Attempt to move the agent (if the new coordinates aren't accessible,
+                        # nothing will happen)
+                        for resource, health in world.location_resources(new_r, new_c).items():
+                            if resource == "Carbon_project" and health >= 1:
+                                if agent.state["inventory"]["Coin"]>self.collect_cost_coin:
+                                    agent.state["inventory"][resource] += world.location_resources(new_r, new_c)[resource]
 
-                    # Attempt to move the agent (if the new coordinates aren't accessible,
-                    # nothing will happen)
-                    for resource, health in world.location_resources(new_r, new_c).items():
-                        if resource == "Carbon_project" and health >= 1:
-                            if agent.state["inventory"]["Coin"]>self.collect_cost_coin:
-                                agent.state["inventory"][resource] += world.location_resources(new_r, new_c)[resource]
+                                    world.consume_resource(resource, new_r, new_c)
 
-                                world.consume_resource(resource, new_r, new_c)
+                                    world.create_landmark("Green_project", new_r, new_c, agent.idx)
+                                    agent.state["inventory"]["Carbon_idx"] += self.collect_idx
 
-                                world.create_landmark("Green_project", new_r, new_c, agent.idx)
-                                agent.state["inventory"]["Carbon_idx"] += self.collect_idx
+                                    # Incur the labor cost of collecting a resource
+                                    agent.state["endogenous"]["Labor"] += self.collect_labor
 
-                                # Incur the labor cost of collecting a resource
-                                agent.state["endogenous"]["Labor"] += self.collect_labor
-
-                                agent.state["inventory"]["Coin"] += self.collect_cost_coin
-                                agent.state["endogenous"]["Costs"] += self.collect_cost_coin
-                                agent.state["Carbon_project_it"] += 1  # each time an agent collects carbon, it emits 5 units of carbon
-                                # Log the gather
-                                gathers.append(
-                                    dict(
-                                        agent=agent.idx,
-                                        resource=resource,
-                                        loc=[new_r, new_c],
+                                    agent.state["inventory"]["Coin"] += self.collect_cost_coin
+                                    agent.state["endogenous"]["Costs"] += self.collect_cost_coin
+                                    agent.state["Carbon_project_it"] += 1  # each time an agent collects carbon, it emits 5 units of carbon
+                                    # Log the gather
+                                    gathers.append(
+                                        dict(
+                                            agent=agent.idx,
+                                            resource=resource,
+                                            loc=[new_r, new_c],
+                                        )
                                     )
-                                )
-                            else:
-                                new_r, new_c = r, c
+                                else:
+                                    new_r, new_c = r, c
 
 
-                    new_r, new_c = world.set_agent_loc(agent, new_r, new_c)
+                        new_r, new_c = world.set_agent_loc(agent, new_r, new_c)
 
-                    # If the agent did move, incur the labor cost of moving
-                    if (new_r != r) or (new_c != c):
-                        agent.state["endogenous"]["Labor"] += self.move_labor
-                        agent.state["MoveLabor"] += self.move_labor
-                        agent.state["Move"] += 1
-
-                else:
-                    raise ValueError
+                        # If the agent did move, incur the labor cost of moving
+                        if (new_r != r) or (new_c != c):
+                            agent.state["endogenous"]["Labor"] += self.move_labor
+                            agent.state["MoveLabor"] += self.move_labor
+                            agent.state["Move"] += 1
+                    else:
+                        raise ValueError
 
 
 
