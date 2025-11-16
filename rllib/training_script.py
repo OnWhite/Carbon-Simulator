@@ -5,6 +5,9 @@ import os
 import ray
 import sys
 import time
+
+from ray.rllib.models import ModelCatalog
+
 from callback import InfoMetricsCallback, ProfilingCallbacks, ResultInfoMetricsCallback
 import matplotlib.pyplot as plt
 import numpy as np
@@ -393,10 +396,15 @@ def run_single_episode_and_plot(trainer, run_dir):
     logger.info(f"Final episode plots logged to wandb ({len(agent_metrics)} agents)")
 
 
+class ConvRnnModel:
+    pass
+
+
 if __name__ == "__main__":
     try:
         # Process the args first
         run_dir, run_config = process_args()
+        ModelCatalog.register_custom_model("Conv_Rnn", ConvRnnModel)
 
         # Initialize Ray with temp directory
         ray.init(
