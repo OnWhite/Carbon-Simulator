@@ -5,16 +5,16 @@ import os
 import ray
 import sys
 import time
-
-from ray.rllib.models import ModelCatalog
-
 from callback import InfoMetricsCallback, ProfilingCallbacks, ResultInfoMetricsCallback
 import matplotlib.pyplot as plt
 import numpy as np
 import wandb
 from callback import EpisodeInfoCallback
+import shutil
 
 wandb.login(key="2c1f8f77f938086f691891b269af9d5e4925c425")
+from torch_models import ConvRnn
+
 from ray import train
 import utils.saving as saving
 import yaml
@@ -404,7 +404,6 @@ if __name__ == "__main__":
     try:
         # Process the args first
         run_dir, run_config = process_args()
-        ModelCatalog.register_custom_model("Conv_Rnn", ConvRnnModel)
 
         # Initialize Ray with temp directory
         ray.init(
