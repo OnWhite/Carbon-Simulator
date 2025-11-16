@@ -518,7 +518,7 @@ if __name__ == "__main__":
                 # Training
                 result = trainer.train()
                 # Get formatted metrics
-                metrics = log_custom_metrics(result, mode="hist_stats")
+                metrics = log_custom_metrics(result, mode="custom_metrics")
                 wandb.log({
                     **metrics
                 }, step=result["episodes_total"])  # <-- add step to align by episode
@@ -529,7 +529,7 @@ if __name__ == "__main__":
                 curr_iter = result["training_iteration"]
 
                 logger.info("=== Iteration %d results ===", curr_iter)
-                logger.info(pretty_print(result["hist_stats"]))
+                logger.info(pretty_print(result["custom_metrics"]))
                 logger.info("=== Finished logging results ===\n\n")
 
                 reward_result_a.append(result.get('policy_reward_mean')["a"] if result.get('policy_reward_mean') else 0)
