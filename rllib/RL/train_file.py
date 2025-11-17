@@ -3,7 +3,7 @@ from pathlib import Path
 import ray
 from ray.tune.registry import register_env
 from ray.rllib.algorithms import ppo
-from CarbonEnv import CarbonEnv
+from rllib.RL.CarbonEnv import CarbonEnv
 import numpy as np
 
 from rllib.RL.callback import ResultInfoMetricsCallback
