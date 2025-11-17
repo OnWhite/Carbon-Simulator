@@ -16,7 +16,7 @@ env:
         fixed_punishment: 5
         total_idx: 2
         max_year_percent: 25
-        years_predefined: None
+        years_predefined: test
         agents_predefined: None
     - Carbon_component:
         payment: 2

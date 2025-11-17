@@ -161,10 +161,14 @@ class CarbonRedistribution(BaseComponent):
                 if agent.state["inventory"]["Carbon_idx"] < 0 and agent.idx == 0:
                     self.world.planner.state["settlement_idx"][agent.idx] -= agent.state["inventory"]["Carbon_idx"]
                     # when in the negative, the overspending of emissions gets logged per agent
-                world.planner.state["punishment"]=self.alloc_arr[world.timestep // self.period][1]
                 if self.years_predefined =="test":
                     idx_action = [1,0]
-                    total_percent = self.alloc_arr[world.timestep // self.period][0]
+                    if world.timestep//self.period < len(self.alloc_arr):
+                        total_percent = self.alloc_arr[world.timestep // self.period][0]
+                        world.planner.state["punishment"] = self.alloc_arr[world.timestep // self.period][1]
+                    else:
+                        total_percent = 0
+                        world.planner.state["punishment"] = self.alloc_arr[len(self.alloc_arr) - 1][1]
 
                 year_idx = self.total_idx * total_percent/ 100
                 world.planner.state["env_idx"] = int(year_idx * self.env_idx_percent)
