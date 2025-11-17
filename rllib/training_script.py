@@ -9,6 +9,7 @@ from callback import InfoMetricsCallback, ProfilingCallbacks, ResultInfoMetricsC
 import matplotlib.pyplot as plt
 import numpy as np
 import wandb
+import json
 from callback import EpisodeInfoCallback
 import shutil
 
@@ -554,6 +555,11 @@ if __name__ == "__main__":
             while num_parallel_episodes_done < run_config["general"]["episodes"]:
                 # Training
                 result = trainer.train()
+                logger.info("Running final DP comparison...")
+                final_comparison = run_dp_comparison(trainer, run_config, run_dir)
+
+                with open(os.path.join(run_dir, "dp_comparison.json"), "w") as f:
+                    json.dump(final_comparison, f, indent=2)
                 # Get formatted metrics
                 metrics = log_custom_metrics(result, mode="custom_metrics")
                 wandb.log({
@@ -586,14 +592,6 @@ if __name__ == "__main__":
                     trainer, result, ckpt_frequency, ckpt_dir, step_last_ckpt
                 )
             #run_single_episode_and_plot(trainer, run_dir)
-            logger.info("Running final DP comparison...")
-            final_comparison = run_dp_comparison(trainer, run_config, run_dir)
-
-            # Save results to file
-            import json
-
-            with open(os.path.join(run_dir, "dp_comparison.json"), "w") as f:
-                json.dump(final_comparison, f, indent=2)
             # Finish up
             logger.info("Completing! Saving final snapshot...\n\n")
             # saving.save_snapshot(trainer, ckpt_dir)
