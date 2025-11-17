@@ -10,7 +10,9 @@ env:
   scenario_name: Carbon/Carbon_env
   components:
     - CarbonRedistribution:
-        planner_mode: active
+        alloc_arr: [(1,5),(2,5)]
+        env_idx_percent: 0.1
+        planner_mode: inactive
         fixed_punishment: 5
         total_idx: 2
         max_year_percent: 25

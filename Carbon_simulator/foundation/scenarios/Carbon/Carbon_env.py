@@ -12,8 +12,8 @@ class Carbon_env(BaseEnvironment):
     name = "Carbon/Carbon_env"
     agent_subclasses = ["BasicMobileAgent", "BasicPlanner"]
     required_entities = ["Carbon_idx", "Carbon_emission", "Coin", "Property", "Carbon_pollution", "Labor", "LaborCost",
-                         "Costs", "Revenue","CoinEndowment", "Reward", "LaborUtility", "CoinUtility", "CurrentUtility", "PastUtility"]
-
+                         "Costs", "Revenue", "CoinEndowment", "Reward", "LaborUtility", "CoinUtility", "CurrentUtility",
+                         "PastUtility"]
 
     def __init__(
             self,
@@ -115,7 +115,8 @@ class Carbon_env(BaseEnvironment):
                     util_c = np.log(np.max(1, agent.total_endowment("Coin")))
                 else:  # isoelastic_eta >= 0
                     if np.all(agent.total_endowment("Coin") >= 0):
-                        util_c = (agent.total_endowment("Coin") ** (1 - self.isoelastic_eta) - 1) / (1 - self.isoelastic_eta)
+                        util_c = (agent.total_endowment("Coin") ** (1 - self.isoelastic_eta) - 1) / (
+                                    1 - self.isoelastic_eta)
                     else:
                         util_c = agent.total_endowment("Coin") - 1
 
@@ -125,15 +126,9 @@ class Carbon_env(BaseEnvironment):
                 agent.state["endogenous"]["CoinUtility"] = util_c
                 agent.state["endogenous"]["CoinEndowment"] = agent.total_endowment("Coin")
 
-
-
-
         # (for the planner)
         curr_optimization_metric[self.world.planner.idx] = rewards.planner_strategy(
-            profit=np.array(
-                [agent.state["endogenous"]["Revenue"] - agent.state["endogenous"]["Costs"] for agent in
-                 self.world.agents]
-            ),
+            profit=self.world.agents.__getitem__(0).total_endowment("Coin"),
             mobile_idx=self.world.planner.state["settlement_idx"],
             remained_idx=self.world.planner.state["remained_idx"],
             mobile_coefficient=self.mobile_coefficient
@@ -307,8 +302,8 @@ class Carbon_env(BaseEnvironment):
             for agent in self.world.agents:
                 r, c = [c + w for c in agent.loc]
                 visible_map = padded_map[
-                              :, (r - w): (r + w + 1), (c - w): (c + w + 1)
-                              ]
+                    :, (r - w): (r + w + 1), (c - w): (c + w + 1)
+                ]
                 visible_idx = np.array(
                     padded_idx[:, (r - w): (r + w + 1), (c - w): (c + w + 1)]
                 )
@@ -426,9 +421,7 @@ class Carbon_env(BaseEnvironment):
             )
         # (for the planner)
         curr_optimization_metric[self.world.planner.idx] = rewards.planner_metrics(
-            profit=np.array(
-                [agent.total_endowment("Coin") for agent in self.world.agents]
-            ),
+            profit=self.world.agents.__getitem__(0).total_endowment("Coin"),
             mobile_idx=self.world.planner.state["settlement_idx"],
             remained_idx=self.world.planner.state["remained_idx"],
             mobile_coefficient=self.mobile_coefficient
