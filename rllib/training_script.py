@@ -396,8 +396,43 @@ def run_single_episode_and_plot(trainer, run_dir):
     logger.info(f"Final episode plots logged to wandb ({len(agent_metrics)} agents)")
 
 
-class ConvRnnModel:
-    pass
+def run_dp_comparison(trainer, run_config, run_dir):
+    """Compare RL policy against DP baseline."""
+    logger.info("Running DP comparison...")
+
+    from rllib.DP.DynamicProgram import DPImpl
+    from rllib.RL.train_file import compare_rl_vs_dp
+
+    # Create DP instance with same config
+    dp_instance = DPImpl(run_config)
+
+    # Create evaluation environment
+    eval_env = RLlibEnvWrapper({
+        "env_config_dict": run_config.get("env"),
+        "num_envs_per_worker": 1,
+    })
+
+    # Run comparison
+    comparison_results = compare_rl_vs_dp(
+        trainer,
+        dp_instance,
+        eval_env,
+        n_eval_episodes=20
+    )
+
+    # Log to wandb
+    wandb.log({
+        "comparison/rl_mean_reward": comparison_results["rl_mean_reward"],
+        "comparison/dp_mean_reward": comparison_results["dp_mean_reward"],
+        "comparison/rl_std": comparison_results["rl_std"],
+        "comparison/dp_std": comparison_results["dp_std"],
+        "comparison/advantage": comparison_results["rl_mean_reward"] - comparison_results["dp_mean_reward"]
+    })
+
+    logger.info(f"RL Mean: {comparison_results['rl_mean_reward']:.2f} ± {comparison_results['rl_std']:.2f}")
+    logger.info(f"DP Mean: {comparison_results['dp_mean_reward']:.2f} ± {comparison_results['dp_std']:.2f}")
+
+    return comparison_results
 
 
 if __name__ == "__main__":
@@ -534,7 +569,8 @@ if __name__ == "__main__":
                 num_parallel_episodes_done = result["episodes_total"]
                 global_step = result["timesteps_total"]
                 curr_iter = result["training_iteration"]
-
+                if num_parallel_episodes_done % 500 == 0 and num_parallel_episodes_done > 0:
+                    run_dp_comparison(trainer, run_config, run_dir)
                 logger.info("=== Iteration %d results ===", curr_iter)
                 logger.info(pretty_print(result["custom_metrics"]))
                 logger.info("=== Finished logging results ===\n\n")
@@ -552,7 +588,14 @@ if __name__ == "__main__":
                     trainer, result, ckpt_frequency, ckpt_dir, step_last_ckpt
                 )
             #run_single_episode_and_plot(trainer, run_dir)
+            logger.info("Running final DP comparison...")
+            final_comparison = run_dp_comparison(trainer, run_config, run_dir)
 
+            # Save results to file
+            import json
+
+            with open(os.path.join(run_dir, "dp_comparison.json"), "w") as f:
+                json.dump(final_comparison, f, indent=2)
             # Finish up
             logger.info("Completing! Saving final snapshot...\n\n")
             # saving.save_snapshot(trainer, ckpt_dir)
