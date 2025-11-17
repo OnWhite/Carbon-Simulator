@@ -569,8 +569,6 @@ if __name__ == "__main__":
                 num_parallel_episodes_done = result["episodes_total"]
                 global_step = result["timesteps_total"]
                 curr_iter = result["training_iteration"]
-                if num_parallel_episodes_done % 500 == 0 and num_parallel_episodes_done > 0:
-                    run_dp_comparison(trainer, run_config, run_dir)
                 logger.info("=== Iteration %d results ===", curr_iter)
                 logger.info(pretty_print(result["custom_metrics"]))
                 logger.info("=== Finished logging results ===\n\n")
