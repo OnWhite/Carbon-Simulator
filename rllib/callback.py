@@ -183,17 +183,11 @@ class InfoMetricsCallback(DefaultCallbacks):
                     episode.user_data.setdefault(
                         f"worker_{wid}/agent_{i}/Certificates_Allocated", []
                     ).append(v)
-                    episode.hist_data.setdefault(f"worker_{wid}/agent_{i}/Certificates_Allocated", []
-                                                 ).append(v)
                 if "settlement_idx" in agent_info:
                     overdraft = float(np.sum(agent_info["settlement_idx"]))
                     episode.user_data.setdefault(
                         f"worker_{wid}/agent_p/Index_Overdraft", []
                     ).append(overdraft)
-                    for i, v in enumerate(agent_info["settlement_idx"]):
-                        episode.hist_data.setdefault(
-                            f"worker_{wid}/agent_{i}/Index_Overdraft", []
-                        ).append(v)
                 continue
             if not isinstance(agent_info, dict):
                 continue

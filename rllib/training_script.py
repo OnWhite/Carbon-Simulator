@@ -131,7 +131,7 @@ def build_trainer(run_configuration, tune_params=None):
             "evaluation_num_workers": 1,  # Changed from 0 to 1 - creates eval worker
             "evaluation_config": {
                 "explore": False,
-                "callbacks": lambda: InfoMetricsCallback(worker_id=0),
+                "callbacks": lambda: InfoMetricsCallback(worker_id=1),
             },
         }
     )

@@ -155,10 +155,7 @@ class Carbon_component(BaseComponent):
                             agent.state["Research_count"][0] -= 1
                             agent.state["Research_count"][1] -= 1
                             agent.state["Research_history"][0] = 2
-                    # Delay research
-                    if self.delay >= len(agent.state["Research_history"]):
-                        raise IndexError(f"delay={self.delay} >= history_len={len(agent.state['Research_history'])}")
-
+                    # delay research
                     if agent.state["Research_history"][self.delay] == 1:
                         research_activity += 'Delayed improve'
                         # Research_count +1.0.0
