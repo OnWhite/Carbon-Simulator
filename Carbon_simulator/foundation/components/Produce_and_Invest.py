@@ -406,7 +406,7 @@ class Carbon_component(BaseComponent):
             # initiate the [total research count, this year research count] be [0, 0]
             agent.state["Research_count"] = [0, 0]
 
-            agent.state["Research_history"] = [0] * max(self.delay, self.forget)
+            agent.state["Research_history"] = agent.state["Research_history"] = [0] * (max(self.delay, self.forget) + 1)
 
         self.Manufactures = {"builds": [], "research": []}
 
