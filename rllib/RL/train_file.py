@@ -79,16 +79,14 @@ def compare_rl_vs_dp(rl_algo, dp_instance, env, n_eval_episodes=20):
         done = False
         truncated = False
         rl_obs = obs.copy()
-        res = ""
-        res += "=== PolicyMap debug ===\n"
-        pm = rl_algo.workers.local_worker().policy_map
-        res += f"Policy IDs: {list(pm.keys())}\n"
-        for pid, pol in pm.items():
-            res += f"  {pid}: {type(pol)}\n"
-        return res
+
 
         while not (done or truncated):
-            action = rl_algo.compute_single_action(rl_obs, explore=False)
+            action = rl_algo.compute_single_action(
+                rl_obs,
+                explore=False,
+                policy_id="a"  # agent policy
+            )
             rl_obs, reward, done, truncated, info = env.step(action)
             rl_ep_return += reward
 
