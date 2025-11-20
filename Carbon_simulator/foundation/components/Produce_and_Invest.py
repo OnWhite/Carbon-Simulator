@@ -211,12 +211,6 @@ class Carbon_component(BaseComponent):
                             Carbon_emission = self.require_Carbon_idx * agent.state["Manufacture_volume"] * agent.state[
                                 "Carbon_emission_rate"]
 
-                            # Get debuff
-                            for public, health in world.location_public(loc_r, loc_c).items():
-                                if public == "Carbon_pollution" and health >= 1:
-                                    Carbon_emission = (1 + self.debuff) * Carbon_emission
-                                    agent.state["Debuff"] += 1
-
                             # Update Carbon_idx
                             agent.state["inventory"]["Carbon_idx"] -= Carbon_emission
 

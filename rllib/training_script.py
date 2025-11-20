@@ -9,6 +9,9 @@ from callback import InfoMetricsCallback, ProfilingCallbacks, ResultInfoMetricsC
 import matplotlib.pyplot as plt
 import numpy as np
 import wandb
+from rllib.DP.DynamicProgram import DPImpl, load_config
+from rllib.RL.CarbonEnv import CarbonEnv
+from rllib.RL.train_file import compare_rl_vs_dp, compare_rl_to_dp
 import json
 from callback import EpisodeInfoCallback
 import shutil
@@ -401,38 +404,30 @@ def run_dp_comparison(trainer, run_config, run_dir):
     """Compare RL policy against DP baseline."""
     logger.info("Running DP comparison...")
 
-    from rllib.DP.DynamicProgram import DPImpl
-    from rllib.RL.train_file import compare_rl_vs_dp
-
     # Create DP instance with same config
-    dp_instance = DPImpl(run_config)
+    config_path = "/Users/work/PycharmProjects/Carbon-Simulator/rllib/DP/config.yaml"
+    dp = DPImpl(load_config(pathlib.Path(config_path)))
+    dp.solve_mdp()
 
-    # Create evaluation environment
-    eval_env = RLlibEnvWrapper({
-        "env_config_dict": run_config.get("env"),
-        "num_envs_per_worker": 1,
-    })
+    # Now compare
+    env = CarbonEnv({"config_path": "/Users/work/PycharmProjects/Carbon-Simulator/rllib/DP/config.yaml"})
 
+    comparison_results = ""
     # Run comparison
-    comparison_results = compare_rl_vs_dp(
+    rl_returns, dp_returns = compare_rl_vs_dp(
         trainer,
-        dp_instance,
-        eval_env,
+        dp,
+        env,
         n_eval_episodes=20
     )
-
-    # Log to wandb
-    wandb.log({
-        "comparison/rl_mean_reward": comparison_results["rl_mean_reward"],
-        "comparison/dp_mean_reward": comparison_results["dp_mean_reward"],
-        "comparison/rl_std": comparison_results["rl_std"],
-        "comparison/dp_std": comparison_results["dp_std"],
-        "comparison/advantage": comparison_results["rl_mean_reward"] - comparison_results["dp_mean_reward"]
-    })
-
-    logger.info(f"RL Mean: {comparison_results['rl_mean_reward']:.2f} ± {comparison_results['rl_std']:.2f}")
-    logger.info(f"DP Mean: {comparison_results['dp_mean_reward']:.2f} ± {comparison_results['dp_std']:.2f}")
-
+    res = compare_rl_to_dp(trainer, dp, env)
+    comparison_results += rl_returns + "\n"
+    comparison_results += dp_returns + "\n"
+    comparison_results += f"RL  - Mean: {np.mean(rl_returns):.2f}, Std: {np.std(rl_returns):.2f}\n"
+    comparison_results += f"DP  - Mean: {np.mean(dp_returns):.2f}, Std: {np.std(dp_returns):.2f}\n"
+    comparison_results += f"Difference: {np.mean(rl_returns) - np.mean(dp_returns):.2f}\n"
+    comparison_results += "***********************************\n"
+    comparison_results += res
     return comparison_results
 
 
@@ -555,11 +550,6 @@ if __name__ == "__main__":
             while num_parallel_episodes_done < run_config["general"]["episodes"]:
                 # Training
                 result = trainer.train()
-                logger.info("Running final DP comparison...")
-                final_comparison = run_dp_comparison(trainer, run_config, run_dir)
-
-                with open(os.path.join(run_dir, "dp_comparison.json"), "w") as f:
-                    json.dump(final_comparison, f, indent=2)
                 # Get formatted metrics
                 metrics = log_custom_metrics(result, mode="custom_metrics")
                 wandb.log({
@@ -591,13 +581,19 @@ if __name__ == "__main__":
                 step_last_ckpt = maybe_save(
                     trainer, result, ckpt_frequency, ckpt_dir, step_last_ckpt
                 )
-            #run_single_episode_and_plot(trainer, run_dir)
+            # run_single_episode_and_plot(trainer, run_dir)
             # Finish up
             logger.info("Completing! Saving final snapshot...\n\n")
             # saving.save_snapshot(trainer, ckpt_dir)
             saving.save_model_weights(trainer, ckpt_dir, global_step, suffix="agent")
             saving.save_model_weights(trainer, ckpt_dir, global_step, suffix="planner")
             logger.info("Final snapshot saved! All done.")
+
+            logger.info("Running final DP comparison...")
+            final_comparison = run_dp_comparison(trainer, run_config, run_dir)
+
+            with open(os.path.join(run_dir, "dp_comparison.json"), "w") as f:
+                json.dump(final_comparison, f, indent=2)
     finally:
         # ray.timeline(os.path.join(run_dir, "timeline.json"))
         ray.shutdown()

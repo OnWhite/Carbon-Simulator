@@ -76,6 +76,7 @@ class DPImpl:
         self.max_greenbudget = (1/3) * self.total_idx
         ws = env.get("world_size", (100, 100))
         self.worldsize = ws[0] * ws[1]
+        self.statespace=[]
 
     from copy import deepcopy
 
@@ -323,7 +324,7 @@ class DPImpl:
                                                 on_certificate=on_certificate,
                                                 timestep=timestep
                                             )
-
+                                            self.statespace.append(state)
                                             state_idx = self.state_to_index(state)
                                             states_visited.add(state_idx)
 
@@ -619,41 +620,15 @@ def print_state_matrix(dp, num=10):
     max_hist_len = max(dp.delay, dp.forget)
     printed = 0
 
-    # Enumerate in EXACT same order as state_to_index:
-    # coin → carbon → r_yearly → r_count → labor → hist → total_green → on_cert → timestep
-    for coin in dp.coin_bins:
-        for carbon in dp.carbon_bins:
-            for r_yearly in dp.research_yearly_bins:
-                for r_count in dp.research_count_bins:
-                    for labor in dp.labor_bins:
-                        for hist_idx in range(dp.history_states):
-                            r_hist = tuple(
-                                (hist_idx // (2 ** i)) % 2
-                                for i in range(max_hist_len)
-                            )
-                            for total_green in dp.total_green_bins:
-                                for on_certificate in dp.on_certificate_bins:
-                                    for timestep in dp.timestep:
+    for state in self.statespace:
 
-                                        state = State(
-                                            coin=coin,
-                                            carbon=carbon,
-                                            research_yearly=int(r_yearly),
-                                            research_count=int(r_count),
-                                            labor=labor,
-                                            research_history=r_hist,
-                                            total_green=total_green,
-                                            on_certificate=on_certificate,
-                                            timestep=timestep
-                                        )
+        idx = dp.state_to_index(state)
 
-                                        idx = dp.state_to_index(state)
-
-                                        # Now states will appear in correct order
-                                        print(f"Index {idx}: {state}")
-                                        printed += 1
-                                        if printed >= num:
-                                            return
+        # Now states will appear in correct order
+        print(f"Index {idx}: {state}")
+        printed += 1
+        if printed >= num:
+            return
 
 def print_optimal_trajectory(dp):
     """Print the optimal action trajectory starting from zero state."""
@@ -693,7 +668,6 @@ def print_optimal_trajectory(dp):
         print(f"  → Next State = {next_state}")
 
         state = next_state
-
 
 
 if __name__ == "__main__":
