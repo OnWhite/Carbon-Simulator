@@ -155,14 +155,10 @@ class ConvRnn(RecurrentNetwork, nn.Module):
         return [dictionary[k] for k in self.non_conv_input_keys]
 
     def forward(self, input_dict, state, seq_lens):
-        """Adds time dimension to batch before sending inputs to forward_rnn().
-
-        You should implement forward_rnn() in your subclass."""
 
         non_conv_input = torch.cat(self._extract_input_list(input_dict["obs"]), dim=-1)
 
         value1 = input_dict["obs"][_WORLD_MAP_NAME]
-
         value2 = input_dict["obs"][_WORLD_IDX_MAP_NAME]
 
         value2 = self.word_idx_embedding(value2.long())
@@ -171,24 +167,37 @@ class ConvRnn(RecurrentNetwork, nn.Module):
         conv_in = torch.cat((value1, value2), dim=-1).permute(0, 3, 1, 2)
         conv_out = self.conv(conv_in)
 
-        # assert conv_out.shape[-1] == self.conv_out_size[1], (conv_out.shape, self.conv_out_size, self.conv_shape)
         fc_in = torch.cat((non_conv_input, conv_out), dim=-1)
+        fc_out = self.fc(fc_in)  # [B*T, hidden] or [B, hidden]
 
-        fc_out = self.fc(fc_in)
+        # ----- handle training/inference shape differences -----
+        if seq_lens is None:
+            # inference / compute_single_action
+            rnn_in = fc_out.unsqueeze(1)  # [B, 1, H]
+            h_in = state[0].unsqueeze(0)  # [1, B, H]
+            c_in = state[1].unsqueeze(0)
+        else:
+            # training: sequence batch
+            B = seq_lens.shape[0]
+            T = fc_out.shape[0] // B
+            rnn_in = fc_out.reshape(B, T, self.cell_size)
 
-        rnn_in = fc_out.reshape(value1.shape[0] // seq_lens.shape[0], seq_lens.shape[0], self.cell_size)
+            h_in = state[0].unsqueeze(0)  # [1, B, H]
+            c_in = state[1].unsqueeze(0)
 
-        rnn_out, [h, c] = self.lstm(rnn_in, [torch.unsqueeze(state[0], 0), torch.unsqueeze(state[1], 0)])
+        # ----- RNN -----
+        rnn_out, (h, c) = self.lstm(rnn_in, (h_in, c_in))
 
-        logit_in = rnn_out.reshape(-1, self.cell_size)
+        # flatten RNN outputs for logits
+        logits_in = rnn_out.reshape(-1, self.cell_size)
 
-        self._value_out = self._value_branch(logit_in)
+        self._value_out = self._value_branch(logits_in)
+        model_out = self._logits_branch(logits_in)
 
-        model_out = self._logits_branch(logit_in)
-
+        # apply action mask
         model_out = apply_logit_mask(model_out, input_dict["obs"][_MASK_NAME])
 
-        return model_out, [torch.squeeze(h, 0), torch.squeeze(c, 0)]
+        return model_out, [h.squeeze(0), c.squeeze(0)]
 
     def get_initial_state(self):
         return [torch.zeros(self.cell_size).float(),

@@ -39,8 +39,7 @@ def compare_rl_to_dp(rl_algo, dp_instance, env):
         for a in actions:
             tot_states.append(dp.state_transition(a, state))
     for state in tot_states:
-        raw_obs = env._state_to_obs(state)
-        observation = get_agent_obs(raw_obs)
+        observation = env._state_to_obs(state)
         action = rl_algo.compute_single_action(observation, explore=False, policy_id="a")
         state_idx = dp_instance.state_to_index(state)
         action_idx = dp_instance.optimal_policy[state_idx]
@@ -65,17 +64,6 @@ def compare_rl_to_dp(rl_algo, dp_instance, env):
     result += f"Reward difference: {(rewards1 - rewards2) / (rewards2)}%\n"
     return result
 
-def get_agent_obs(obs):
-        """Return the correct agent-level observation for policy 'a'."""
-        if isinstance(obs, dict):
-            # pick the agent-id mapped to policy "a"
-            # usually the environment uses numeric strings for agents
-            for agent_id in obs:
-                if agent_id.isdigit():  # standard rule in your mapping_fn
-                    return obs[agent_id]
-            # fallback: first entry
-            return list(obs.values())[0]
-        return obs
 
 
 def compare_rl_vs_dp(rl_algo, dp_instance, env, n_eval_episodes=20):
@@ -85,9 +73,8 @@ def compare_rl_vs_dp(rl_algo, dp_instance, env, n_eval_episodes=20):
 
     for ep in range(n_eval_episodes):
         # Reset environment once
-        obs_dict, info = env.reset()
-        rl_obs = obs_dict["0"]
-
+        obs, info = env.reset()
+        rl_obs = obs["0"]
         # RL rollout
         rl_ep_return = 0.0
         done = False
@@ -118,12 +105,7 @@ def compare_rl_vs_dp(rl_algo, dp_instance, env, n_eval_episodes=20):
             state_idx = dp_instance.state_to_index(state_tuple)
             action_idx = dp_instance.optimal_policy[state_idx]
 
-            obs_dict, reward_dict, done_dict, truncated_dict, info_dict = env.step({"0": action_idx})
-            rl_obs = obs_dict["0"]
-            reward = reward_dict["0"]
-            done = done_dict["__all__"]
-            truncated = truncated_dict["__all__"]
-
+            obs, reward, done, truncated, info = env.step(action_idx)
             dp_ep_return += reward
 
         dp_returns.append(dp_ep_return)
