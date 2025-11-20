@@ -21,7 +21,7 @@ def compare_rl_to_dp(rl_algo, dp_instance, env):
     """Compare RL and DP policies on identical rollouts"""
     count = 0
     rewards1 = 0
-    result=""
+    result = ""
     rewards2 = 0
     actions = [
         Action(b, g, r, m)
@@ -30,11 +30,11 @@ def compare_rl_to_dp(rl_algo, dp_instance, env):
         for r in [0, 1]
         for m in [0, 1]
     ]
-    startstate= State(0, 0, 0, 0, 0, (0,0), 0, 0, 0)
+    startstate = State(0, 0, 0, 0, 0, (0, 0), 0, 0, 0)
     states = []
     for a in actions:
         states.append(dp.state_transition(a, startstate))
-    tot_states=states.copy()
+    tot_states = states.copy()
     for state in states:
         for a in actions:
             tot_states.append(dp.state_transition(a, state))
@@ -43,8 +43,8 @@ def compare_rl_to_dp(rl_algo, dp_instance, env):
         action = rl_algo.compute_single_action(observation, explore=False)
         state_idx = dp_instance.state_to_index(state)
         action_idx = dp_instance.optimal_policy[state_idx]
-        rewards1+=(dp.reward(dp.state_transition(dp_instance.actions[action], state)))
-        rewards2+=(dp.reward(dp.state_transition(dp_instance.actions[action_idx], state)))
+        rewards1 += (dp.reward(dp.state_transition(dp_instance.actions[action], state)))
+        rewards2 += (dp.reward(dp.state_transition(dp_instance.actions[action_idx], state)))
         if action != action_idx:
             if state.on_certificate == 0 and dp.actions[action].green != dp.actions[action_idx].green:
                 new_action1 = replace(dp.actions[action], green=0)
@@ -60,9 +60,10 @@ def compare_rl_to_dp(rl_algo, dp_instance, env):
             print(action_idx)
             print(new_action2)
             count += 1
-    result+= f"Total mismatches: {count} out of {len(dp.statespace)} states\n"
-    result+= f"Reward difference: {(rewards1 - rewards2) /(rewards2)}%\n"
+    result += f"Total mismatches: {count} out of {len(dp.statespace)} states\n"
+    result += f"Reward difference: {(rewards1 - rewards2) / (rewards2)}%\n"
     return result
+
 
 def compare_rl_vs_dp(rl_algo, dp_instance, env, n_eval_episodes=20):
     """Compare RL and DP policies on identical rollouts"""
@@ -78,6 +79,8 @@ def compare_rl_vs_dp(rl_algo, dp_instance, env, n_eval_episodes=20):
         done = False
         truncated = False
         rl_obs = obs.copy()
+        pm = algo.workers.local_worker().policy_map
+        return pm.keys()
 
         while not (done or truncated):
             action = rl_algo.compute_single_action(rl_obs, explore=False)
@@ -137,7 +140,7 @@ if __name__ == "__main__":
 
     algo = config.build()
 
-    for i in range(200):
+    for i in range(2):
         result = algo.train()
         # print(f"Iter {i}: reward_mean={result['episode_reward_mean']:.2f}")
 
@@ -156,7 +159,7 @@ if __name__ == "__main__":
     # Now compare
     env = CarbonEnv({"config_path": "/Users/work/PycharmProjects/Carbon-Simulator/rllib/DP/config.yaml"})
 
-    compare_rl_to_dp(algo, dp, env)
+    compare_rl_vs_dp(algo, dp, env)
 
     n_eval_episodes = 20
     returns = []
