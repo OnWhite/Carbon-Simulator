@@ -171,24 +171,33 @@ class ConvRnn(RecurrentNetwork, nn.Module):
         fc_out = self.fc(fc_in)  # [B*T, hidden] or [B, hidden]
 
         # ----- handle training/inference shape differences -----
+        # fc_out computed above ...
+
         if seq_lens is None:
-            # inference / compute_single_action
+            # -------- Inference / compute_single_action --------
+            # fc_out: [B, H]
             rnn_in = fc_out.unsqueeze(1)  # [B, 1, H]
+            B = rnn_in.shape[0]
+
+            # use the carried state from RLlib (B should be 1 here)
             h_in = state[0].unsqueeze(0)  # [1, B, H]
             c_in = state[1].unsqueeze(0)
+
         else:
-            # training: sequence batch
+            # -------- Training / dummy batch --------
+            # fc_out: [sum(seq_lens), H]
             B = seq_lens.shape[0]
             T = fc_out.shape[0] // B
-            rnn_in = fc_out.reshape(B, T, self.cell_size)
+            rnn_in = fc_out.reshape(B, T, self.cell_size)  # [B, T, H]
 
-            h_in = state[0].unsqueeze(0)  # [1, B, H]
-            c_in = state[1].unsqueeze(0)
+            # IMPORTANT: ignore passed state (it has wrong batch dimension) and
+            # create a fresh zero state matching this batch size.
+            device = fc_out.device
+            h_in = torch.zeros(1, B, self.cell_size, device=device)
+            c_in = torch.zeros(1, B, self.cell_size, device=device)
 
-        # ----- RNN -----
+        # LSTM step
         rnn_out, (h, c) = self.lstm(rnn_in, (h_in, c_in))
-
-        # flatten RNN outputs for logits
         logits_in = rnn_out.reshape(-1, self.cell_size)
 
         self._value_out = self._value_branch(logits_in)
