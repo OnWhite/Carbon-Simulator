@@ -405,13 +405,12 @@ def run_dp_comparison(trainer, run_config, run_dir):
     logger.info("Running DP comparison...")
 
     # Create DP instance with same config
-    config_path = "/Users/work/PycharmProjects/Carbon-Simulator/rllib/DP/config.yaml"
+    config_path = pathlib.Path(__file__).resolve().parent / "DP" / "config.yaml"
     dp = DPImpl(load_config(pathlib.Path(config_path)))
     dp.solve_mdp()
 
     # Now compare
-    env = CarbonEnv({"config_path": "/Users/work/PycharmProjects/Carbon-Simulator/rllib/DP/config.yaml"})
-
+    env = CarbonEnv({"config_path": str(config_path)})
     comparison_results = ""
     # Run comparison
     rl_returns, dp_returns = compare_rl_vs_dp(
