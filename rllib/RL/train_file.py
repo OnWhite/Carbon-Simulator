@@ -39,8 +39,9 @@ def compare_rl_to_dp(rl_algo, dp_instance, env):
         for a in actions:
             tot_states.append(dp.state_transition(a, state))
     for state in tot_states:
-        observation = env._state_to_obs(state)
-        action = rl_algo.compute_single_action(observation, explore=False)
+        raw_obs = env._state_to_obs(state)
+        observation = get_agent_obs(raw_obs)
+        action = rl_algo.compute_single_action(observation, explore=False, policy_id="a")
         state_idx = dp_instance.state_to_index(state)
         action_idx = dp_instance.optimal_policy[state_idx]
         rewards1 += (dp.reward(dp.state_transition(dp_instance.actions[action], state)))
@@ -63,6 +64,18 @@ def compare_rl_to_dp(rl_algo, dp_instance, env):
     result += f"Total mismatches: {count} out of {len(dp.statespace)} states\n"
     result += f"Reward difference: {(rewards1 - rewards2) / (rewards2)}%\n"
     return result
+
+def get_agent_obs(obs):
+        """Return the correct agent-level observation for policy 'a'."""
+        if isinstance(obs, dict):
+            # pick the agent-id mapped to policy "a"
+            # usually the environment uses numeric strings for agents
+            for agent_id in obs:
+                if agent_id.isdigit():  # standard rule in your mapping_fn
+                    return obs[agent_id]
+            # fallback: first entry
+            return list(obs.values())[0]
+        return obs
 
 
 def compare_rl_vs_dp(rl_algo, dp_instance, env, n_eval_episodes=20):
