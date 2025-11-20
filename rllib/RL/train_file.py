@@ -79,8 +79,13 @@ def compare_rl_vs_dp(rl_algo, dp_instance, env, n_eval_episodes=20):
         done = False
         truncated = False
         rl_obs = obs.copy()
-        pm = algo.workers.local_worker().policy_map
-        return pm.keys()
+        res = ""
+        res += "=== PolicyMap debug ===\n"
+        pm = rl_algo.workers.local_worker().policy_map
+        res += f"Policy IDs: {list(pm.keys())}\n"
+        for pid, pol in pm.items():
+            res += f"  {pid}: {type(pol)}\n"
+        return res
 
         while not (done or truncated):
             action = rl_algo.compute_single_action(rl_obs, explore=False)

@@ -413,7 +413,7 @@ def run_dp_comparison(trainer, run_config, run_dir):
     env = CarbonEnv({"config_path": str(config_path)})
     comparison_results = ""
     # Run comparison
-    rl_returns, dp_returns = compare_rl_vs_dp(
+    return compare_rl_vs_dp(
         trainer,
         dp,
         env,
