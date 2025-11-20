@@ -410,7 +410,10 @@ def run_dp_comparison(trainer, run_config, run_dir):
     dp.solve_mdp()
 
     # Now compare
-    env = CarbonEnv({"config_path": str(config_path)})
+    env = RLlibEnvWrapper({
+        "env_config_dict": run_config.get("env"),
+        "num_envs_per_worker": 1,
+    })
     comparison_results = ""
     # Run comparison
     return compare_rl_vs_dp(

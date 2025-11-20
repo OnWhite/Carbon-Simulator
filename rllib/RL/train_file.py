@@ -73,12 +73,12 @@ def compare_rl_vs_dp(rl_algo, dp_instance, env, n_eval_episodes=20):
     for ep in range(n_eval_episodes):
         # Reset environment once
         obs, info = env.reset()
-
+        rl_obs = obs["0"]
         # RL rollout
         rl_ep_return = 0.0
         done = False
         truncated = False
-        rl_obs = obs.copy()
+
 
 
         while not (done or truncated):
