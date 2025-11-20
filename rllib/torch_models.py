@@ -167,23 +167,20 @@ class ConvRnn(RecurrentNetwork, nn.Module):
         fc_in = torch.cat((non_conv_input, conv_out), dim=-1)
         fc_out = self.fc(fc_in)
 
-        # REPLACE your entire if/else block with this:
-        # add_time_dimension handles both training and inference correctly
-        from ray.rllib.models.torch.recurrent_net import add_time_dimension
-
+        # Use add_time_dimension WITHOUT max_seq_len parameter
         rnn_in = add_time_dimension(
             fc_out,
-            max_seq_len=self.model_config.get("max_seq_len"),
+            seq_lens=seq_lens,  # This handles None and actual seq_lens correctly
             framework="torch",
             time_major=False,
         )
         # rnn_in is now [B, T, H]
 
-        # For hidden states:
-        if state:
-            # State from previous timestep (squeeze to [1, B, H])
-            h_in = state[0].reshape(1, -1, self.cell_size)
-            c_in = state[1].reshape(1, -1, self.cell_size)
+        # Handle hidden states
+        if state and len(state) == 2:
+            # State from previous timestep
+            h_in = state[0].unsqueeze(0)  # [B, H] -> [1, B, H]
+            c_in = state[1].unsqueeze(0)  # [B, H] -> [1, B, H]
         else:
             # Initial state (create with correct batch size)
             B = rnn_in.shape[0]
