@@ -167,22 +167,24 @@ class ConvRnn(RecurrentNetwork, nn.Module):
         fc_in = torch.cat((non_conv_input, conv_out), dim=-1)
         fc_out = self.fc(fc_in)
 
-        # Use add_time_dimension WITHOUT max_seq_len parameter
-        rnn_in = add_time_dimension(
-            fc_out,
-            seq_lens=seq_lens,  # This handles None and actual seq_lens correctly
-            framework="torch",
-            time_major=False,
-        )
-        # rnn_in is now [B, T, H]
+        # Manual time dimension handling
+        if seq_lens is not None:
+            # Training mode: fc_out is [B*T, H], seq_lens is [B]
+            B = seq_lens.shape[0]
+            max_seq_len = fc_out.shape[0] // B
+            # Reshape to [B, T, H]
+            rnn_in = fc_out.reshape(B, max_seq_len, self.cell_size)
+        else:
+            # Inference mode: fc_out is [1, H]
+            rnn_in = fc_out.unsqueeze(1)  # [1, 1, H]
 
         # Handle hidden states
         if state and len(state) == 2:
-            # State from previous timestep
-            h_in = state[0].unsqueeze(0)  # [B, H] -> [1, B, H]
-            c_in = state[1].unsqueeze(0)  # [B, H] -> [1, B, H]
+            # State from previous timestep: state is [[B, H], [B, H]]
+            h_in = state[0].unsqueeze(0)  # [1, B, H]
+            c_in = state[1].unsqueeze(0)  # [1, B, H]
         else:
-            # Initial state (create with correct batch size)
+            # Initial state
             B = rnn_in.shape[0]
             device = rnn_in.device
             h_in = torch.zeros(1, B, self.cell_size, device=device)
