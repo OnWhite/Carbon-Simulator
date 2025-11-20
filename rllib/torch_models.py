@@ -155,53 +155,40 @@ class ConvRnn(RecurrentNetwork, nn.Module):
         return [dictionary[k] for k in self.non_conv_input_keys]
 
     def forward(self, input_dict, state, seq_lens):
-        # ... your conv/fc code remains the same ...
+        """Adds time dimension to batch before sending inputs to forward_rnn().
+
+        You should implement forward_rnn() in your subclass."""
 
         non_conv_input = torch.cat(self._extract_input_list(input_dict["obs"]), dim=-1)
+
         value1 = input_dict["obs"][_WORLD_MAP_NAME]
+
         value2 = input_dict["obs"][_WORLD_IDX_MAP_NAME]
+
         value2 = self.word_idx_embedding(value2.long())
         value2 = value2.reshape((-1, self.conv_shape[0], self.conv_shape[1], self.conv_shape[3]))
+
         conv_in = torch.cat((value1, value2), dim=-1).permute(0, 3, 1, 2)
         conv_out = self.conv(conv_in)
+
+        # assert conv_out.shape[-1] == self.conv_out_size[1], (conv_out.shape, self.conv_out_size, self.conv_shape)
         fc_in = torch.cat((non_conv_input, conv_out), dim=-1)
+
         fc_out = self.fc(fc_in)
 
-        # Manual time dimension handling
-        if seq_lens is not None:
-            # Training mode: fc_out is [B*T, H], seq_lens is [B]
-            B = seq_lens.shape[0]
-            max_seq_len = fc_out.shape[0] // B
-            # Reshape to [B, T, H]
-            rnn_in = fc_out.reshape(B, max_seq_len, self.cell_size)
-        else:
-            # Inference mode: fc_out is [1, H]
-            rnn_in = fc_out.unsqueeze(1)  # [1, 1, H]
+        rnn_in = fc_out.reshape(value1.shape[0] // seq_lens.shape[0], seq_lens.shape[0], self.cell_size)
 
-        # Handle hidden states
-        if state and len(state) == 2:
-            # State from previous timestep: state is [[B, H], [B, H]]
-            h_in = state[0].unsqueeze(0)  # [1, B, H]
-            c_in = state[1].unsqueeze(0)  # [1, B, H]
-        else:
-            # Initial state
-            B = rnn_in.shape[0]
-            device = rnn_in.device
-            h_in = torch.zeros(1, B, self.cell_size, device=device)
-            c_in = torch.zeros(1, B, self.cell_size, device=device)
+        rnn_out, [h, c] = self.lstm(rnn_in, [torch.unsqueeze(state[0], 0), torch.unsqueeze(state[1], 0)])
 
-        # LSTM forward
-        rnn_out, (h, c) = self.lstm(rnn_in, (h_in, c_in))
+        logit_in = rnn_out.reshape(-1, self.cell_size)
 
-        # Flatten for output layers
-        logits_in = rnn_out.reshape(-1, self.cell_size)
+        self._value_out = self._value_branch(logit_in)
 
-        self._value_out = self._value_branch(logits_in)
-        model_out = self._logits_branch(logits_in)
+        model_out = self._logits_branch(logit_in)
+
         model_out = apply_logit_mask(model_out, input_dict["obs"][_MASK_NAME])
 
-        # Return hidden states (squeeze back to [B, H])
-        return model_out, [h.squeeze(0), c.squeeze(0)]
+        return model_out, [torch.squeeze(h, 0), torch.squeeze(c, 0)]
 
     def get_initial_state(self):
         return [torch.zeros(self.cell_size).float(),
