@@ -416,7 +416,7 @@ def run_dp_comparison(trainer, run_config, run_dir):
     })
     comparison_results = ""
     # Run comparison
-    return compare_rl_vs_dp(
+    rl_returns, dp_returns = compare_rl_vs_dp(
         trainer,
         dp,
         env,
