@@ -155,57 +155,53 @@ class ConvRnn(RecurrentNetwork, nn.Module):
         return [dictionary[k] for k in self.non_conv_input_keys]
 
     def forward(self, input_dict, state, seq_lens):
+        # ... your conv/fc code remains the same ...
 
         non_conv_input = torch.cat(self._extract_input_list(input_dict["obs"]), dim=-1)
-
         value1 = input_dict["obs"][_WORLD_MAP_NAME]
         value2 = input_dict["obs"][_WORLD_IDX_MAP_NAME]
-
         value2 = self.word_idx_embedding(value2.long())
         value2 = value2.reshape((-1, self.conv_shape[0], self.conv_shape[1], self.conv_shape[3]))
-
         conv_in = torch.cat((value1, value2), dim=-1).permute(0, 3, 1, 2)
         conv_out = self.conv(conv_in)
-
         fc_in = torch.cat((non_conv_input, conv_out), dim=-1)
-        fc_out = self.fc(fc_in)  # [B*T, hidden] or [B, hidden]
+        fc_out = self.fc(fc_in)
 
-        # ----- handle training/inference shape differences -----
-        # fc_out computed above ...
+        # REPLACE your entire if/else block with this:
+        # add_time_dimension handles both training and inference correctly
+        from ray.rllib.models.torch.recurrent_net import add_time_dimension
 
-        if seq_lens is None:
-            # -------- Inference / compute_single_action --------
-            # fc_out: [B, H]
-            rnn_in = fc_out.unsqueeze(1)  # [B, 1, H]
-            B = rnn_in.shape[0]
+        rnn_in = add_time_dimension(
+            fc_out,
+            max_seq_len=self.model_config.get("max_seq_len"),
+            framework="torch",
+            time_major=False,
+        )
+        # rnn_in is now [B, T, H]
 
-            # use the carried state from RLlib (B should be 1 here)
-            h_in = state[0].unsqueeze(0)  # [1, B, H]
-            c_in = state[1].unsqueeze(0)
-
+        # For hidden states:
+        if state:
+            # State from previous timestep (squeeze to [1, B, H])
+            h_in = state[0].reshape(1, -1, self.cell_size)
+            c_in = state[1].reshape(1, -1, self.cell_size)
         else:
-            # -------- Training / dummy batch --------
-            # fc_out: [sum(seq_lens), H]
-            B = seq_lens.shape[0]
-            T = fc_out.shape[0] // B
-            rnn_in = fc_out.reshape(B, T, self.cell_size)  # [B, T, H]
-
-            # IMPORTANT: ignore passed state (it has wrong batch dimension) and
-            # create a fresh zero state matching this batch size.
-            device = fc_out.device
+            # Initial state (create with correct batch size)
+            B = rnn_in.shape[0]
+            device = rnn_in.device
             h_in = torch.zeros(1, B, self.cell_size, device=device)
             c_in = torch.zeros(1, B, self.cell_size, device=device)
 
-        # LSTM step
+        # LSTM forward
         rnn_out, (h, c) = self.lstm(rnn_in, (h_in, c_in))
+
+        # Flatten for output layers
         logits_in = rnn_out.reshape(-1, self.cell_size)
 
         self._value_out = self._value_branch(logits_in)
         model_out = self._logits_branch(logits_in)
-
-        # apply action mask
         model_out = apply_logit_mask(model_out, input_dict["obs"][_MASK_NAME])
 
+        # Return hidden states (squeeze back to [B, H])
         return model_out, [h.squeeze(0), c.squeeze(0)]
 
     def get_initial_state(self):
