@@ -85,8 +85,9 @@ def compare_rl_vs_dp(rl_algo, dp_instance, env, n_eval_episodes=20):
 
     for ep in range(n_eval_episodes):
         # Reset environment once
-        obs, info = env.reset()
-        rl_obs = obs["0"]
+        obs_dict, info = env.reset()
+        rl_obs = obs_dict["0"]
+
         # RL rollout
         rl_ep_return = 0.0
         done = False
@@ -117,7 +118,12 @@ def compare_rl_vs_dp(rl_algo, dp_instance, env, n_eval_episodes=20):
             state_idx = dp_instance.state_to_index(state_tuple)
             action_idx = dp_instance.optimal_policy[state_idx]
 
-            obs, reward, done, truncated, info = env.step(action_idx)
+            obs_dict, reward_dict, done_dict, truncated_dict, info_dict = env.step({"0": action_idx})
+            rl_obs = obs_dict["0"]
+            reward = reward_dict["0"]
+            done = done_dict["__all__"]
+            truncated = truncated_dict["__all__"]
+
             dp_ep_return += reward
 
         dp_returns.append(dp_ep_return)
