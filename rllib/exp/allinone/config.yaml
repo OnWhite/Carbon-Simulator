@@ -109,11 +109,11 @@ trainer:
   seed: null
   framework: "torch"
   num_gpus: 1
-  num_envs_per_worker: 1
+  num_envs_per_worker: 2
   num_sgd_iter: 1
-  num_workers: 32
+  num_workers: 1
   shuffle_sequences: true
-  sgd_minibatch_size: 2000
-  train_batch_size: 8000
+  sgd_minibatch_size: 150
+  train_batch_size: 500
   observation_filter: NoFilter
   rollout_fragment_length: 250
