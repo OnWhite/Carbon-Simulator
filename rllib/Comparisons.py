@@ -47,16 +47,11 @@ def eval_marl(trainer, env, n=20, run_dir=None):
         agent0 = None
         planner_id = None
 
-        for k in agent_keys:
-            if k.isdigit() or k == "0" or k == "agent_0":
-                agent0 = k
-                break
+        # Agent is always the numeric ID
+        agent0 = next(k for k in agent_keys if k.isdigit())
 
-        # Identify planner id
-        for k in agent_keys:
-            if k != agent0:
-                planner_id = k
-                break
+        # Planner is always the non-numeric ID
+        planner_id = next(k for k in agent_keys if not k.isdigit())
 
         log(f"Using agent0 = {agent0}")
         log(f"Planner id = {planner_id}")

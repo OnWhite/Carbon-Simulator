@@ -594,11 +594,11 @@ if __name__ == "__main__":
             saving.save_model_weights(trainer, ckpt_dir, global_step, suffix="planner")
             logger.info("Final snapshot saved! All done.")
 
-            logger.info("Running final DP comparison...")
-            final_comparison = run_dp_comparison(trainer, run_config, run_dir)
+        logger.info("Running final DP comparison...")
+        final_comparison = run_dp_comparison(trainer, run_config, run_dir)
 
-            with open(os.path.join(run_dir, "dp_comparison.json"), "w") as f:
-                json.dump(final_comparison, f, indent=2)
+        with open(os.path.join(run_dir, "dp_comparison.json"), "w") as f:
+            json.dump(final_comparison, f, indent=2)
     finally:
         # ray.timeline(os.path.join(run_dir, "timeline.json"))
         ray.shutdown()
