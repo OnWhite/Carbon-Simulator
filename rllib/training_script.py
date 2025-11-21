@@ -420,7 +420,7 @@ def run_dp_comparison(trainer, run_config, run_dir):
     })
 
     # === FIX-2: Use the correct environments for each evaluation ===
-    marl_mean, marl_std = eval_marl(trainer, marl_env, 20, "/nas/ucb/sophialudewig/Minimalist")   # MARL on RLlibEnvWrapper
+    marl_mean, marl_std = eval_marl(trainer, marl_env, 20)   # MARL on RLlibEnvWrapper
     dp_mean, dp_std = eval_dp(dp, dp_env)                # DP on CarbonEnv
 
     # === FIX-3: return structured JSON, not a long string ===
