@@ -350,7 +350,7 @@ def create_unique_temp_dir():
 
 
 def run_single_episode_and_plot(trainer, run_dir):
-    """Run one episode with detailed logging and log timestep graphs directly to W&B."""
+    """Run one episode and log line plots via wandb.Table + wandb.plot."""
     from collections import defaultdict
 
     logger.info("Running final detailed episode...")
@@ -366,11 +366,10 @@ def run_single_episode_and_plot(trainer, run_dir):
         if not isinstance(values, list) or len(values) == 0:
             continue
 
-        # Keys are something like: evaluation/agent_0/MetricName_ts or evaluation/p/MetricName_ts
         if "_ts" in key:
             parts = key.split("/")
             if len(parts) >= 3:
-                agent = parts[1]  # "agent_0" or "p"
+                agent = parts[1]
                 metric = parts[2].replace("_ts", "")
                 agent_metrics[agent][metric] = values
 
@@ -378,19 +377,27 @@ def run_single_episode_and_plot(trainer, run_dir):
         logger.warning("No timestep metrics found! Check ResultInfoMetricsCallback output.")
         return
 
-    # Log each timestep as a scalar; W&B will make line charts
     for agent, metrics in agent_metrics.items():
         for metric_name, timesteps in metrics.items():
+            # Build a table: timestep, value
+            table = wandb.Table(columns=["timestep", metric_name])
             for t, val in enumerate(timesteps):
-                wandb.log(
-                    {
-                        f"final_episode/{agent}/{metric_name}": val,
-                        "final_episode/timestep": t,
-                    },
-                    step=t,  # step axis = timestep
-                )
+                table.add_data(t, float(val))
 
-    logger.info(f"Final episode timestep series logged to wandb ({len(agent_metrics)} agents)")
+            # Create a W&B line plot from the table
+            line_plot = wandb.plot.line(
+                table,
+                x="timestep",
+                y=metric_name,
+                title=f"{agent} - {metric_name}",
+            )
+
+            wandb.log({
+                f"final_episode/{agent}/{metric_name}": line_plot
+            })
+
+    logger.info(f"Final episode line plots logged to wandb ({len(agent_metrics)} agents)")
+
 
 
 def run_dp_comparison(trainer, run_config, run_dir):
