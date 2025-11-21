@@ -420,7 +420,7 @@ def run_dp_comparison(trainer, run_config, run_dir):
     })
 
     # === FIX-2: Use the correct environments for each evaluation ===
-    marl_mean, marl_std = eval_marl(trainer, marl_env, 20)   # MARL on RLlibEnvWrapper
+    reward, marl_mean, marl_std = eval_marl(trainer, marl_env, 20)   # MARL on RLlibEnvWrapper
     dp_mean, dp_std = eval_dp(dp, dp_env)                # DP on CarbonEnv
 
     # === FIX-3: return structured JSON, not a long string ===
@@ -429,7 +429,8 @@ def run_dp_comparison(trainer, run_config, run_dir):
         "marl_std": float(marl_std),
         "dp_mean": float(dp_mean),
         "dp_std": float(dp_std),
-        "difference": float(marl_mean - dp_mean)
+        "difference": float(marl_mean - dp_mean),
+        "MARL_rewards": reward.tolist(),
     }
 
     logger.info("DP comparison completed.")
