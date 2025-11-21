@@ -175,9 +175,9 @@ class CarbonRedistribution(BaseComponent):
                 agent= world.agents[0]
                 # mobile_idx = idx_action[i] // sum(idx_action) * 0.9 * this year total idx
                 if sum(idx_action):
-                    world.planner.state["mobile_idx"][0] = int(year_idx * (1-self.env_idx_percent)* idx_action[0] / sum(idx_action))
+                    world.planner.state["mobile_idx"][0] = 1
                 else:
-                    world.planner.state["mobile_idx"][0] = int(year_idx * (1-self.env_idx_percent))
+                    world.planner.state["mobile_idx"][0] = 1
 
                 agent.state["inventory"]["Carbon_idx"] = 1
                 agent.state["escrow"]["Carbon_idx"] = 0
