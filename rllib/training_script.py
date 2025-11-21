@@ -597,6 +597,7 @@ if __name__ == "__main__":
 
         logger.info("Running final DP comparison...")
         final_comparison = run_dp_comparison(trainer, run_config, run_dir)
+        run_single_episode_and_plot(trainer, run_dir)
 
         with open(os.path.join(run_dir, "dp_comparison.json"), "w") as f:
             json.dump(final_comparison, f, indent=2)
