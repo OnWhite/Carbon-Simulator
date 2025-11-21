@@ -120,10 +120,14 @@ class InfoMetricsCallback(DefaultCallbacks):
 
     STEP_METRICS = {
         # name               extractor – receives the agent_info dict
-        "Research_count_1": lambda info: info.get("Research_count", [0, 0])[1],
+        "Reward": lambda info: info.get("endogenous", {}).get("Reward", 0.0),
+        "Research_count": lambda info: info.get("Research_count", [0, 0])[1],
         "Manufacture_volume": lambda info: info.get("Manufacture_volume"),
         "Carbon_idx": lambda info: info.get("inventory", {}).get("Carbon_idx"),
         "Emission_rate": lambda info: info.get("Carbon_emission_rate"),
+        "CoinEndowment": lambda info: info.get("endogenous", {}).get("CoinEndowment", 0.0),
+        "Coin": lambda info: info.get("inventory", {}).get("Coin", 0.0),
+        "Building_count": lambda info: info.get("Build", 0.0),
         "Power_efficiency": lambda info: info.get("Power_efficiency"),
         "Green_rate": lambda info: info.get("Green_rate"),
         "Startidx": lambda info: info.get("endogenous", {}).get("Startidx"),
@@ -131,10 +135,9 @@ class InfoMetricsCallback(DefaultCallbacks):
         "CoinUtility": lambda info: info.get("endogenous", {}).get("CoinUtility", 0.0),
         "CurrentUtility": lambda info: info.get("endogenous", {}).get("CurrentUtility", 0.0),
         "PastUtility": lambda info: info.get("endogenous", {}).get("PastUtility", 0.0),
-        "CoinEndowment": lambda info: info.get("endogenous", {}).get("CoinEndowment", 0.0),
-        "Building_count": lambda info: info.get("Build", 0.0),
         "Research_ability": lambda info: info.get("Research_ability", 0.0),
         "MoveLabor": lambda info: info.get("MoveLabor", 0.0),
+
     }
 
     FINAL_METRICS = {

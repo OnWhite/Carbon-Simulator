@@ -4,113 +4,44 @@ import numpy as np
 import numpy as np
 import os
 
-def eval_marl(trainer, env, n=20, run_dir=None):
-    """
-    Evaluate MARL policy only for agent 0 on RLlibEnvWrapper.
 
-    Logs all debugging info to:  <run_dir>/dp_eval_debug.log
-    """
-
-    # === Create debug log file ===
-    f = open("/nas/ucb/sophialudewig/Minimalist/dp_eval_debug.log", "w")
-    f.write("=== MARL EVALUATION DEBUG LOG ===\n\n")
-
-    def log(msg):
-        if f:
-            f.write(msg + "\n")
-
-    # === Get policy ===
-    policy = trainer.get_policy("a")
-    planner_policy = None
-    try:
-        planner_policy = trainer.get_policy("p")
-    except Exception:
-        pass  # planner may not exist
-
+def eval_marl(trainer, env, n=20):
+    policy_a = trainer.get_policy("a")
+    policy_p = trainer.get_policy("p")
     returns = []
 
-    # === Run episodes ===
-    for ep_idx in range(n):
+    for ep in range(n):
         obs, info = env.reset()
-        state = policy.get_initial_state()
-        planner_state = None
-
-        if planner_policy:
-            planner_state = planner_policy.get_initial_state()
-
-        # Agent IDs
-        agent_keys = list(obs.keys())
-        log(f"\n--- EPISODE {ep_idx} ---")
-        log(f"Initial obs keys: {agent_keys}")
-
-        # Pick agent_0
-        agent0 = None
-        planner_id = None
-
-        # Agent is always the numeric ID
-        agent0 = next(k for k in agent_keys if k.isdigit())
-
-        # Planner is always the non-numeric ID
-        planner_id = next(k for k in agent_keys if not k.isdigit())
-
-        log(f"Using agent0 = {agent0}")
-        log(f"Planner id = {planner_id}")
-
+        states = {aid: policy_a.get_initial_state() for aid in obs.keys() if aid != 'p'}
+        state_p = policy_p.get_initial_state()
         done = False
-        trunc = False
-        ep_ret = 0.0
-        t = 0
+        ep_ret = 0
 
-        # === Episode loop ===
-        while not (done or trunc):
-            t += 1
-            obs0 = obs[agent0]
+        while not done:
+            actions = {}
 
-            # Compute agent action
-            action0, state, _ = policy.compute_single_action(
-                obs0, state=state, explore=False
-            )
+            # Get actions for all agents
+            for agent_id in obs.keys():
+                if agent_id == 'p':
+                    action, state_p, _ = policy_p.compute_single_action(
+                        obs[agent_id], state_p, explore=False
+                    )
+                else:
+                    action, states[agent_id], _ = policy_a.compute_single_action(
+                        obs[agent_id], states[agent_id], explore=False
+                    )
+                actions[agent_id] = action
 
-            # Prepare action dict
-            action_dict = {agent0: action0}
+            obs, rew, done_dict, truncated_dict, info = env.step(actions)
+            done = done_dict.get('__all__', False) or truncated_dict.get('__all__', False)
 
-            # Planner action if exists
-            if planner_policy and planner_id in obs:
-                obs_p = obs[planner_id]
-                action_p, planner_state, _ = planner_policy.compute_single_action(
-                    obs_p, state=planner_state, explore=False
-                )
-                action_dict[planner_id] = action_p
-            else:
-                action_p = None  # for logging
+            # Only accumulate reward for agent "0"
+            ep_ret += rew.get("0", 0)
 
-            # Step environment
-            obs, rew, term, trunc, info = env.step(action_dict)
-
-            # Log everything
-            log(f"\nTimestep {t}:")
-            log(f"  Obs keys: {list(obs.keys())}")
-            log(f"  Agent0 action: {action0}")
-            log(f"  Planner action: {action_p}")
-            log(f"  Reward dict: {rew}")
-            log(f"  Term flags: {term}")
-            log(f"  Trunc flags: {trunc}")
-
-            done = term.get("__all__", False)
-            trunc = trunc.get("__all__", False)
-
-            ep_ret += rew.get(agent0, 0.0)
-
-        log(f"Episode return: {ep_ret}")
         returns.append(ep_ret)
 
-    # Close log file
-    if f:
-        f.write("\n=== END OF LOG ===\n")
-        f.close()
-
-    return np.mean(returns), np.std(returns)
-
+    returns = np.array(returns, dtype=float)
+    return returns, float(returns.mean()), float(returns.std())
 
 
 def eval_dp(dp, env, n=20):
