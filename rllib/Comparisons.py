@@ -12,13 +12,8 @@ def eval_marl(trainer, env, n=20, run_dir=None):
     """
 
     # === Create debug log file ===
-    log_path = None
-    if run_dir is not None:
-        log_path = os.path.join(run_dir, "dp_eval_debug.log")
-        f = open(log_path, "w")
-        f.write("=== MARL EVALUATION DEBUG LOG ===\n\n")
-    else:
-        f = None  # no logging if run_dir missing
+    f = open("/nas/ucb/sophialudewig/Minimalist/dp_eval_debug.log", "w")
+    f.write("=== MARL EVALUATION DEBUG LOG ===\n\n")
 
     def log(msg):
         if f:
