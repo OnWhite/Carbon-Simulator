@@ -260,7 +260,7 @@ class InfoMetricsCallback(DefaultCallbacks):
                     continue
                 agent, name = key.split("/", 2)[1], key.split("/", 2)[2]
                 series = np.asarray(series, dtype=float)
-                episode.custom_metrics[f"worker_{wid}/{agent}/Avg_{name}"] = float(np.average(series))
+                episode.custom_metrics[f"worker_{wid}/{agent}/Tot_{name}"] = float(np.sum(series))
                 if name == "Certificates_Allocated" and agent != "p":
                     val[agent] = float(np.sum(series))
                 elif name == "Carbon_idx" and agent != "p":

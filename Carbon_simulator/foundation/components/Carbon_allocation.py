@@ -179,9 +179,9 @@ class CarbonRedistribution(BaseComponent):
                 else:
                     world.planner.state["mobile_idx"][0] = int(year_idx * (1-self.env_idx_percent))
 
-                agent.state["inventory"]["Carbon_idx"] = world.planner.state["mobile_idx"][agent.idx]
+                agent.state["inventory"]["Carbon_idx"] = 1
                 agent.state["escrow"]["Carbon_idx"] = 0
-                agent.state["inventory"]["Startidx"] = world.planner.state["mobile_idx"][agent.idx]
+                agent.state["inventory"]["Startidx"] = 1
 
             else:
                 assert self.planner_mode in ["inactive", "active"]
