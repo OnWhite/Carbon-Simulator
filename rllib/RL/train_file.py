@@ -21,7 +21,6 @@ def compare_rl_to_dp(rl_algo, dp_instance, env):
     """Compare RL and DP policies on identical rollouts"""
     count = 0
     rewards1 = 0
-    result = ""
     rewards2 = 0
     actions = [
         Action(b, g, r, m)
@@ -30,21 +29,21 @@ def compare_rl_to_dp(rl_algo, dp_instance, env):
         for r in [0, 1]
         for m in [0, 1]
     ]
-    startstate = State(0, 0, 0, 0, 0, (0, 0), 0, 0, 0)
+    startstate= State(0, 0, 0, 0, 0, (0,0), 0, 0, 0)
     states = []
     for a in actions:
         states.append(dp.state_transition(a, startstate))
-    tot_states = states.copy()
+    tot_states=states.copy()
     for state in states:
         for a in actions:
             tot_states.append(dp.state_transition(a, state))
     for state in tot_states:
         observation = env._state_to_obs(state)
-        action = rl_algo.compute_single_action(observation, explore=False, policy_id="a")
+        action = rl_algo.compute_single_action(observation, explore=False)
         state_idx = dp_instance.state_to_index(state)
         action_idx = dp_instance.optimal_policy[state_idx]
-        rewards1 += (dp.reward(dp.state_transition(dp_instance.actions[action], state)))
-        rewards2 += (dp.reward(dp.state_transition(dp_instance.actions[action_idx], state)))
+        rewards1+=(dp.reward(dp.state_transition(dp_instance.actions[action], state)))
+        rewards2+=(dp.reward(dp.state_transition(dp_instance.actions[action_idx], state)))
         if action != action_idx:
             if state.on_certificate == 0 and dp.actions[action].green != dp.actions[action_idx].green:
                 new_action1 = replace(dp.actions[action], green=0)
@@ -60,11 +59,8 @@ def compare_rl_to_dp(rl_algo, dp_instance, env):
             print(action_idx)
             print(new_action2)
             count += 1
-    result += f"Total mismatches: {count} out of {len(dp.statespace)} states\n"
-    result += f"Reward difference: {(rewards1 - rewards2) / (rewards2)}%\n"
-    return result
-
-
+    print(f"Total mismatches: {count} out of {len(dp.statespace)} states")
+    print(f"Reward difference: {(rewards1 - rewards2) /(rewards1 + rewards2)}%")
 
 def compare_rl_vs_dp(rl_algo, dp_instance, env, n_eval_episodes=20):
     """Compare RL and DP policies on identical rollouts"""
@@ -74,20 +70,15 @@ def compare_rl_vs_dp(rl_algo, dp_instance, env, n_eval_episodes=20):
     for ep in range(n_eval_episodes):
         # Reset environment once
         obs, info = env.reset()
-        rl_obs = obs if isinstance(obs, np.ndarray) else obs[0]
+
         # RL rollout
         rl_ep_return = 0.0
         done = False
         truncated = False
-
-
+        rl_obs = obs.copy()
 
         while not (done or truncated):
-            action = rl_algo.compute_single_action(
-                rl_obs,
-                explore=False,
-                policy_id="a"  # agent policy
-            )
+            action = rl_algo.compute_single_action(rl_obs, explore=False)
             rl_obs, reward, done, truncated, info = env.step(action)
             rl_ep_return += reward
 

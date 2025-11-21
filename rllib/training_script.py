@@ -9,6 +9,7 @@ from callback import InfoMetricsCallback, ProfilingCallbacks, ResultInfoMetricsC
 import matplotlib.pyplot as plt
 import numpy as np
 import wandb
+from rllib.Comparisons import eval_marl, eval_dp
 from rllib.DP.DynamicProgram import DPImpl, load_config
 from rllib.RL.CarbonEnv import CarbonEnv
 from rllib.RL.train_file import compare_rl_vs_dp, compare_rl_to_dp
@@ -399,34 +400,39 @@ def run_single_episode_and_plot(trainer, run_dir):
 
     logger.info(f"Final episode plots logged to wandb ({len(agent_metrics)} agents)")
 
-
 def run_dp_comparison(trainer, run_config, run_dir):
     """Compare RL policy against DP baseline."""
+
     logger.info("Running DP comparison...")
 
-    # Create DP instance with same config
+    # === FIX-1: DP uses its own environment (CarbonEnv), MARL uses RLlibEnvWrapper ===
     config_path = pathlib.Path(__file__).resolve().parent / "DP" / "config.yaml"
     dp = DPImpl(load_config(pathlib.Path(config_path)))
     dp.solve_mdp()
 
-    # Now compare
-    env = CarbonEnv({"config_path": str(config_path)})
-    comparison_results = ""
-    # Run comparison
-    return compare_rl_vs_dp(
-        trainer,
-        dp,
-        env,
-        n_eval_episodes=20
-    )
-    res = compare_rl_to_dp(trainer, dp, env)
-    comparison_results += rl_returns + "\n"
-    comparison_results += dp_returns + "\n"
-    comparison_results += f"RL  - Mean: {np.mean(rl_returns):.2f}, Std: {np.std(rl_returns):.2f}\n"
-    comparison_results += f"DP  - Mean: {np.mean(dp_returns):.2f}, Std: {np.std(dp_returns):.2f}\n"
-    comparison_results += f"Difference: {np.mean(rl_returns) - np.mean(dp_returns):.2f}\n"
-    comparison_results += "***********************************\n"
-    comparison_results += res
+    # DP environment (simple analytical env)
+    dp_env = CarbonEnv({"config_path": str(config_path)})
+
+    # MARL environment (multiagent wrapper with correct observation structure)
+    marl_env = RLlibEnvWrapper({
+        "env_config_dict": run_config.get("env"),
+        "num_envs_per_worker": 1,   # single rollout for eval
+    })
+
+    # === FIX-2: Use the correct environments for each evaluation ===
+    marl_mean, marl_std = eval_marl(trainer, marl_env)   # MARL on RLlibEnvWrapper
+    dp_mean, dp_std = eval_dp(dp, dp_env)                # DP on CarbonEnv
+
+    # === FIX-3: return structured JSON, not a long string ===
+    comparison_results = {
+        "marl_mean": float(marl_mean),
+        "marl_std": float(marl_std),
+        "dp_mean": float(dp_mean),
+        "dp_std": float(dp_std),
+        "difference": float(marl_mean - dp_mean)
+    }
+
+    logger.info("DP comparison completed.")
     return comparison_results
 
 
