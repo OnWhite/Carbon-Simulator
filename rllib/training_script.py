@@ -350,55 +350,48 @@ def create_unique_temp_dir():
 
 
 def run_single_episode_and_plot(trainer, run_dir):
-    """Run one episode with detailed logging and plot timestep graphs to wandb."""
-    import matplotlib.pyplot as plt
+    """Run one episode with detailed logging and log timestep graphs directly to W&B."""
     from collections import defaultdict
 
     logger.info("Running final detailed episode...")
 
-    # Call evaluate() without arguments - it uses the trainer's evaluation config
     eval_results = trainer.evaluate()
-
-    # Extract timestep data from evaluation/hist_stats
     hist_data = eval_results.get("evaluation", {}).get("hist_stats", {})
 
-    # Debug: log what keys are available
     logger.info(f"Available hist_data keys: {list(hist_data.keys())}")
 
-    # Group metrics by agent and metric name
     agent_metrics = defaultdict(lambda: defaultdict(list))
 
     for key, values in hist_data.items():
         if not isinstance(values, list) or len(values) == 0:
             continue
 
-        # Keys are formatted as: evaluation/agent_X/MetricName_ts or evaluation/p/MetricName_ts
+        # Keys are something like: evaluation/agent_0/MetricName_ts or evaluation/p/MetricName_ts
         if "_ts" in key:
             parts = key.split("/")
             if len(parts) >= 3:
-                agent = parts[1]  # e.g., "agent_0" or "p"
-                metric = parts[2].replace("_ts", "")  # e.g., "CoinEndowment"
+                agent = parts[1]  # "agent_0" or "p"
+                metric = parts[2].replace("_ts", "")
                 agent_metrics[agent][metric] = values
 
-    # Plot and log each metric to wandb
     if not agent_metrics:
         logger.warning("No timestep metrics found! Check ResultInfoMetricsCallback output.")
         return
 
+    # Log each timestep as a scalar; W&B will make line charts
     for agent, metrics in agent_metrics.items():
         for metric_name, timesteps in metrics.items():
-            plt.figure(figsize=(12, 6))
-            plt.plot(timesteps, linewidth=1.5)
-            plt.xlabel("Timestep", fontsize=12)
-            plt.ylabel(metric_name, fontsize=12)
-            plt.title(f"{agent} - {metric_name}", fontsize=14)
-            plt.grid(True, alpha=0.3)
+            for t, val in enumerate(timesteps):
+                wandb.log(
+                    {
+                        f"final_episode/{agent}/{metric_name}": val,
+                        "final_episode/timestep": t,
+                    },
+                    step=t,  # step axis = timestep
+                )
 
-            # Log to wandb
-            wandb.log({f"final_episode/{agent}/{metric_name}": wandb.Image(plt)})
-            plt.close()
+    logger.info(f"Final episode timestep series logged to wandb ({len(agent_metrics)} agents)")
 
-    logger.info(f"Final episode plots logged to wandb ({len(agent_metrics)} agents)")
 
 def run_dp_comparison(trainer, run_config, run_dir):
     """Compare RL policy against DP baseline."""
