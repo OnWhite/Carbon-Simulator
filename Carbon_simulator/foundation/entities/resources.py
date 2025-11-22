@@ -50,6 +50,11 @@ class Coin(Resource):
 
 
 @resource_registry.add
+class Startidx(Resource):
+    """reward for every agent """
+    name = "Startidx"
+
+@resource_registry.add
 class Carbon_idx(Resource):
     """Coin resource. Included in all environments by default. Not collectible."""
 
