@@ -171,7 +171,7 @@ class CarbonRedistribution(BaseComponent):
                         total_percent = 0
                         world.planner.state["punishment"] = self.alloc_arr[len(self.alloc_arr) - 1][1]
 
-                year_idx = self.total_idx * total_percent / 100
+                year_idx = self.total_idx * (float(total_percent) / 100.0)
                 world.planner.state["env_idx"] = int(year_idx * self.env_idx_percent)
                 agent = world.agents[0]
                 # mobile_idx = idx_action[i] // sum(idx_action) * 0.9 * this year total idx
