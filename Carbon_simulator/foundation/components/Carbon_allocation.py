@@ -144,29 +144,19 @@ class CarbonRedistribution(BaseComponent):
                 if agent.state["inventory"]["Carbon_idx"] < 0 and agent.idx == 0:
                     self.world.planner.state["settlement_idx"][agent.idx] -= agent.state["inventory"]["Carbon_idx"]
                     # when in the negative, the overspending of emissions gets logged per agent
+                test = False
                 if self.years_predefined == "test":
 
                     idx_action = [1, 0]
-
-                    with open("/nas/ucb/sophialudewig/Minimalist/logger.json", "a") as f:
-                        info = {
-                            "world_timestep": world.timestep-1,
-                            "period": self.period,
-                            "alloc_len": len(self.alloc_arr),
-                            "total_percent": self.alloc_arr[(world.timestep-1) // self.period][0]
-                            if ((world.timestep-1) // self.period) < len(self.alloc_arr)
-                            else None,
-                        }
-                        json.dump(info, f, indent=2)
-                        f.write("\n")
 
                     if ((world.timestep-1) // self.period) < len(self.alloc_arr):
                         total_percent = self.alloc_arr[(world.timestep-1) // self.period][0]
                         world.planner.state["punishment"] = self.alloc_arr[(world.timestep-1) // self.period][1]
                     else:
+                        test=True
                         total_percent = 0
                         world.planner.state["punishment"] = self.alloc_arr[len(self.alloc_arr) - 1][1]
-                        raise Exception("gets in here ********************************* ")
+
 
                 year_idx = self.total_idx * (float(total_percent) / 100.0)
                 world.planner.state["env_idx"] = year_idx * self.env_idx_percent
@@ -182,6 +172,19 @@ class CarbonRedistribution(BaseComponent):
                     agent.state["inventory"]["Carbon_idx"] = world.planner.state["mobile_idx"][i]
                     agent.state["escrow"]["Carbon_idx"] = 0
                     agent.state["inventory"]["Startidx"] += world.planner.state["mobile_idx"][i]
+                    with open("/nas/ucb/sophialudewig/Minimalist/logger.json", "a") as f:
+                        info = {
+                            "timestep": (world.timestep-1),
+                            "period": self.period,
+                            "agent_idx": agent.idx,
+                            "Startidx": world.planner.state["mobile_idx"][i],
+                            "test": test,
+                            "year_idx": year_idx,
+                            "idx_action[i]":idx_action[
+                            i]
+                        }
+                        json.dump(info, f, indent=2)
+                        f.write("\n")
 
             else:
                 assert self.planner_mode in ["inactive", "active"]
