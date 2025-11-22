@@ -557,7 +557,7 @@ if __name__ == "__main__":
                 # Training
                 result = trainer.train()
                 # Get formatted metrics
-                metrics = log_custom_metrics(result, mode="custom_metrics")
+                """metrics = log_custom_metrics(result, mode="custom_metrics")
                 wandb.log({
                     "iteration": result["training_iteration"],
                     "timesteps_total": result["timesteps_total"],
@@ -565,14 +565,16 @@ if __name__ == "__main__":
                     "reward/agent": result.get("policy_reward_mean", {}).get("a", 0),
                     "reward/planner": result.get("policy_reward_mean", {}).get("p", 0),
                     **metrics
-                }, step=result["episodes_total"])  # <-- add step to align by episode
+                }, step=result["episodes_total"])  # <-- add step to align by episode"""
 
                 # === Counters++ ===
                 num_parallel_episodes_done = result["episodes_total"]
                 global_step = result["timesteps_total"]
                 curr_iter = result["training_iteration"]
                 logger.info("=== Iteration %d results ===", curr_iter)
-                logger.info(pretty_print(result["custom_metrics"]))
+                logger.info(result["custom_metrics"].get("worker_1/agent_0/Tot_Startidx_min"))
+                logger.info(result["custom_metrics"].get("worker_1/agent_0/Tot_Startidx_max"))
+                logger.info(result["custom_metrics"].get("worker_1/agent_0/Tot_Startidx_mean"))
                 logger.info("=== Finished logging results ===\n\n")
 
                 reward_result_a.append(result.get('policy_reward_mean')["a"] if result.get('policy_reward_mean') else 0)

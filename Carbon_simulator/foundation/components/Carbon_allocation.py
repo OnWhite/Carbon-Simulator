@@ -23,7 +23,7 @@ class CarbonRedistribution(BaseComponent):
             fixed_punishment=100,
             total_idx=200,
             max_year_percent=100,
-            alloc_arr=((1,5),(2,5)),
+            alloc_arr=((1, 5), (2, 5)),
             years_predefined=None,
             agents_predefined=None,
             env_idx_percent=0.1,
@@ -70,7 +70,7 @@ class CarbonRedistribution(BaseComponent):
     def get_additional_state_fields(self, agent_cls_name):
         """This component does not add any state fields."""
         if agent_cls_name == "BasicMobileAgent":
-            return {"Cum_Punishment": 0,}
+            return {"Cum_Punishment": 0, }
         if agent_cls_name == "BasicPlanner":
             return {"punishment": 0,
                     "year_num": 0,
@@ -110,8 +110,8 @@ class CarbonRedistribution(BaseComponent):
         elif world.timestep % self.period == 1:
             agent = world.agents[0]
             if agent.state["inventory"]["Carbon_idx"] < 0 and agent.idx == 0:
-                    self.world.planner.state["settlement_idx"][agent.idx] -= agent.state["inventory"]["Carbon_idx"]
-                    # when in the negative, the overspending of emissions gets logged per agent
+                self.world.planner.state["settlement_idx"][agent.idx] -= agent.state["inventory"]["Carbon_idx"]
+                # when in the negative, the overspending of emissions gets logged per agent
 
             if self.planner_mode == "active":
                 idx_action = []
@@ -144,9 +144,10 @@ class CarbonRedistribution(BaseComponent):
                 for i in range(self.n_agents):
                     # mobile_idx = idx_action[i] // sum(idx_action) * 0.9 * this year total idx
                     if sum(idx_action) and i == 0:
-                        world.planner.state["mobile_idx"][i] = int(year_idx * (1-self.env_idx_percent) * idx_action[i] / sum(idx_action))
-                    elif i==0:
-                        world.planner.state["mobile_idx"][i] = int(year_idx * (1-self.env_idx_percent))
+                        world.planner.state["mobile_idx"][i] = int(
+                            year_idx * (1 - self.env_idx_percent) * idx_action[i] / sum(idx_action))
+                    elif i == 0:
+                        world.planner.state["mobile_idx"][i] = int(year_idx * (1 - self.env_idx_percent))
 
                 world.planner.state["remained_idx"] -= self.world.planner.state["env_idx"] + \
                                                        self.world.planner.state["mobile_idx"][0]
@@ -161,27 +162,27 @@ class CarbonRedistribution(BaseComponent):
                 if agent.state["inventory"]["Carbon_idx"] < 0 and agent.idx == 0:
                     self.world.planner.state["settlement_idx"][agent.idx] -= agent.state["inventory"]["Carbon_idx"]
                     # when in the negative, the overspending of emissions gets logged per agent
-                if self.years_predefined =="test":
-                    idx_action = [1,0]
-                    if world.timestep//self.period < len(self.alloc_arr):
+                if self.years_predefined == "test":
+                    idx_action = [1, 0]
+                    if world.timestep // self.period < len(self.alloc_arr):
                         total_percent = self.alloc_arr[world.timestep // self.period][0]
                         world.planner.state["punishment"] = self.alloc_arr[world.timestep // self.period][1]
                     else:
                         total_percent = 0
                         world.planner.state["punishment"] = self.alloc_arr[len(self.alloc_arr) - 1][1]
 
-                year_idx = self.total_idx * total_percent/ 100
+                year_idx = self.total_idx * total_percent / 100
                 world.planner.state["env_idx"] = int(year_idx * self.env_idx_percent)
-                agent= world.agents[0]
+                agent = world.agents[0]
                 # mobile_idx = idx_action[i] // sum(idx_action) * 0.9 * this year total idx
                 if sum(idx_action):
-                    world.planner.state["mobile_idx"][0] = 1
+                    world.planner.state["mobile_idx"][0] = 100
                 else:
-                    world.planner.state["mobile_idx"][0] = 1
+                    world.planner.state["mobile_idx"][0] = 100
 
-                agent.state["inventory"]["Carbon_idx"] = 1
+                agent.state["inventory"]["Carbon_idx"] = 100
                 agent.state["escrow"]["Carbon_idx"] = 0
-                agent.state["inventory"]["Startidx"] = 1
+                agent.state["inventory"]["Startidx"] = 100
 
             else:
                 assert self.planner_mode in ["inactive", "active"]
