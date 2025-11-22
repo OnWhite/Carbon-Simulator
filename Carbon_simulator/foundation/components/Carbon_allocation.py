@@ -88,29 +88,8 @@ class CarbonRedistribution(BaseComponent):
         world = self.world
         world.planner.state["year_num"] = self.world.timestep // self.period
 
-        # punishment at end of years#
-        if (self.world.timestep + 1) % self.period == 0:
-            for agent in world.agents:
-                if agent.state["inventory"]["Carbon_idx"] < 0:
-                    punishment = world.planner.state["punishment"] * abs(agent.state["inventory"]["Carbon_idx"])
-                    agent.state["inventory"]["Coin"] -= punishment
-                    agent.state["endogenous"]["Costs"] += punishment
-                    agent.state["Cum_Punishment"] += punishment
-
-            sum_Er = 0
-            for agent in world.agents:
-                sum_Er += agent.state["Carbon_emission_rate"]
-
-            world.planner.state["average_Er"] = sum_Er / world.n_agents
-            assert 0 <= world.planner.state["average_Er"] <= 1
-
-            self.log.append({
-                "settlement_idx": self.world.planner.state["settlement_idx"],
-            })
-
-
         # divided idx at start of years # when does this start counting at 0 or at 1?
-        elif world.timestep % self.period == 0:
+        if world.timestep % self.period == 0:
             agent = world.agents[0]
             if agent.state["inventory"]["Carbon_idx"] < 0 and agent.idx == 0:
                 self.world.planner.state["settlement_idx"][agent.idx] -= agent.state["inventory"]["Carbon_idx"]
@@ -235,6 +214,25 @@ class CarbonRedistribution(BaseComponent):
             })
         else:
             self.log.append([])
+        if (self.world.timestep + 1) % self.period == 0:
+                # punishment at end of years#
+                for agent in world.agents:
+                    if agent.state["iinventory"]["Carbon_idx"] < 0:
+                        punishment = world.planner.state["punishment"] * abs(agent.state["inventory"]["Carbon_idx"])
+                        agent.state["inventory"]["Coin"] -= punishment
+                        agent.state["endogenous"]["Costs"] += punishment
+                        agent.state["Cum_Punishment"] += punishment
+
+                sum_Er = 0
+                for agent in world.agents:
+                    sum_Er += agent.state["Carbon_emission_rate"]
+
+                world.planner.state["average_Er"] = sum_Er / world.n_agents
+                assert 0 <= world.planner.state["average_Er"] <= 1
+
+                self.log.append({
+                    "settlement_idx": self.world.planner.state["settlement_idx"],
+                })
 
     def generate_observations(self):
         """This component does not add any observations."""
