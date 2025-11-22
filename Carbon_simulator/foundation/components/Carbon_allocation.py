@@ -89,7 +89,7 @@ class CarbonRedistribution(BaseComponent):
         world.planner.state["year_num"] = self.world.timestep // self.period
 
         # divided idx at start of years # when does this start counting at 0 or at 1?
-        if world.timestep % self.period == 0:
+        if (world.timestep - 1) % self.period == 0:
             agent = world.agents[0]
             if agent.state["inventory"]["Carbon_idx"] < 0 and agent.idx == 0:
                 self.world.planner.state["settlement_idx"][agent.idx] -= agent.state["inventory"]["Carbon_idx"]
@@ -150,19 +150,19 @@ class CarbonRedistribution(BaseComponent):
 
                     with open("/nas/ucb/sophialudewig/Minimalist/logger.json", "a") as f:
                         info = {
-                            "world_timestep": world.timestep,
+                            "world_timestep": world.timestep-1,
                             "period": self.period,
                             "alloc_len": len(self.alloc_arr),
-                            "total_percent": self.alloc_arr[world.timestep // self.period][0]
-                            if (world.timestep // self.period) < len(self.alloc_arr)
+                            "total_percent": self.alloc_arr[(world.timestep-1) // self.period][0]
+                            if ((world.timestep-1) // self.period) < len(self.alloc_arr)
                             else None,
                         }
                         json.dump(info, f, indent=2)
                         f.write("\n")
 
-                    if world.timestep // self.period < len(self.alloc_arr):
-                        total_percent = self.alloc_arr[world.timestep // self.period][0]
-                        world.planner.state["punishment"] = self.alloc_arr[world.timestep // self.period][1]
+                    if ((world.timestep-1) // self.period) < len(self.alloc_arr):
+                        total_percent = self.alloc_arr[(world.timestep-1) // self.period][0]
+                        world.planner.state["punishment"] = self.alloc_arr[(world.timestep-1) // self.period][1]
                     else:
                         total_percent = 0
                         world.planner.state["punishment"] = self.alloc_arr[len(self.alloc_arr) - 1][1]
@@ -217,7 +217,7 @@ class CarbonRedistribution(BaseComponent):
             })
         else:
             self.log.append([])
-        if (self.world.timestep + 1) % self.period == 0:
+        if self.world.timestep  % self.period == 0:
             # punishment at end of years#
             for agent in world.agents:
                 if agent.state["inventory"]["Carbon_idx"] < 0:
