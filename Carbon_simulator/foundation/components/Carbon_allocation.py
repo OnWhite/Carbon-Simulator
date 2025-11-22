@@ -86,7 +86,7 @@ class CarbonRedistribution(BaseComponent):
     def component_step(self):
 
         world = self.world
-        world.planner.state["year_num"] = self.world.timestep // self.period
+        world.planner.state["year_num"] = (self.world.timestep-1) // self.period
 
         # divided idx at start of years # when does this start counting at 0 or at 1?
         if (world.timestep - 1) % self.period == 0:
