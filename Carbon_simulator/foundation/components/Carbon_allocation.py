@@ -166,6 +166,7 @@ class CarbonRedistribution(BaseComponent):
                     self.world.planner.state["settlement_idx"][agent.idx] -= agent.state["inventory"]["Carbon_idx"]
                     # when in the negative, the overspending of emissions gets logged per agent
                 if self.years_predefined == "test":
+
                     idx_action = [1, 0]
                     with open("/nas/ucb/sophialudewig/Minimalist/logger.json", "w") as f:
                         info = {
@@ -177,6 +178,7 @@ class CarbonRedistribution(BaseComponent):
                                 self.alloc_arr) else None
                         }
                         json.dump(info, f, indent=2)
+                        raise Exception(f"Debug info getting there")
                     if world.timestep // self.period < len(self.alloc_arr):
                         total_percent = self.alloc_arr[world.timestep // self.period][0]
                         world.planner.state["punishment"] = self.alloc_arr[world.timestep // self.period][1]
