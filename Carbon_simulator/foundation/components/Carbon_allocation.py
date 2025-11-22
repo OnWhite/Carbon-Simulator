@@ -149,7 +149,7 @@ class CarbonRedistribution(BaseComponent):
 
                     idx_action = [1, 0]
 
-                    if ((world.timestep-1) // self.period) < len(self.alloc_arr):
+                    if world.timestep==1:
                         total_percent = self.alloc_arr[(world.timestep-1) // self.period][0]
                         world.planner.state["punishment"] = self.alloc_arr[(world.timestep-1) // self.period][1]
                     else:
