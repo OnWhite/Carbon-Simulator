@@ -12,7 +12,7 @@ env:
     - CarbonRedistribution:
         alloc_arr:
           - [ 100, 5 ]
-        env_idx_percent: 0.1
+        env_idx_percent: 0.5
         planner_mode: inactive
         fixed_punishment: 5
         total_idx: 2
@@ -42,7 +42,7 @@ env:
 general:
   ckpt_frequency_steps: 500
   cpus: 32
-  episodes: 2500
+  episodes: 250000
   gpus: 1
   restore_weights_agents: ''   # start from scratch
   restore_weights_planner: ''  # start from scratch
