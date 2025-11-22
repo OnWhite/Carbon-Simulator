@@ -1,4 +1,6 @@
 import numpy as np
+from exceptiongroup import catch
+
 from Carbon_simulator.foundation.base.base_component import (
     BaseComponent,
     component_registry,
@@ -165,6 +167,7 @@ class CarbonRedistribution(BaseComponent):
                 if self.years_predefined == "test":
                     idx_action = [1, 0]
                     if world.timestep // self.period < len(self.alloc_arr):
+                        raise Exception(f"world.timestep {world.timestep} // self.period {self.period} < len(self.alloc_arr) {len(self.alloc_arr)} total percent {self.alloc_arr[world.timestep // self.period][0]}")
                         total_percent = self.alloc_arr[world.timestep // self.period][0]
                         world.planner.state["punishment"] = self.alloc_arr[world.timestep // self.period][1]
                     else:
