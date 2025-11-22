@@ -166,6 +166,7 @@ class CarbonRedistribution(BaseComponent):
                     else:
                         total_percent = 0
                         world.planner.state["punishment"] = self.alloc_arr[len(self.alloc_arr) - 1][1]
+                        raise Exception("gets in here ********************************* ")
 
                 year_idx = self.total_idx * (float(total_percent) / 100.0)
                 world.planner.state["env_idx"] = year_idx * self.env_idx_percent
