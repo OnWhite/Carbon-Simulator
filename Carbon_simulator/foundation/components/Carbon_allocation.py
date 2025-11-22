@@ -149,7 +149,7 @@ class CarbonRedistribution(BaseComponent):
 
                     idx_action = [1, 0]
 
-                    if world.timestep==1:
+                    if ((world.timestep - 1) // self.period) < len(self.alloc_arr):
                         total_percent = self.alloc_arr[(world.timestep-1) // self.period][0]
                         world.planner.state["punishment"] = self.alloc_arr[(world.timestep-1) // self.period][1]
                     else:
@@ -171,7 +171,7 @@ class CarbonRedistribution(BaseComponent):
 
                     agent.state["inventory"]["Carbon_idx"] = world.planner.state["mobile_idx"][i]
                     agent.state["escrow"]["Carbon_idx"] = 0
-                    agent.state["inventory"]["Startidx"] += world.planner.state["mobile_idx"][i]
+                    agent.state["inventory"]["Startidx"] = world.planner.state["mobile_idx"][i]
                     with open("/nas/ucb/sophialudewig/Minimalist/logger.json", "a") as f:
                         info = {
                             "timestep": (world.timestep-1),
