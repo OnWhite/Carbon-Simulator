@@ -233,6 +233,7 @@ class InfoMetricsCallback(DefaultCallbacks):
             series = np.asarray(series, dtype=float)
             arr.append(float(np.median(series)))
             if base == "Certificates_Allocated":
+                episode.custom_metrics[f"worker_{wid}/Mean_{base}"] = float(np.mean(arr))
                 arr_cert_sum.append(float(np.sum(series)))
             elif base == "Carbon_idx":
                 arr_idx_sum.append(float(np.sum(series)))
@@ -262,6 +263,7 @@ class InfoMetricsCallback(DefaultCallbacks):
                 series = np.asarray(series, dtype=float)
                 episode.custom_metrics[f"worker_{wid}/{agent}/Tot_{name}"] = float(np.sum(series))
                 if name == "Certificates_Allocated" and agent != "p":
+                    episode.custom_metrics[f"worker_{wid}/{agent}/Tot_Certificates_Allocated"] = float(np.sum(series))
                     val[agent] = float(np.sum(series))
                 elif name == "Carbon_idx" and agent != "p":
                     val1[agent] = float(np.sum(series))

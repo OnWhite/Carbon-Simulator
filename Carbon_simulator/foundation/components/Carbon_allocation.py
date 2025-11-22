@@ -182,7 +182,7 @@ class CarbonRedistribution(BaseComponent):
 
                 agent.state["inventory"]["Carbon_idx"] = 100
                 agent.state["escrow"]["Carbon_idx"] = 0
-                agent.state["inventory"]["Startidx"] = 100
+                agent.state["endogenous"]["Startidx"] = 100
 
             else:
                 assert self.planner_mode in ["inactive", "active"]

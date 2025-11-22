@@ -392,9 +392,9 @@ def run_single_episode_and_plot(trainer, run_dir):
                 title=f"{agent} - {metric_name}",
             )
 
-            wandb.log({
+            """wandb.log({
                 f"final_episode/{agent}/{metric_name}": line_plot
-            })
+            })"""
 
     logger.info(f"Final episode line plots logged to wandb ({len(agent_metrics)} agents)")
 
@@ -575,6 +575,11 @@ if __name__ == "__main__":
                 logger.info(result["custom_metrics"].get("worker_1/agent_0/Tot_Startidx_min"))
                 logger.info(result["custom_metrics"].get("worker_1/agent_0/Tot_Startidx_max"))
                 logger.info(result["custom_metrics"].get("worker_1/agent_0/Tot_Startidx_mean"))
+                logger.info(result["custom_metrics"].get("worker_1/agent_0/Tot_Certificates_Allocated_min"))
+                logger.info(result["custom_metrics"].get("worker_1/agent_0/Tot_Certificates_Allocated_max"))
+                logger.info(result["custom_metrics"].get("worker_1/agent_0/Tot_Certificates_Allocated_mean"))
+
+
                 logger.info("=== Finished logging results ===\n\n")
 
                 reward_result_a.append(result.get('policy_reward_mean')["a"] if result.get('policy_reward_mean') else 0)
