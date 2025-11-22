@@ -1,5 +1,4 @@
 import numpy as np
-from exceptiongroup import catch
 
 from Carbon_simulator.foundation.base.base_component import (
     BaseComponent,
