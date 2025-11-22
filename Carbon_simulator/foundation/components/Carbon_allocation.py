@@ -50,8 +50,8 @@ class CarbonRedistribution(BaseComponent):
         self.max_year_percent = int(max_year_percent)
         assert 0 <= self.max_year_percent <= 100
 
-        self.years_predefined = str(years_predefined)
-        self.agents_predefined = str(agents_predefined)
+        self.years_predefined = years_predefined
+        self.agents_predefined = agents_predefined
 
         self.log = []
 
