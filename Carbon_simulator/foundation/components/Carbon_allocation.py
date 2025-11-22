@@ -167,7 +167,7 @@ class CarbonRedistribution(BaseComponent):
                     # when in the negative, the overspending of emissions gets logged per agent
                 if self.years_predefined == "test":
                     idx_action = [1, 0]
-                    with open("/nas/ucb/sophialudewig/Minimalist/dp_comparison.json", "w") as f:
+                    with open("/nas/ucb/sophialudewig/Minimalist/logger.json", "w") as f:
                         info = {
                             "world_timestep": world.timestep,
                             "period": self.period,
