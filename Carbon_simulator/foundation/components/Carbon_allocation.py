@@ -147,16 +147,18 @@ class CarbonRedistribution(BaseComponent):
                 if self.years_predefined == "test":
 
                     idx_action = [1, 0]
-                    with open("/nas/ucb/sophialudewig/Minimalist/logger.json", "w") as f:
+
+                    with open("/nas/ucb/sophialudewig/Minimalist/logger.json", "a") as f:
                         info = {
                             "world_timestep": world.timestep,
                             "period": self.period,
                             "alloc_len": len(self.alloc_arr),
-                            "total_percent": self.alloc_arr[world.timestep // self.period][0] if (
-                                                                                                         world.timestep // self.period) < len(
-                                self.alloc_arr) else None
+                            "total_percent": self.alloc_arr[world.timestep // self.period][0]
+                            if (world.timestep // self.period) < len(self.alloc_arr)
+                            else None,
                         }
                         json.dump(info, f, indent=2)
+                        f.write("\n")
 
                     if world.timestep // self.period < len(self.alloc_arr):
                         total_percent = self.alloc_arr[world.timestep // self.period][0]
