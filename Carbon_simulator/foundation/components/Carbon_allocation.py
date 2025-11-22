@@ -1,3 +1,5 @@
+import json
+
 import numpy as np
 
 from Carbon_simulator.foundation.base.base_component import (
@@ -165,8 +167,17 @@ class CarbonRedistribution(BaseComponent):
                     # when in the negative, the overspending of emissions gets logged per agent
                 if self.years_predefined == "test":
                     idx_action = [1, 0]
+                    with open("/nas/ucb/sophialudewig/Minimalist/dp_comparison.json", "w") as f:
+                        info = {
+                            "world_timestep": world.timestep,
+                            "period": self.period,
+                            "alloc_len": len(self.alloc_arr),
+                            "total_percent": self.alloc_arr[world.timestep // self.period][0] if (
+                                                                                                             world.timestep // self.period) < len(
+                                self.alloc_arr) else None
+                        }
+                        json.dump(info, f, indent=2)
                     if world.timestep // self.period < len(self.alloc_arr):
-                        raise Exception(f"world.timestep {world.timestep} // self.period {self.period} < len(self.alloc_arr) {len(self.alloc_arr)} total percent {self.alloc_arr[world.timestep // self.period][0]}")
                         total_percent = self.alloc_arr[world.timestep // self.period][0]
                         world.planner.state["punishment"] = self.alloc_arr[world.timestep // self.period][1]
                     else:
