@@ -41,7 +41,6 @@ env:
 
 general:
   ckpt_frequency_steps: 500
-  eval_only:True
   cpus: 32
   episodes: 25000
   gpus: 1
@@ -49,6 +48,7 @@ general:
   restore_weights_planner: ''  # start from scratch
   train_planner: false
   fix_mobile: false
+  eval_only: true
   dense_log_frequency: 250
 
 agent_policy:
