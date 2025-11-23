@@ -503,15 +503,6 @@ if __name__ == "__main__":
             )
 
             eval_data = eval_results.get("evaluation", {})
-            metrics = log_custom_metrics(eval_data)
-
-            wandb.log({
-                "evaluation/episode_reward_mean": eval_data.get("episode_reward_mean", 0),
-                "evaluation/episode_len_mean": eval_data.get("episode_len_mean", 0),
-                "evaluation/reward/agent": eval_data.get("policy_reward_mean", {}).get("a", 0),
-                "evaluation/reward/planner": eval_data.get("policy_reward_mean", {}).get("p", 0),
-                **metrics,
-            })
 
             logger.info(pretty_print(eval_results))
             sys.exit(0)

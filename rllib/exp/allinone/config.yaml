@@ -41,12 +41,13 @@ env:
 
 general:
   ckpt_frequency_steps: 500
+  eval_only:True
   cpus: 32
   episodes: 25000
   gpus: 1
-  restore_weights_agents: ''   # start from scratch
+  restore_weights_agents: 'rllib/exp/allinone/ckpts204/agent.weights.train-step-52000'   # start from scratch
   restore_weights_planner: ''  # start from scratch
-  train_planner: true
+  train_planner: false
   fix_mobile: false
   dense_log_frequency: 250
 
