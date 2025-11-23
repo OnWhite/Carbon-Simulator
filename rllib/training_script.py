@@ -382,6 +382,7 @@ def run_single_episode_and_plot(trainer, run_dir):
             # Build a table: timestep, value
             table = wandb.Table(columns=["timestep", metric_name])
             for t, val in enumerate(timesteps):
+                logger.info(f"Running {agent}/{metric_name}/{t}: {val}")
                 table.add_data(t, float(val))
 
             # Create a W&B line plot from the table
