@@ -399,7 +399,6 @@ def run_single_episode_and_plot(trainer, run_dir):
     logger.info(f"Final episode line plots logged to wandb ({len(agent_metrics)} agents)")
 
 
-
 def run_dp_comparison(trainer, run_config, run_dir):
     """Compare RL policy against DP baseline."""
 
@@ -416,12 +415,12 @@ def run_dp_comparison(trainer, run_config, run_dir):
     # MARL environment (multiagent wrapper with correct observation structure)
     marl_env = RLlibEnvWrapper({
         "env_config_dict": run_config.get("env"),
-        "num_envs_per_worker": 1,   # single rollout for eval
+        "num_envs_per_worker": 1,  # single rollout for eval
     })
 
     # === FIX-2: Use the correct environments for each evaluation ===
-    reward, marl_mean, marl_std = eval_marl(trainer, marl_env, 20)   # MARL on RLlibEnvWrapper
-    dp_mean, dp_std = eval_dp(dp, dp_env)                # DP on CarbonEnv
+    reward, marl_mean, marl_std = eval_marl(trainer, marl_env, 20)  # MARL on RLlibEnvWrapper
+    dp_mean, dp_std = eval_dp(dp, dp_env)  # DP on CarbonEnv
 
     # === FIX-3: return structured JSON, not a long string ===
     comparison_results = {
@@ -564,6 +563,12 @@ if __name__ == "__main__":
                     "episodes_total": result["episodes_total"],
                     "reward/agent": result.get("policy_reward_mean", {}).get("a", 0),
                     "reward/planner": result.get("policy_reward_mean", {}).get("p", 0),
+                    "worker_1/agent_0/Tot_Startidx_min": result["custom_metrics"].get(
+                        "worker_1/agent_0/Tot_Startidx_min"),
+                    "worker_1/agent_0/Tot_Startidx_max": logger.info(
+                        result["custom_metrics"].get("worker_1/agent_0/Tot_Startidx_max")),
+                    "worker_1/agent_0/Tot_Startidx_mean": logger.info(
+                        result["custom_metrics"].get("worker_1/agent_0/Tot_Startidx_mean")),
                     **metrics
                 }, step=result["episodes_total"])  # <-- add step to align by episode"""
 
@@ -578,7 +583,6 @@ if __name__ == "__main__":
                 logger.info(result["custom_metrics"].get("worker_1/agent_0/Tot_Certificates_Allocated_min"))
                 logger.info(result["custom_metrics"].get("worker_1/agent_0/Tot_Certificates_Allocated_max"))
                 logger.info(result["custom_metrics"].get("worker_1/agent_0/Tot_Certificates_Allocated_mean"))
-
 
                 logger.info("=== Finished logging results ===\n\n")
 

@@ -365,26 +365,26 @@ class Carbon_component(BaseComponent):
             if self.evaluate:
                 assert self.n_agents == 5
                 if agent.idx == 0:
-                    agent.state["Research_ability"] = 1.2
-                    agent.state["Manufacture_volume"] = 1.6
+                    agent.state["Research_ability"] = 1.0
+                    agent.state["Manufacture_volume"] = 1.0
                 elif agent.idx == 1:
                     agent.state["Research_ability"] = 1.0
-                    agent.state["Manufacture_volume"] = 1.4
+                    agent.state["Manufacture_volume"] = 1.0
                 elif agent.idx == 2:
-                    agent.state["Research_ability"] = 1.2
-                    agent.state["Manufacture_volume"] = 1.2
+                    agent.state["Research_ability"] = 1.0
+                    agent.state["Manufacture_volume"] = 1.0
                 elif agent.idx == 3:
-                    agent.state["Research_ability"] = 1.4
-                    agent.state["Manufacture_volume"] = 1.2
+                    agent.state["Research_ability"] = 1.0
+                    agent.state["Manufacture_volume"] = 1.0
                 elif agent.idx == 4:
-                    agent.state["Research_ability"] = 1.6
+                    agent.state["Research_ability"] = 1.0
                     agent.state["Manufacture_volume"] = 1.0
                 else:
                     raise ValueError(agent.idx)
             else:
                 # 0.5 ~ PMSM, 0.1.0.0
-                agent.state["Research_ability"] = random.choice([1.0, 1.2, 1.4, 1.6])
-                agent.state["Manufacture_volume"] = random.choice([1.0, 1.2, 1.4, 1.6])
+                agent.state["Research_ability"] = 1.0
+                agent.state["Manufacture_volume"] = 1.0
 
             # initiate the Carbon_emission_rate be 1.0.0.0
             agent.state["Carbon_emission_rate"] = 1.0
