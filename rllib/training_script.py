@@ -355,10 +355,7 @@ def run_single_episode_and_plot(trainer, run_dir):
 
     logger.info("Running final detailed episode...")
 
-    eval_results = trainer.evaluate(
-        evaluation_config={"explore": False},
-        evaluation_num_workers=0,
-    )
+    eval_results = trainer.evaluate()
     hist_data = eval_results.get("evaluation", {}).get("hist_stats", {})
 
     logger.info(f"Available hist_data keys: {list(hist_data.keys())}")
