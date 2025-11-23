@@ -494,13 +494,7 @@ if __name__ == "__main__":
         if run_config["general"].get("eval_only", False):
             logger.info("Running in evaluation-only mode — no training will occur.")
 
-            eval_results = trainer.evaluate(
-                evaluation_config={
-                    "explore": False,
-                    "num_workers": 0,  # local eval
-                    "callbacks": lambda: EpisodeInfoCallback(worker_id=0),
-                },
-            )
+            eval_results = trainer.evaluate()
 
             eval_data = eval_results.get("evaluation", {})
 
