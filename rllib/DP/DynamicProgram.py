@@ -10,12 +10,14 @@ import random
 from dataclasses import dataclass
 from typing import Tuple
 
+
 @dataclass
 class Action:
     build: int
     green: int
     research: int
     move: int
+
 
 @dataclass
 class State:
@@ -28,6 +30,8 @@ class State:
     total_green: float
     on_certificate: int
     timestep: int
+
+
 class DPImpl:
     """
     State: [
@@ -73,10 +77,10 @@ class DPImpl:
         self.max_greenbudget = 0.0
         self.max_timesteps = env.get("episode_length", 2)
         print(self.total_idx)
-        self.max_greenbudget = (1/3) * self.total_idx
+        self.max_greenbudget = (1 / 3) * self.total_idx
         ws = env.get("world_size", (100, 100))
         self.worldsize = ws[0] * ws[1]
-        self.statespace=[]
+        self.statespace = []
 
     from copy import deepcopy
 
@@ -100,11 +104,11 @@ class DPImpl:
         # Pipeline logic
         if new_state.research_yearly > 0 and sum(hist[: self.forget]) == 0:
             new_state.research_yearly -= 1
-            new_state.research_count-=1
+            new_state.research_count -= 1
             hist[0] = 2
         if len(hist) > self.delay and hist[self.delay] == 1:
             new_state.research_yearly += 1
-            new_state.research_count+=1
+            new_state.research_count += 1
 
         total_power_eff = math.exp(-new_state.research_count * self.a * self.research_ability)
         green_rate = max(1.0 - new_state.total_green / (total_power_eff + new_state.total_green), 0)
@@ -145,7 +149,7 @@ class DPImpl:
         # Labor update
         new_state.labor += (
                 self.l_build * new_action.build
-                + self.l_research * new_action.research
+                + self.l_research * new_action.research * self.research_ability
                 + self.l_green * new_action.green
                 + self.l_move * new_action.move
         )
@@ -213,7 +217,7 @@ class DPImpl:
         self.total_green_bins = np.array([0, 1])
         self.on_certificate_bins = np.array([0, 1])
         self.timestep = ([0, 1, 2])  # your printed next-states always have t=2
-        self.research_count_bins= np.array([0])
+        self.research_count_bins = np.array([0])
         max_history_len = max(self.delay, self.forget)  # used for history bit-encoding
         self.history_states = 2 ** max_history_len
 
@@ -225,7 +229,7 @@ class DPImpl:
                 self.history_states *
                 len(self.total_green_bins) *
                 len(self.on_certificate_bins) *
-                len(self.timestep)*
+                len(self.timestep) *
                 len(self.research_count_bins)
         )
         print(f"Total discrete states: {self.n_states}")
@@ -551,6 +555,8 @@ def flatten_components(cfg: Dict[str, Any]) -> Dict[str, Any]:
         flattened.update(component)
 
     return flattened
+
+
 def main():
     """Main function using YAML config"""
     CONFIG_PATH = Path("/Users/work/PycharmProjects/Carbon-Simulator/rllib/DP/config.yaml")
@@ -612,6 +618,7 @@ def main():
         traceback.print_exc()
         return None, None
 
+
 def print_state_matrix(dp, num=10):
     """Print the first `num` states in exact index order (0,1,2,...)."""
 
@@ -620,7 +627,7 @@ def print_state_matrix(dp, num=10):
     max_hist_len = max(dp.delay, dp.forget)
     printed = 0
 
-    for state in self.statespace:
+    for state in dp.statespace:
 
         idx = dp.state_to_index(state)
 
@@ -629,6 +636,7 @@ def print_state_matrix(dp, num=10):
         printed += 1
         if printed >= num:
             return
+
 
 def print_optimal_trajectory(dp):
     """Print the optimal action trajectory starting from zero state."""
@@ -903,4 +911,3 @@ if __name__ == "__main__":
     ]
     for res in states:
         print("Reward:", dp.reward(res))"""
-

@@ -81,7 +81,9 @@ def compare_rl_vs_dp(rl_algo, dp_instance, env, n_eval_episodes=20):
             action = rl_algo.compute_single_action(rl_obs, explore=False)
             rl_obs, reward, done, truncated, info = env.step(action)
             rl_ep_return += reward
-
+            print(env._obs_to_state(rl_obs))
+            print(action)
+            print(dp.actions[action])
         rl_returns.append(rl_ep_return)
 
         # DP rollout (same initial state)
@@ -95,7 +97,9 @@ def compare_rl_vs_dp(rl_algo, dp_instance, env, n_eval_episodes=20):
             state_tuple = env._obs_to_state(obs)  # You need this helper
             state_idx = dp_instance.state_to_index(state_tuple)
             action_idx = dp_instance.optimal_policy[state_idx]
-
+            print (state_tuple)
+            print(action_idx)
+            print(dp.actions[action_idx])
             obs, reward, done, truncated, info = env.step(action_idx)
             dp_ep_return += reward
 
@@ -135,7 +139,7 @@ if __name__ == "__main__":
 
     algo = config.build()
 
-    for i in range(2):
+    for i in range(40):
         result = algo.train()
         # print(f"Iter {i}: reward_mean={result['episode_reward_mean']:.2f}")
 
@@ -146,7 +150,6 @@ if __name__ == "__main__":
     # Load DP solution (already computed, no training)
     policy = algo.get_policy()
     model = policy.model
-    print(model)
     config_path = "/Users/work/PycharmProjects/Carbon-Simulator/rllib/DP/config.yaml"
     dp = DPImpl(load_config(Path(config_path)))
     dp.solve_mdp()  # One-time computation

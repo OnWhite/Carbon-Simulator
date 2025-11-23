@@ -436,7 +436,7 @@ class ResultInfoMetricsCallback(DefaultCallbacks):
         "Building_count": lambda info: info.get("endogenous", {}).get("Build", 0.0),
         "Research_count": lambda info: info.get("Research_count", [0, 0])[1],
         "Carbon_project": lambda info: info.get("inventory", {}).get("Carbon_project"),
-        "Position": lambda info: info.get("loc"),
+        #"Position": lambda info: info.get("loc"),
         "CoinEndowment": lambda info: info.get("endogenous", {}).get("CoinEndowment", 0.0),
         "Carbon_idx": lambda info: info.get("inventory", {}).get("Carbon_idx"),
         "Emission_rate": lambda info: info.get("Carbon_emission_rate"),
