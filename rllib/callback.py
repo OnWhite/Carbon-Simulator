@@ -267,7 +267,7 @@ class ResultInfoMetricsCallback(DefaultCallbacks):
         "Emission_rate": lambda info: info.get("Carbon_emission_rate",-42),
         "CoinEndowment": lambda info: info.get("endogenous", {}).get("CoinEndowment", -42),
         "Coin": lambda info: info.get("inventory", {}).get("Coin", -42),
-        "Building_count": lambda info: info.get("Build", -42),
+        "Building_count": lambda info: info.get("endogenous", {}).get("Build", -42),
         "Power_efficiency": lambda info: info.get("Power_efficiency",-42),
         "Green_rate": lambda info: info.get("Green_rate",-42),
         "Startidx": lambda info: info.get("inventory", {}).get("Startidx",-42),

@@ -12,7 +12,7 @@ class Carbon_component(BaseComponent):
 
     name = "Carbon_component"
     component_type = "Carbon_component"
-    required_entities = ["Carbon_idx", "Carbon_emission", "Coin", "Revenue", "Property", "Carbon_pollution", "Labor", "Green_project"]
+    required_entities = ["Carbon_idx", "Carbon_emission", "Coin", "Revenue", "Property", "Carbon_pollution", "Labor", "Green_project", "Build"]
     agent_subclasses = ["BasicMobileAgent"]
 
     def __init__(
@@ -151,9 +151,8 @@ class Carbon_component(BaseComponent):
                 if agent.idx == 0:
                     if world.timestep==1:
                         agent.state["Build"]=300
-                        raise Exception("getting here")
                     elif world.timestep==2:
-                        agent.state["Build"]=-43
+                        agent.state["Build"]=-433
                     action = agent.get_component_action(self.name)
 
                     # Update the Carbon_emission_rate
@@ -242,7 +241,7 @@ class Carbon_component(BaseComponent):
                             income = self.payment * agent.state["Manufacture_volume"]
                             agent.state["inventory"]["Coin"] += income
                             agent.state["endogenous"]["Revenue"] += income
-                            agent.state["Build"] = agent.state["Manufacture_volume"]
+                            agent.state["endogenous"]["Build"] = agent.state["Manufacture_volume"]
                             assert income > 0, income
 
                             # Incur the Labor cost and Carbon_emission for building
