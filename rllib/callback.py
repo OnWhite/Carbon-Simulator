@@ -255,30 +255,29 @@ class ResultInfoMetricsCallback(DefaultCallbacks):
     – Step metrics: aggregated (avg, median, total) over *all* agents on the worker.
     – Final metrics: last-step values (episode-final snapshot) per agent and totals.
     """
-
     STEP_METRICS = {
         # name               extractor – receives the agent_info dict
-        "Reward": lambda info: info.get("endogenous", {}).get("Reward", 0.0),
-        "Move": lambda info: info.get("Move", 0.0),
-        "Building_count": lambda info: info.get("endogenous", {}).get("Build", 0.0),
+        "Reward": lambda info: info.get("endogenous", {}).get("Reward", -42),
         "Research_count": lambda info: info.get("Research_count", [0, 0])[1],
-        "Carbon_project": lambda info: info.get("inventory", {}).get("Carbon_project"),
-        #"Position": lambda info: info.get("loc"),
-        "CoinEndowment": lambda info: info.get("endogenous", {}).get("CoinEndowment", 0.0),
-        "Carbon_idx": lambda info: info.get("inventory", {}).get("Carbon_idx"),
-        "Emission_rate": lambda info: info.get("Carbon_emission_rate"),
-        "Cum_Punishment": lambda info: info.get("Cum_Punishment"),
+        "Manufacture_volume": lambda info: info.get("Manufacture_volume",-42),
+        "Cum_Punishment": lambda info: info.get("Cum_Punishment",-42),
+        "Move": lambda info: info.get("Move", -42),
+        "Carbon_project": lambda info: info.get("inventory", {}).get("Carbon_project",-42),
+        "Carbon_idx": lambda info: info.get("inventory", {}).get("Carbon_idx",-42),
+        "Emission_rate": lambda info: info.get("Carbon_emission_rate",-42),
+        "CoinEndowment": lambda info: info.get("endogenous", {}).get("CoinEndowment", -42),
+        "Coin": lambda info: info.get("inventory", {}).get("Coin", -42),
+        "Building_count": lambda info: info.get("Build", -42),
+        "Power_efficiency": lambda info: info.get("Power_efficiency",-42),
+        "Green_rate": lambda info: info.get("Green_rate",-42),
+        "Startidx": lambda info: info.get("inventory", {}).get("Startidx",-42),
+        "LaborUtility": lambda info: info.get("endogenous", {}).get("LaborUtility", -42),
+        "CoinUtility": lambda info: info.get("endogenous", {}).get("CoinUtility", -42),
+        "CurrentUtility": lambda info: info.get("endogenous", {}).get("CurrentUtility", -42),
+        "PastUtility": lambda info: info.get("endogenous", {}).get("PastUtility", -42),
+        "Research_ability": lambda info: info.get("Research_ability", -42),
+        "MoveLabor": lambda info: info.get("MoveLabor", -42),
 
-        "Manufacture_volume": lambda info: info.get("Manufacture_volume"),
-        "Power_efficiency": lambda info: info.get("Power_efficiency"),
-        "Green_rate": lambda info: info.get("Green_rate"),
-        "Startidx": lambda info: info.get("endogenous", {}).get("Startidx"),
-        "LaborUtility": lambda info: info.get("endogenous", {}).get("LaborUtility", 0.0),
-        "CoinUtility": lambda info: info.get("endogenous", {}).get("CoinUtility", 0.0),
-        "CurrentUtility": lambda info: info.get("endogenous", {}).get("CurrentUtility", 0.0),
-        "PastUtility": lambda info: info.get("endogenous", {}).get("PastUtility", 0.0),
-        "Research_ability": lambda info: info.get("Research_ability", 0.0),
-        "MoveLabor": lambda info: info.get("MoveLabor", 0.0),
     }
 
     def __init__(self, worker_id: int = 1):
