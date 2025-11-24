@@ -375,7 +375,9 @@ class Carbon_component(BaseComponent):
         world = self.world
 
         for agent in world.agents:
-            agent.state["Build"] = 10
+            if world.timestep==2:
+                agent.state["Build"] = 10
+                raise Exception(agent.state["Build"])
             if self.evaluate:
                 assert self.n_agents == 5
                 if agent.idx == 0:
