@@ -338,7 +338,8 @@ class ResultInfoMetricsCallback(DefaultCallbacks):
                     continue
                 key = f"worker_{wid}/agent_{agent_id}/{name}_ts"
                 episode.hist_data.setdefault(key, []).append(value)
-            episode.hist_data.setdefault("test_key", []).append(1.0)
+            episode.hist_data.setdefault("build", []).append(infos.get('agent_0').state['Build'])
+
 
 
     def on_episode_end(
