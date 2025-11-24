@@ -104,18 +104,19 @@ planner_policy:
     max_seq_len: 100
 
 trainer:
-  compress_observations: false
+  eval_only: true
+  rollout_fragment_length: 2
+  train_batch_size: 2
+  num_workers: 0
+  num_envs_per_worker: 1
   batch_mode: truncate_episodes
+  compress_observations: false
   env_config: null
   multiagent: null
   seed: null
   framework: "torch"
   num_gpus: 1
-  num_envs_per_worker: 1
   num_sgd_iter: 1
-  num_workers: 1
   shuffle_sequences: true
   sgd_minibatch_size: 1
-  train_batch_size: 2
   observation_filter: NoFilter
-  rollout_fragment_length: 2
