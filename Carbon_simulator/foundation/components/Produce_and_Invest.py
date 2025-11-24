@@ -219,9 +219,6 @@ class Carbon_component(BaseComponent):
 
                             # Update Carbon_idx
                             agent.state["inventory"]["Carbon_idx"] -= Carbon_emission
-                            if agent.state["inventory"]["Carbon_idx"] < 0:
-                                l = agent.state["inventory"]["Carbon_idx"]
-                                raise Exception(f"idx{l} + required {Carbon_emission}")
 
                             # Place a Property where the agent is standing
                             world.create_landmark("Property", loc_r, loc_c, agent.idx)
