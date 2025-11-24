@@ -527,7 +527,8 @@ if __name__ == "__main__":
                     # Debug the structure
                     if m:
                         logger.info(
-                        f"{agent}/{metric_name}: {pretty_print(timesteps)}")
+                            # Python
+                            logger.info(f"{agent}/{metric_name}: {str(timesteps)}")
                         m=False
 
                     # Flatten if nested
