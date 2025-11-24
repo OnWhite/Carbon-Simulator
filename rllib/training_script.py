@@ -514,6 +514,10 @@ if __name__ == "__main__":
             for key, values in hist_data.items():
                 if not isinstance(values, list) or len(values) == 0:
                     continue
+                if key == 'test_key':
+                    logger.info("Made it here")
+                    logger.info(f"{key}: {str(values)}")
+                    m = False
 
                 if "_ts" in key:
                     parts = key.split("/")
@@ -525,10 +529,7 @@ if __name__ == "__main__":
                 m=True
                 for metric_name, timesteps in metrics.items():
                     # Debug the structure
-                    if metric_name == 'test_key':
-                        logger.info("Made it here")
-                        logger.info(f"{agent}/{metric_name}: {str(timesteps)}")
-                        m=False
+
 
                     # Flatten if nested
                     if timesteps and isinstance(timesteps[0], (list, np.ndarray)):
