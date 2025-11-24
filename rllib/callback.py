@@ -227,9 +227,11 @@ class InfoMetricsCallback(DefaultCallbacks):
         if wid <= self.worker_id and eid == 0:
 
             for key, series in episode.user_data.items():
-                if not key.startswith(f"worker_{wid}/") or not series or  k=='__common__':
+                if not key.startswith(f"worker_{wid}/") or not series:
                     continue
                 agent, name = key.split("/", 2)[1], key.split("/", 2)[2]
+                if agent=='__common__':
+                    continue
                 series = np.asarray(series, dtype=float)
                 episode.custom_metrics[f"worker_{wid}/{agent}/Tot_{name}"] = float(np.sum(series))
 
