@@ -143,7 +143,7 @@ class Carbon_component(BaseComponent):
             # Apply any building or research actions taken by the mobile agents
             for agent in world.get_random_order_agents():
                 if agent.idx == 0:
-                    agent.state["Build"] = 1.0
+                    raise Exception("made it here ?")
                     action = agent.get_component_action(self.name)
 
                     # Update the Carbon_emission_rate
