@@ -111,7 +111,7 @@ trainer:
   seed: null
   framework: "torch"
   num_gpus: 1
-  num_envs_per_worker: 16
+  num_envs_per_worker: 1
   num_sgd_iter: 1
   num_workers: 1
   shuffle_sequences: true
