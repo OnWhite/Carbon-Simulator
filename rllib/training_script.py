@@ -513,7 +513,9 @@ if __name__ == "__main__":
             for key, values in hist_data.items():
                 if not isinstance(values, list) or len(values) == 0:
                     continue
-
+                if key=='build':
+                    logger.info("Made it here 1")
+                    logger.info(f"{key}: {str(values)}")
                 if "_ts" in key:
                     parts = key.split("/")
                     if len(parts) >= 3:
