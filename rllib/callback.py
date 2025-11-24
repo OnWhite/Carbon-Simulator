@@ -339,8 +339,7 @@ class ResultInfoMetricsCallback(DefaultCallbacks):
                 key = f"worker_{wid}/agent_{agent_id}/{name}_ts"
                 episode.hist_data.setdefault(key, []).append(value)
 
-    def on_episode_start(self, *, worker, base_env, policies, episode: Episode, **kwargs):
-        raise Exception("It works")
+
     def on_episode_end(
             self, *, worker, base_env, policies, episode: Episode, env_index: Optional[int] = None, **kwargs
     ):
