@@ -134,7 +134,9 @@ def build_trainer(run_configuration, tune_params=None):
                                           * trainer_config.get("num_envs_per_worker"),
             "evaluation_interval": None,  # Don't auto-evaluate during training
             "evaluation_duration": 1,  # Run 1 episode when evaluate() is called
-            "evaluation_num_workers": 0,  # Changed from 0 to 1 - creates eval worker
+            "evaluation_duration_unit": "episodes",
+            "evaluation_num_env_runners": 1,
+            "evaluation_num_workers": 1,
             "create_env_on_driver": True,
             "evaluation_config": {
                 "explore": False,
