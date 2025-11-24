@@ -228,7 +228,7 @@ class Carbon_component(BaseComponent):
                             income = self.payment * agent.state["Manufacture_volume"]
                             agent.state["inventory"]["Coin"] += income
                             agent.state["endogenous"]["Revenue"] += income
-                            agent.state["Build"] += agent.state["Manufacture_volume"]
+                            agent.state["Build"] = agent.state["Manufacture_volume"]
                             assert income > 0, income
 
                             # Incur the Labor cost and Carbon_emission for building

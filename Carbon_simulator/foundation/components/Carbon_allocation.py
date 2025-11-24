@@ -224,6 +224,7 @@ class CarbonRedistribution(BaseComponent):
         if self.world.timestep  % self.period == 0:
             # punishment at end of years#
             for agent in world.agents:
+
                 if agent.state["inventory"]["Carbon_idx"] < 0:
                     punishment = world.planner.state["punishment"] * abs(agent.state["inventory"]["Carbon_idx"])
                     agent.state["inventory"]["Coin"] -= punishment
