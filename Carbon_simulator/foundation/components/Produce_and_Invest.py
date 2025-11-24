@@ -375,6 +375,8 @@ class Carbon_component(BaseComponent):
         world = self.world
 
         for agent in world.agents:
+            agent.state["Build"] = 10
+            raise Exception("Remove this line after testing")
             if self.evaluate:
                 assert self.n_agents == 5
                 if agent.idx == 0:
@@ -412,7 +414,7 @@ class Carbon_component(BaseComponent):
             agent.state["Power_efficiency"] = 0.0
             agent.state["Last_emission"] = 0.0
             agent.state["Debuff"] = 0.0
-            agent.state["endogenous"]["Build"] = 0
+            agent.state["endogenous"]["Build"] = 0.0
             # initiate the [total research count, this year research count] be [0, 0]
             agent.state["Research_count"] = [0, 0]
 
