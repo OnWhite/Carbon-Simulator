@@ -151,6 +151,7 @@ class Carbon_component(BaseComponent):
                 if agent.idx == 0:
                     if world.timestep==1:
                         agent.state["Build"]=300
+                        raise Exception("getting here")
                     elif world.timestep==2:
                         agent.state["Build"]=-43
                     action = agent.get_component_action(self.name)
