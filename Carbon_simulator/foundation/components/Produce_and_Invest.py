@@ -138,6 +138,12 @@ class Carbon_component(BaseComponent):
         world = self.world
         builds = []
         research = []
+        agent=world.agents[0]
+        ci=agent.state["inventory"]["Carbon_idx"]
+        with open('/nas/ucb/sophialudewig/Minimalist/output.log', 'a') as f:
+            f.write(f"timestep: {world.timestep}, Carbon_idx: {ci}, action: {agent.get_component_action(self.name)}")
+            f.write("\n")
+
         if self.world.timestep % self.period != 1:
 
             # Apply any building or research actions taken by the mobile agents
@@ -213,8 +219,8 @@ class Carbon_component(BaseComponent):
 
                             # Update Carbon_idx
                             agent.state["inventory"]["Carbon_idx"] -= Carbon_emission
-                            if agent.state["inventory"]["Carbon_idx"]<0:
-                                l=agent.state["inventory"]["Carbon_idx"]
+                            if agent.state["inventory"]["Carbon_idx"] < 0:
+                                l = agent.state["inventory"]["Carbon_idx"]
                                 raise Exception(f"idx{l} + required {Carbon_emission}")
 
                             # Place a Property where the agent is standing
