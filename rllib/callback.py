@@ -338,9 +338,9 @@ class ResultInfoMetricsCallback(DefaultCallbacks):
                     continue
                 key = f"worker_{wid}/agent_{agent_id}/{name}_ts"
                 episode.hist_data.setdefault(key, []).append(value)
-            episode.hist_data.setdefault("build", []).append(infos.get('agent_0').get('Build', -42))
-
-
+            build_info = infos.get('agent_0')
+            episode.hist_data.setdefault("build", []).append(
+                build_info.get('Build', -42) if build_info is not None else -42)
 
     def on_episode_end(
             self, *, worker, base_env, policies, episode: Episode, env_index: Optional[int] = None, **kwargs
