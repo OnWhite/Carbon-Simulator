@@ -514,10 +514,6 @@ if __name__ == "__main__":
             for key, values in hist_data.items():
                 if not isinstance(values, list) or len(values) == 0:
                     continue
-                if key == 'test_key':
-                    logger.info("Made it here")
-                    logger.info(f"{key}: {str(values)}")
-                    m = False
 
                 if "_ts" in key:
                     parts = key.split("/")
@@ -525,6 +521,11 @@ if __name__ == "__main__":
                         agent = parts[1]
                         metric = parts[2].replace("_ts", "")
                         agent_metrics[agent][metric] = values
+
+                    if agent=='agent_0':
+                        logger.info("Made it here 2")
+                        logger.info(f"{key}: {str(values)}")
+
             for agent, metrics in agent_metrics.items():
                 m=True
                 for metric_name, timesteps in metrics.items():
