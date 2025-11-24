@@ -229,6 +229,7 @@ class CarbonRedistribution(BaseComponent):
                     agent.state["inventory"]["Coin"] -= punishment
                     agent.state["endogenous"]["Costs"] += punishment
                     agent.state["Cum_Punishment"] += punishment
+                    raise Exception(world.planner.state["punishment"] * abs(agent.state["inventory"]["Carbon_idx"]))
 
             sum_Er = 0
             for agent in world.agents:
