@@ -15,7 +15,7 @@ from rllib.DP.DynamicProgram import DPImpl, load_config
 from rllib.RL.CarbonEnv import CarbonEnv
 from rllib.RL.train_file import compare_rl_vs_dp, compare_rl_to_dp
 import json
-from callback import EpisodeInfoCallback
+
 import shutil
 
 wandb.login(key="2c1f8f77f938086f691891b269af9d5e4925c425")
@@ -519,7 +519,7 @@ if __name__ == "__main__":
                     # Build a table: timestep, value
                     table = wandb.Table(columns=["timestep", metric_name])
                     for t, val in enumerate(timesteps):
-                        logger.info(f"Running {agent}/{metric_name}/{t}: {val}")
+                        logger.info(f"Running {agent}/{metric_name}/{t}")
                         table.add_data(t, float(val))
 
                     # Create a W&B line plot from the table
