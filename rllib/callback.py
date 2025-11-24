@@ -338,6 +338,7 @@ class ResultInfoMetricsCallback(DefaultCallbacks):
                     continue
                 key = f"worker_{wid}/agent_{agent_id}/{name}_ts"
                 episode.hist_data.setdefault(key, []).append(value)
+            episode.hist_data.setdefault("test_key", []).append(1.0)
 
 
     def on_episode_end(
@@ -354,4 +355,5 @@ class ResultInfoMetricsCallback(DefaultCallbacks):
             # Store the full time series in custom_metrics
             # RLlib will include these in evaluation results
             episode.custom_metrics[key] = series
+
 
