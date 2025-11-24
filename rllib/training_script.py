@@ -526,9 +526,7 @@ if __name__ == "__main__":
                 for metric_name, timesteps in metrics.items():
                     # Debug the structure
                     if m:
-                        logger.info(
-                            # Python
-                            logger.info(f"{agent}/{metric_name}: {str(timesteps)}")
+                        logger.info(f"{agent}/{metric_name}: {str(timesteps)}")
                         m=False
 
                     # Flatten if nested
