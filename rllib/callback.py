@@ -334,7 +334,7 @@ class ResultInfoMetricsCallback(DefaultCallbacks):
             for name, fn in self.STEP_METRICS.items():
                 value = fn(agent_info)
                 # (keep step collection minimal; profit is computed at episode end)
-                if value is None:
+                if value is None or agent_id=='__common__':
                     continue
                 key = f"worker_{wid}/agent_{agent_id}/{name}_ts"
                 episode.hist_data.setdefault(key, []).append(value)
