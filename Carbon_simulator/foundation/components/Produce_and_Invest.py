@@ -152,7 +152,7 @@ class Carbon_component(BaseComponent):
                     if world.timestep==1:
                         agent.state["Build"]=300
                     elif world.timestep==2:
-                        agent.state["Build"]=-433
+                        continue
                     action = agent.get_component_action(self.name)
 
                     # Update the Carbon_emission_rate
