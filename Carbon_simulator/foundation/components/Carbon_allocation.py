@@ -222,7 +222,6 @@ class CarbonRedistribution(BaseComponent):
         else:
             self.log.append([])
         if self.world.timestep  % self.period == 0:
-            raise Exception(world.planner.state["punishment"] * abs(agent.state["inventory"]["Carbon_idx"]))
             # punishment at end of years#
             for agent in world.agents:
                 if agent.state["inventory"]["Carbon_idx"] < 0:
@@ -230,7 +229,6 @@ class CarbonRedistribution(BaseComponent):
                     agent.state["inventory"]["Coin"] -= punishment
                     agent.state["endogenous"]["Costs"] += punishment
                     agent.state["Cum_Punishment"] += punishment
-                    raise Exception(world.planner.state["punishment"] * abs(agent.state["inventory"]["Carbon_idx"]))
 
             sum_Er = 0
             for agent in world.agents:
