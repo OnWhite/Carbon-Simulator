@@ -339,4 +339,18 @@ class ResultInfoMetricsCallback(DefaultCallbacks):
                 key = f"worker_{wid}/agent_{agent_id}/{name}_ts"
                 episode.hist_data.setdefault(key, []).append(value)
 
+    def on_episode_end(
+            self, *, worker, base_env, policies, episode: Episode, env_index: Optional[int] = None, **kwargs
+    ):
+        """Copy hist_data into custom_metrics so evaluation can see it."""
+        wid = worker.worker_index
+
+        # Copy all hist_data into custom_metrics for evaluation reporting
+        for key, series in episode.hist_data.items():
+            if not series or not key.startswith(f"worker_{wid}/"):
+                continue
+
+            # Store the full time series in custom_metrics
+            # RLlib will include these in evaluation results
+            episode.custom_metrics[key] = series
 
