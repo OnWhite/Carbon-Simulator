@@ -115,7 +115,7 @@ trainer:
   num_sgd_iter: 1
   num_workers: 0
   shuffle_sequences: true
-  sgd_minibatch_size: 200
+  sgd_minibatch_size: 1
   train_batch_size: 2
   observation_filter: NoFilter
   rollout_fragment_length: 2
