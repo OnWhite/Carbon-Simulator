@@ -522,10 +522,13 @@ if __name__ == "__main__":
                         metric = parts[2].replace("_ts", "")
                         agent_metrics[agent][metric] = values
             for agent, metrics in agent_metrics.items():
+                m=True
                 for metric_name, timesteps in metrics.items():
                     # Debug the structure
-                    logger.info(
-                        f"{agent}/{metric_name}: len={len(timesteps)}, first_item={timesteps[0] if timesteps else None}")
+                    if m:
+                        logger.info(
+                        f"{agent}/{metric_name}: {pretty_print(timesteps)}")
+                        m=False
 
                     # Flatten if nested
                     if timesteps and isinstance(timesteps[0], (list, np.ndarray)):
