@@ -403,6 +403,11 @@ class Carbon_component(BaseComponent):
             agent.state["Last_emission"] = 0
             agent.state["endogenous"]["Costs"] = 0
             agent.state["endogenous"]["Revenue"] = 0
+            agent.state["Build"] = 0.0
+            agent.state["Green_rate"] = 0.0
+            agent.state["Power_efficiency"] = 0.0
+            agent.state["Last_emission"] = 0.0
+            agent.state["Debuff"] = 0.0
             # initiate the [total research count, this year research count] be [0, 0]
             agent.state["Research_count"] = [0, 0]
 
