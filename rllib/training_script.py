@@ -525,7 +525,7 @@ if __name__ == "__main__":
                 m=True
                 for metric_name, timesteps in metrics.items():
                     # Debug the structure
-                    if m:
+                    if metric_name == "test_key":
                         logger.info(f"{agent}/{metric_name}: {str(timesteps)}")
                         m=False
 
