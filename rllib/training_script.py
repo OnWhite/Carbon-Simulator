@@ -381,11 +381,16 @@ def run_single_episode_and_plot(trainer, run_dir):
 
     for agent, metrics in agent_metrics.items():
         for metric_name, timesteps in metrics.items():
-            # Build a table: timestep, value
+            # Debug the structure
+            logger.info(
+                f"{agent}/{metric_name}: len={len(timesteps)}, first_item={timesteps[0] if timesteps else None}")
+
+            # Flatten if nested
+            if timesteps and isinstance(timesteps[0], (list, np.ndarray)):
+                timesteps = [item[0] if isinstance(item, (list, np.ndarray)) else item for item in timesteps]
+
             table = wandb.Table(columns=["timestep", metric_name])
             for t, val in enumerate(timesteps):
-                if agent=='agent_0':
-                    logger.info(f"Running {val}")
                 table.add_data(t, float(val))
 
             # Create a W&B line plot from the table
