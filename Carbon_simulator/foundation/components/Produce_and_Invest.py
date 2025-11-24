@@ -376,7 +376,6 @@ class Carbon_component(BaseComponent):
 
         for agent in world.agents:
             agent.state["Build"] = 10
-            raise Exception("Remove this line after testing")
             if self.evaluate:
                 assert self.n_agents == 5
                 if agent.idx == 0:
