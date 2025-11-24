@@ -258,6 +258,7 @@ class ResultInfoMetricsCallback(DefaultCallbacks):
 
     STEP_METRICS = {
         # name               extractor – receives the agent_info dict
+        "Reward": lambda info: info.get("endogenous", {}).get("Reward", 0.0),
         "Move": lambda info: info.get("Move", 0.0),
         "Building_count": lambda info: info.get("endogenous", {}).get("Build", 0.0),
         "Research_count": lambda info: info.get("Research_count", [0, 0])[1],
