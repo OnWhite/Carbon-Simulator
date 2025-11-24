@@ -349,7 +349,10 @@ class Carbon_env(BaseEnvironment):
         self.curr_optimization_metric = self.get_current_optimization_metrics()
 
         # reward = curr - prev objectives
-        rew = self.curr_optimization_metric.items()
+        rew = {
+            agent_id: self.curr_optimization_metric[agent_id]
+            for agent_id in self.curr_optimization_metric
+        }
 
         # Store rewards in agent state
         for agent in self.world.agents:
