@@ -149,10 +149,6 @@ class Carbon_component(BaseComponent):
             # Apply any building or research actions taken by the mobile agents
             for agent in world.get_random_order_agents():
                 if agent.idx == 0:
-                    if world.timestep==1:
-                        agent.state["Build"]=300
-                    elif world.timestep==2:
-                        continue
                     action = agent.get_component_action(self.name)
 
                     # Update the Carbon_emission_rate
@@ -241,7 +237,7 @@ class Carbon_component(BaseComponent):
                             income = self.payment * agent.state["Manufacture_volume"]
                             agent.state["inventory"]["Coin"] += income
                             agent.state["endogenous"]["Revenue"] += income
-                            agent.state["Build"] = agent.state["Manufacture_volume"]
+                            agent.state["Build"] += agent.state["Manufacture_volume"]
                             assert income > 0, income
 
                             # Incur the Labor cost and Carbon_emission for building

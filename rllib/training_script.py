@@ -628,10 +628,6 @@ if __name__ == "__main__":
 
                 logger.info("=== Finished logging results ===\n\n")
 
-                reward_result_a.append(result.get('policy_reward_mean')["a"] if result.get('policy_reward_mean') else 0)
-                reward_result_p.append(result.get('policy_reward_mean')["p"] if result.get('policy_reward_mean') else 0)
-                plot_reward(run_dir, reward_result_a, reward_result_p)
-
                 # === Dense logging ===
                 # step_last_log = maybe_store_dense_log(trainer, result, dense_log_frequency, dense_log_dir,
                 #                                     step_last_log)
@@ -647,13 +643,6 @@ if __name__ == "__main__":
             saving.save_model_weights(trainer, ckpt_dir, global_step, suffix="agent")
             saving.save_model_weights(trainer, ckpt_dir, global_step, suffix="planner")
             logger.info("Final snapshot saved! All done.")
-
-        logger.info("Running final DP comparison...")
-        final_comparison = run_dp_comparison(trainer, run_config, run_dir)
-        run_single_episode_and_plot(trainer, run_dir)
-
-        with open(os.path.join(run_dir, "dp_comparison.json"), "w") as f:
-            json.dump(final_comparison, f, indent=2)
     finally:
         # ray.timeline(os.path.join(run_dir, "timeline.json"))
         ray.shutdown()

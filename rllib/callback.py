@@ -261,13 +261,13 @@ class ResultInfoMetricsCallback(DefaultCallbacks):
         "Research_count": lambda info: info.get("Research_count", [0, 0])[1],
         "Manufacture_volume": lambda info: info.get("Manufacture_volume",-42),
         "Cum_Punishment": lambda info: info.get("Cum_Punishment",-42),
-        "Move": lambda info: info.get("Move", -42),
-        "Carbon_project": lambda info: info.get("inventory", {}).get("Carbon_project",-42),
+        "Tot_Move": lambda info: info.get("Move", -42),
+        "Tot_Carbon_project": lambda info: info.get("inventory", {}).get("Carbon_project",-42),
         "Carbon_idx": lambda info: info.get("inventory", {}).get("Carbon_idx",-42),
         "Emission_rate": lambda info: info.get("Carbon_emission_rate",-42),
         "CoinEndowment": lambda info: info.get("endogenous", {}).get("CoinEndowment", -42),
         "Coin": lambda info: info.get("inventory", {}).get("Coin", -42),
-        "Building_count": lambda info: info.get("Build", -42),
+        "Tot_Build": lambda info: info.get("Build", -42),
         "Power_efficiency": lambda info: info.get("Power_efficiency",-42),
         "Green_rate": lambda info: info.get("Green_rate",-42),
         "Startidx": lambda info: info.get("inventory", {}).get("Startidx",-42),
@@ -338,9 +338,7 @@ class ResultInfoMetricsCallback(DefaultCallbacks):
                     continue
                 key = f"worker_{wid}/agent_{agent_id}/{name}_ts"
                 episode.hist_data.setdefault(key, []).append(value)
-            if agent_id==0:
-                episode.hist_data.setdefault("build", []).append(
-                    agent_info.get('Build', -443))
+
 
     def on_episode_end(
             self, *, worker, base_env, policies, episode: Episode, env_index: Optional[int] = None, **kwargs

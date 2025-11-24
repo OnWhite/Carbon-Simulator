@@ -349,10 +349,7 @@ class Carbon_env(BaseEnvironment):
         self.curr_optimization_metric = self.get_current_optimization_metrics()
 
         # reward = curr - prev objectives
-        rew = {
-            k: float(v - utility_at_end_of_last_time_step[k])
-            for k, v in self.curr_optimization_metric.items()
-        }
+        rew = self.curr_optimization_metric.items()
 
         # Store rewards in agent state
         for agent in self.world.agents:
