@@ -147,12 +147,16 @@ def build_trainer(run_configuration, tune_params=None):
     def logger_creator(config):
         return NoopLogger({}, "/tmp")
 
-    from ray.rllib.algorithms.callbacks import MultiCallbacks
-
-    ppo_trainer = PPOConfig().update_from_dict(trainer_config).callbacks(
-        lambda: InfoMetricsCallback(worker_id=1)).reporting(keep_per_episode_custom_metrics=False,
-                                                            metrics_num_episodes_for_smoothing=1).build(
-        env=RLlibEnvWrapper, logger_creator=logger_creator)
+    if run_config["general"].get("eval_only", False):
+        ppo_trainer = PPOConfig().update_from_dict(trainer_config).callbacks(
+            lambda: ResultInfoMetricsCallback(worker_id=1)).reporting(keep_per_episode_custom_metrics=False,
+                                                                      metrics_num_episodes_for_smoothing=1).build(
+            env=RLlibEnvWrapper, logger_creator=logger_creator)
+    else:
+        ppo_trainer = PPOConfig().update_from_dict(trainer_config).callbacks(
+            lambda: InfoMetricsCallback(worker_id=1)).reporting(keep_per_episode_custom_metrics=False,
+                                                                metrics_num_episodes_for_smoothing=1).build(
+            env=RLlibEnvWrapper, logger_creator=logger_creator)
     return ppo_trainer
 
 
@@ -355,7 +359,6 @@ def create_unique_temp_dir():
 def run_single_episode_and_plot(trainer, run_dir):
     """Run one episode and log line plots via wandb.Table + wandb.plot."""
 
-
     logger.info("Running final detailed episode...")
 
     eval_results = trainer.evaluate()
@@ -513,7 +516,7 @@ if __name__ == "__main__":
             for key, values in hist_data.items():
                 if not isinstance(values, list) or len(values) == 0:
                     continue
-                if key=='build':
+                if key == 'build':
                     logger.info("Made it here 1")
                     logger.info(f"{key}: {str(values)}")
                 if "_ts" in key:
@@ -523,15 +526,14 @@ if __name__ == "__main__":
                         metric = parts[2].replace("_ts", "")
                         agent_metrics[agent][metric] = values
 
-                    if agent=='agent_0':
+                    if agent == 'agent_0':
                         logger.info("Made it here 2")
                         logger.info(f"{key}: {str(values)}")
 
             for agent, metrics in agent_metrics.items():
-                m=True
+                m = True
                 for metric_name, timesteps in metrics.items():
                     # Debug the structure
-
 
                     # Flatten if nested
                     if timesteps and isinstance(timesteps[0], (list, np.ndarray)):
