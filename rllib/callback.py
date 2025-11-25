@@ -277,6 +277,7 @@ class ResultInfoMetricsCallback(DefaultCallbacks):
         "PastUtility": lambda info: info.get("endogenous", {}).get("PastUtility", -42),
         "Research_ability": lambda info: info.get("Research_ability", -42),
         "MoveLabor": lambda info: info.get("MoveLabor", -42),
+        "Labor": lambda info: info.get("endogenous", {}).get("Labor", -42),
 
     }
 
