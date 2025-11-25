@@ -358,7 +358,7 @@ class Carbon_env(BaseEnvironment):
         for agent in self.world.agents:
             agent.state["endogenous"]["Reward"] = rew[agent.idx]
             agent.state["endogenous"]["CurrentUtility"] = self.curr_optimization_metric[agent.idx]
-            agent.state["endogenous"]["PastUtility"] = utility_at_end_of_last_time_step[agent.idx]
+            agent.state["endogenous"]["PastUtility"] = self.world.timestep
 
         self.world.planner.state["endogenous"]["Reward"] = rew[self.world.planner.idx]
 
@@ -368,7 +368,7 @@ class Carbon_env(BaseEnvironment):
         avg_agent_rew = np.mean([rew[a.idx] for a in self.world.agents])
 
 
-        self._auto_warmup_integrator += 1
+        self._auto_warmup_integrator = self.world.timestep
 
         return rew
 
