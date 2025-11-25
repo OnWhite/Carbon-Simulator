@@ -10,7 +10,6 @@ from callback import InfoMetricsCallback, ProfilingCallbacks, ResultInfoMetricsC
 import matplotlib.pyplot as plt
 import numpy as np
 import wandb
-from rllib.Comparisons import eval_marl, eval_dp
 from rllib.DP.DynamicProgram import DPImpl, load_config
 from rllib.RL.CarbonEnv import CarbonEnv
 from rllib.RL.train_file import compare_rl_vs_dp, compare_rl_to_dp
@@ -354,99 +353,6 @@ def create_unique_temp_dir():
     temp_dir = f"/tmp/ray_{timestamp}"
     os.makedirs(temp_dir, exist_ok=True)
     return temp_dir
-
-
-def run_single_episode_and_plot(trainer, run_dir):
-    """Run one episode and log line plots via wandb.Table + wandb.plot."""
-
-    logger.info("Running final detailed episode...")
-
-    eval_results = trainer.evaluate()
-    hist_data = eval_results.get("evaluation", {}).get("hist_stats", {})
-
-    logger.info(f"Available hist_data keys: {list(hist_data.keys())}")
-
-    agent_metrics = defaultdict(lambda: defaultdict(list))
-
-    for key, values in hist_data.items():
-        if not isinstance(values, list) or len(values) == 0:
-            continue
-
-        if "_ts" in key:
-            parts = key.split("/")
-            if len(parts) >= 3:
-                agent = parts[1]
-                metric = parts[2].replace("_ts", "")
-                agent_metrics[agent][metric] = values
-
-    if not agent_metrics:
-        logger.warning("No timestep metrics found! Check ResultInfoMetricsCallback output.")
-        return
-
-    for agent, metrics in agent_metrics.items():
-        for metric_name, timesteps in metrics.items():
-            # Debug the structure
-            logger.info(
-                f"{agent}/{metric_name}: len={len(timesteps)}, first_item={timesteps[0] if timesteps else None}")
-
-            # Flatten if nested
-            if timesteps and isinstance(timesteps[0], (list, np.ndarray)):
-                timesteps = [item[0] if isinstance(item, (list, np.ndarray)) else item for item in timesteps]
-
-            table = wandb.Table(columns=["timestep", metric_name])
-            for t, val in enumerate(timesteps):
-                table.add_data(t, float(val))
-
-            # Create a W&B line plot from the table
-            line_plot = wandb.plot.line(
-                table,
-                x="timestep",
-                y=metric_name,
-                title=f"{agent} - {metric_name}",
-            )
-
-            wandb.log({
-                f"final_episode/{agent}/{metric_name}": line_plot
-            })
-
-    logger.info(f"Final episode line plots logged to wandb ({len(agent_metrics)} agents)")
-
-
-def run_dp_comparison(trainer, run_config, run_dir):
-    """Compare RL policy against DP baseline."""
-
-    logger.info("Running DP comparison...")
-
-    # === FIX-1: DP uses its own environment (CarbonEnv), MARL uses RLlibEnvWrapper ===
-    config_path = pathlib.Path(__file__).resolve().parent / "DP" / "config.yaml"
-    dp = DPImpl(load_config(pathlib.Path(config_path)))
-    dp.solve_mdp()
-
-    # DP environment (simple analytical env)
-    dp_env = CarbonEnv({"config_path": str(config_path)})
-
-    # MARL environment (multiagent wrapper with correct observation structure)
-    marl_env = RLlibEnvWrapper({
-        "env_config_dict": run_config.get("env"),
-        "num_envs_per_worker": 1,  # single rollout for eval
-    })
-
-    # === FIX-2: Use the correct environments for each evaluation ===
-    reward, marl_mean, marl_std = eval_marl(trainer, marl_env, 20)  # MARL on RLlibEnvWrapper
-    dp_mean, dp_std = eval_dp(dp, dp_env)  # DP on CarbonEnv
-
-    # === FIX-3: return structured JSON, not a long string ===
-    comparison_results = {
-        "marl_mean": float(marl_mean),
-        "marl_std": float(marl_std),
-        "dp_mean": float(dp_mean),
-        "dp_std": float(dp_std),
-        "difference": float(marl_mean - dp_mean),
-        "MARL_rewards": reward.tolist(),
-    }
-
-    logger.info("DP comparison completed.")
-    return comparison_results
 
 
 if __name__ == "__main__":
