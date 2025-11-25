@@ -313,9 +313,9 @@ class ResultInfoMetricsCallback(DefaultCallbacks):
         for agent_id, agent_info in infos.items():
             if agent_id == 'p':
                 punishment = agent_info.get("punishment", [])
-                episode.hist_data.setdefault(f"punishment", []).append(punishment)
+                episode.hist_data.setdefault(f"punishment_ts", []).append(punishment)
                 envidx= agent_info.get('env_idx',[])
-                episode.hist_data.setdefault(f"env_idx", []).append(envidx)
+                episode.hist_data.setdefault(f"env_idx_ts", []).append(envidx)
                 mobile_idx_list = agent_info.get("mobile_idx", [])
                 for i, v in enumerate(mobile_idx_list):
                     episode.hist_data.setdefault(f"worker_{wid}/agent_{i}/Certificates_Allocated_ts", []

@@ -435,9 +435,9 @@ if __name__ == "__main__":
                     if agent == 'agent_0':
                         logger.info("Made it here 2")
                         logger.info(f"{key}: {str(values)}")
-                    if key=='punishment':
+                    if key=='punishment_ts':
                         logger.info(f"{key}: {str(values)}")
-                    elif key =='env_idx':
+                    elif key =='env_idx_ts':
                         logger.info(f"{key}: {str(values)}")
 
             for agent, metrics in agent_metrics.items():
