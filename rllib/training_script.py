@@ -420,8 +420,13 @@ if __name__ == "__main__":
             agent_metrics = defaultdict(lambda: defaultdict(list))
 
             for key, values in hist_data.items():
+                if key == 'punishment_ts':
+                    logger.info(f"{key}: {str(values)}")
+                elif key == 'env_idx_ts':
+                    logger.info(f"{key}: {str(values)}")
                 if not isinstance(values, list) or len(values) == 0:
                     continue
+
                 if key == 'build':
                     logger.info("Made it here 1")
                     logger.info(f"{key}: {str(values)}")
