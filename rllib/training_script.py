@@ -513,12 +513,6 @@ if __name__ == "__main__":
                     "episodes_total": result["episodes_total"],
                     "reward/agent": result.get("policy_reward_mean", {}).get("a", 0),
                     "reward/planner": result.get("policy_reward_mean", {}).get("p", 0),
-                    "worker_1/agent_0/Tot_Startidx_min": result["custom_metrics"].get(
-                        "worker_1/agent_0/Tot_Startidx_min"),
-                    "worker_1/agent_0/Tot_Startidx_max": logger.info(
-                        result["custom_metrics"].get("worker_1/agent_0/Tot_Startidx_max")),
-                    "worker_1/agent_0/Tot_Startidx_mean": logger.info(
-                        result["custom_metrics"].get("worker_1/agent_0/Tot_Startidx_mean")),
                     **metrics
                 }, step=result["episodes_total"])  # <-- add step to align by episode"""
 
@@ -527,9 +521,6 @@ if __name__ == "__main__":
                 global_step = result["timesteps_total"]
                 curr_iter = result["training_iteration"]
                 logger.info("=== Iteration %d results ===", curr_iter)
-                logger.info(result["custom_metrics"].get("worker_1/agent_0/Tot_Startidx_min"))
-                logger.info(result["custom_metrics"].get("worker_1/agent_0/Tot_Startidx_max"))
-                logger.info(result["custom_metrics"].get("worker_1/agent_0/Tot_Startidx_mean"))
                 logger.info(result["custom_metrics"].get("worker_1/agent_0/Tot_Certificates_Allocated_min"))
                 logger.info(result["custom_metrics"].get("worker_1/agent_0/Tot_Certificates_Allocated_max"))
                 logger.info(result["custom_metrics"].get("worker_1/agent_0/Tot_Certificates_Allocated_mean"))
