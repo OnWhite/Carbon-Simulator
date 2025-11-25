@@ -125,7 +125,7 @@ class Carbon_component(BaseComponent):
             return {}
         if agent_cls_name == "BasicMobileAgent":
             return {"Manufacture_volume": 1.0, "Research_ability": 1, "Carbon_emission_rate": 1, "Start_Er": 1,
-                    "Research_count": [0, 0], "Research_history": [0] * max(self.delay, self.forget),  "Power_efficiency": 1.0,
+                    "Research_count": [0, 0], "Research_history": [0] * (max(self.delay, self.forget)+1),  "Power_efficiency": 1.0,
         "Green_rate": 1.0, "ResearchCount":0.0, "Last_emission":0.0, "Build":0.0, "Debuff":0.0}
         raise NotImplementedError
 
@@ -210,12 +210,6 @@ class Carbon_component(BaseComponent):
                         # Calculate the Carbon_emission
                         Carbon_emission = self.require_Carbon_idx * agent.state["Manufacture_volume"] * agent.state[
                             "Carbon_emission_rate"]
-
-                        # Get debuff
-                        for public, health in world.location_public(loc_r, loc_c).items():
-                            if public == "Carbon_pollution" and health >= 1:
-                                Carbon_emission = (1 + self.debuff) * Carbon_emission
-                                agent.state["Debuff"] += 1
 
                         # Update Carbon_idx
                         agent.state["inventory"]["Carbon_idx"] -= Carbon_emission
@@ -389,8 +383,8 @@ class Carbon_component(BaseComponent):
                     raise ValueError(agent.idx)
             else:
                 # 0.5 ~ PMSM, 0.1.0.0
-                agent.state["Research_ability"] = random.choice([1.0, 1.2, 1.4, 1.6])
-                agent.state["Manufacture_volume"] = random.choice([1.0, 1.2, 1.4, 1.6])
+                agent.state["Research_ability"] = 1.0
+                agent.state["Manufacture_volume"] = 1.0
 
             # initiate the Carbon_emission_rate be 1.0.0.0
             agent.state["Carbon_emission_rate"] = 1.0
@@ -400,10 +394,15 @@ class Carbon_component(BaseComponent):
             agent.state["Last_emission"] = 0
             agent.state["endogenous"]["Costs"] = 0
             agent.state["endogenous"]["Revenue"] = 0
+            agent.state["Green_rate"] = 0.0
+            agent.state["Power_efficiency"] = 0.0
+            agent.state["Last_emission"] = 0.0
+            agent.state["Debuff"] = 0.0
+            agent.state["endogenous"]["Build"] = 0.0
             # initiate the [total research count, this year research count] be [0, 0]
             agent.state["Research_count"] = [0, 0]
 
-            agent.state["Research_history"] = [0] * max(self.delay, self.forget)
+            agent.state["Research_history"] = agent.state["Research_history"] = [0] * (max(self.delay, self.forget) + 1)
 
         self.Manufactures = {"builds": [], "research": []}
 

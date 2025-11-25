@@ -4,12 +4,18 @@ import logging
 import os
 import ray
 import sys
+from collections import defaultdict
 import time
 from callback import InfoMetricsCallback, ProfilingCallbacks, ResultInfoMetricsCallback
 import matplotlib.pyplot as plt
 import numpy as np
 import wandb
-from callback import EpisodeInfoCallback
+from rllib.Comparisons import eval_marl, eval_dp
+from rllib.DP.DynamicProgram import DPImpl, load_config
+from rllib.RL.CarbonEnv import CarbonEnv
+from rllib.RL.train_file import compare_rl_vs_dp, compare_rl_to_dp
+import json
+
 import shutil
 
 wandb.login(key="2c1f8f77f938086f691891b269af9d5e4925c425")
@@ -128,10 +134,12 @@ def build_trainer(run_configuration, tune_params=None):
                                           * trainer_config.get("num_envs_per_worker"),
             "evaluation_interval": None,  # Don't auto-evaluate during training
             "evaluation_duration": 1,  # Run 1 episode when evaluate() is called
-            "evaluation_num_workers": 1,  # Changed from 0 to 1 - creates eval worker
+            "evaluation_duration_unit": "episodes",
+            "evaluation_num_workers": 1,
+            "create_env_on_driver": True,
             "evaluation_config": {
                 "explore": False,
-                "callbacks": lambda: InfoMetricsCallback(worker_id=0),
+                "callbacks": lambda: ResultInfoMetricsCallback(worker_id=1),
             },
         }
     )
@@ -139,12 +147,16 @@ def build_trainer(run_configuration, tune_params=None):
     def logger_creator(config):
         return NoopLogger({}, "/tmp")
 
-    from ray.rllib.algorithms.callbacks import MultiCallbacks
-
-    ppo_trainer = PPOConfig().update_from_dict(trainer_config).callbacks(
-        lambda: InfoMetricsCallback(worker_id=1)).reporting(keep_per_episode_custom_metrics=False,
-                                                            metrics_num_episodes_for_smoothing=1).build(
-        env=RLlibEnvWrapper, logger_creator=logger_creator)
+    if run_config["general"].get("eval_only", False):
+        ppo_trainer = PPOConfig().update_from_dict(trainer_config).callbacks(
+            lambda: ResultInfoMetricsCallback(worker_id=1)).reporting(keep_per_episode_custom_metrics=False,
+                                                                      metrics_num_episodes_for_smoothing=1).build(
+            env=RLlibEnvWrapper, logger_creator=logger_creator)
+    else:
+        ppo_trainer = PPOConfig().update_from_dict(trainer_config).callbacks(
+            lambda: InfoMetricsCallback(worker_id=1)).reporting(keep_per_episode_custom_metrics=False,
+                                                                metrics_num_episodes_for_smoothing=1).build(
+            env=RLlibEnvWrapper, logger_creator=logger_creator)
     return ppo_trainer
 
 
@@ -345,59 +357,96 @@ def create_unique_temp_dir():
 
 
 def run_single_episode_and_plot(trainer, run_dir):
-    """Run one episode with detailed logging and plot timestep graphs to wandb."""
-    import matplotlib.pyplot as plt
-    from collections import defaultdict
+    """Run one episode and log line plots via wandb.Table + wandb.plot."""
 
     logger.info("Running final detailed episode...")
 
-    # Call evaluate() without arguments - it uses the trainer's evaluation config
     eval_results = trainer.evaluate()
-
-    # Extract timestep data from evaluation/hist_stats
     hist_data = eval_results.get("evaluation", {}).get("hist_stats", {})
 
-    # Debug: log what keys are available
     logger.info(f"Available hist_data keys: {list(hist_data.keys())}")
 
-    # Group metrics by agent and metric name
     agent_metrics = defaultdict(lambda: defaultdict(list))
 
     for key, values in hist_data.items():
         if not isinstance(values, list) or len(values) == 0:
             continue
 
-        # Keys are formatted as: evaluation/agent_X/MetricName_ts or evaluation/p/MetricName_ts
         if "_ts" in key:
             parts = key.split("/")
             if len(parts) >= 3:
-                agent = parts[1]  # e.g., "agent_0" or "p"
-                metric = parts[2].replace("_ts", "")  # e.g., "CoinEndowment"
+                agent = parts[1]
+                metric = parts[2].replace("_ts", "")
                 agent_metrics[agent][metric] = values
 
-    # Plot and log each metric to wandb
     if not agent_metrics:
         logger.warning("No timestep metrics found! Check ResultInfoMetricsCallback output.")
         return
 
     for agent, metrics in agent_metrics.items():
         for metric_name, timesteps in metrics.items():
-            plt.figure(figsize=(12, 6))
-            plt.plot(timesteps, linewidth=1.5)
-            plt.xlabel("Timestep", fontsize=12)
-            plt.ylabel(metric_name, fontsize=12)
-            plt.title(f"{agent} - {metric_name}", fontsize=14)
-            plt.grid(True, alpha=0.3)
+            # Debug the structure
+            logger.info(
+                f"{agent}/{metric_name}: len={len(timesteps)}, first_item={timesteps[0] if timesteps else None}")
 
-            # Log to wandb
-            wandb.log({f"final_episode/{agent}/{metric_name}": wandb.Image(plt)})
-            plt.close()
+            # Flatten if nested
+            if timesteps and isinstance(timesteps[0], (list, np.ndarray)):
+                timesteps = [item[0] if isinstance(item, (list, np.ndarray)) else item for item in timesteps]
 
-    logger.info(f"Final episode plots logged to wandb ({len(agent_metrics)} agents)")
+            table = wandb.Table(columns=["timestep", metric_name])
+            for t, val in enumerate(timesteps):
+                table.add_data(t, float(val))
+
+            # Create a W&B line plot from the table
+            line_plot = wandb.plot.line(
+                table,
+                x="timestep",
+                y=metric_name,
+                title=f"{agent} - {metric_name}",
+            )
+
+            wandb.log({
+                f"final_episode/{agent}/{metric_name}": line_plot
+            })
+
+    logger.info(f"Final episode line plots logged to wandb ({len(agent_metrics)} agents)")
 
 
-class ConvRnnModel:
-    pass
+def run_dp_comparison(trainer, run_config, run_dir):
+    """Compare RL policy against DP baseline."""
+
+    logger.info("Running DP comparison...")
+
+    # === FIX-1: DP uses its own environment (CarbonEnv), MARL uses RLlibEnvWrapper ===
+    config_path = pathlib.Path(__file__).resolve().parent / "DP" / "config.yaml"
+    dp = DPImpl(load_config(pathlib.Path(config_path)))
+    dp.solve_mdp()
+
+    # DP environment (simple analytical env)
+    dp_env = CarbonEnv({"config_path": str(config_path)})
+
+    # MARL environment (multiagent wrapper with correct observation structure)
+    marl_env = RLlibEnvWrapper({
+        "env_config_dict": run_config.get("env"),
+        "num_envs_per_worker": 1,  # single rollout for eval
+    })
+
+    # === FIX-2: Use the correct environments for each evaluation ===
+    reward, marl_mean, marl_std = eval_marl(trainer, marl_env, 20)  # MARL on RLlibEnvWrapper
+    dp_mean, dp_std = eval_dp(dp, dp_env)  # DP on CarbonEnv
+
+    # === FIX-3: return structured JSON, not a long string ===
+    comparison_results = {
+        "marl_mean": float(marl_mean),
+        "marl_std": float(marl_std),
+        "dp_mean": float(dp_mean),
+        "dp_std": float(dp_std),
+        "difference": float(marl_mean - dp_mean),
+        "MARL_rewards": reward.tolist(),
+    }
+
+    logger.info("DP comparison completed.")
+    return comparison_results
 
 
 if __name__ == "__main__":
@@ -425,7 +474,6 @@ if __name__ == "__main__":
             project="Minimal_Testing",
             name="gettingmetricsright",
             config=run_config,
-            # {'env': {'n_agents': 5, 'world_size': [40, 40], 'episode_length': 500, 'period': 50, 'multi_action_mode_agents': False, 'multi_action_mode_planner': True, 'flatten_observations': True, 'flatten_masks': True, 'scenario_name': 'Carbon/Carbon_env', 'components': [{'CarbonTaxation': {'planner_mode': 'active', 'total_idx': 200, 'max_year_percent': 25, 'years_predefined': 'flat', 'agents_predefined': 'grandfathering_ml'}}, {'Carbon_component': {'payment': 10, 'require_Carbon_idx': 1, 'lowest_rate': 0.02, 'research_setting': ['e^-', 0.1], 'random_fails': 0.3, 'delay': 5, 'forget': 25}}, {'Carbon_auction': {'max_bid_ask': 20, 'max_num_orders': 5, 'order_duration': 10}}, {'Gather': {'collect_labor': 30, 'collect_cost_coin': 10}}], 'dense_log_frequency': 20, 'isoelastic_eta': 0.23, 'energy_cost': 0.1, 'energy_warmup_constant': 10000, 'energy_warmup_method': 'auto', 'starting_agent_coin': 20, 'mobile_coefficient': 20}, 'general': {'ckpt_frequency_steps': 500, 'cpus': 8, 'episodes': 50000, 'gpus': 0, 'restore_weights_agents': '', 'restore_weights_planner': '', 'train_planner': False, 'fix_mobile': False, 'dense_log_frequency': 250}, 'agent_policy': {'clip_param': 0.3, 'entropy_coeff': 0.025, 'entropy_coeff_schedule': None, 'gamma': 0.998, 'grad_clip': 10.0, 'kl_coeff': 0.0, 'kl_target': 0.01, 'lambda': 0.98, 'lr': 5e-05, 'lr_schedule': None, 'use_gae': True, 'vf_clip_param': 50.0, 'vf_loss_coeff': 0.05, 'vf_share_layers': False, 'model': {'custom_model': 'Conv_Rnn', 'custom_model_config': {'input_emb_vocab': 20, 'idx_emb_dim': 5, 'num_conv': 2, 'num_fc': 2, 'cell_size': 128}, 'max_seq_len': 50}}, 'planner_policy': {'clip_param': 0.3, 'entropy_coeff': 0.125, 'entropy_coeff_schedule': [[0, 2.0], [50000000, 0.125]], 'gamma': 0.998, 'grad_clip': 10.0, 'kl_coeff': 0.0, 'kl_target': 0.01, 'lambda': 0.98, 'lr': 1e-05, 'lr_schedule': None, 'use_gae': True, 'vf_clip_param': 50.0, 'vf_loss_coeff': 0.05, 'vf_share_layers': False, 'model': {'custom_model': 'Conv_Rnn', 'custom_model_config': {'input_emb_vocab': 20, 'idx_emb_dim': 5, 'num_conv': 2, 'num_fc': 2, 'cell_size': 256}, 'max_seq_len': 100}}, 'trainer': {'batch_mode': 'truncate_episodes', 'env_config': None, 'multiagent': None, 'seed': 22635000, 'num_gpus': 0, 'num_envs_per_worker': 2, 'num_sgd_iter': 1, 'num_workers': 7, 'shuffle_sequences': True, 'sgd_minibatch_size': 1000, 'train_batch_size': 3500, 'observation_filter': 'NoFilter', 'rollout_fragment_length': 250}}
             dir=run_dir  # '/Users/work/PycharmProjects/Carbon-Simulator/rllib/exp/defuat'
         )
 
@@ -456,26 +504,58 @@ if __name__ == "__main__":
         if run_config["general"].get("eval_only", False):
             logger.info("Running in evaluation-only mode — no training will occur.")
 
-            eval_results = trainer.evaluate(
-                evaluation_config={
-                    "explore": False,
-                    "num_workers": 0,  # local eval
-                    "callbacks": lambda: EpisodeInfoCallback(worker_id=0),
-                },
-            )
+            eval_results = trainer.evaluate()
 
             eval_data = eval_results.get("evaluation", {})
-            metrics = log_custom_metrics(eval_data)
+            hist_data = eval_results.get("evaluation", {}).get("hist_stats", {})
 
-            wandb.log({
-                "evaluation/episode_reward_mean": eval_data.get("episode_reward_mean", 0),
-                "evaluation/episode_len_mean": eval_data.get("episode_len_mean", 0),
-                "evaluation/reward/agent": eval_data.get("policy_reward_mean", {}).get("a", 0),
-                "evaluation/reward/planner": eval_data.get("policy_reward_mean", {}).get("p", 0),
-                **metrics,
-            })
+            logger.info(f"Available hist_data keys: {list(hist_data.keys())}")
 
-            logger.info(pretty_print(eval_results))
+            agent_metrics = defaultdict(lambda: defaultdict(list))
+
+            for key, values in hist_data.items():
+                if not isinstance(values, list) or len(values) == 0:
+                    continue
+                if key == 'build':
+                    logger.info("Made it here 1")
+                    logger.info(f"{key}: {str(values)}")
+                if "_ts" in key:
+                    parts = key.split("/")
+                    if len(parts) >= 3:
+                        agent = parts[1]
+                        metric = parts[2].replace("_ts", "")
+                        agent_metrics[agent][metric] = values
+
+                    if agent == 'agent_0':
+                        logger.info("Made it here 2")
+                        logger.info(f"{key}: {str(values)}")
+
+            for agent, metrics in agent_metrics.items():
+                m = True
+                for metric_name, timesteps in metrics.items():
+                    # Debug the structure
+
+                    # Flatten if nested
+                    if timesteps and isinstance(timesteps[0], (list, np.ndarray)):
+                        timesteps = [item[0] if isinstance(item, (list, np.ndarray)) else item for item in timesteps]
+
+                    table = wandb.Table(columns=["timestep", metric_name])
+                    for t, val in enumerate(timesteps):
+                        table.add_data(t, float(val))
+
+                    # Create a W&B line plot from the table
+                    line_plot = wandb.plot.line(
+                        table,
+                        x="timestep",
+                        y=metric_name,
+                        title=f"{agent} - {metric_name}",
+                    )
+
+                    wandb.log({
+                        f"final_episode/{agent}/{metric_name}": line_plot
+                    })
+
+            logger.info(f"Final episode line plots logged to wandb ({len(agent_metrics)} agents)")
             sys.exit(0)
         if False:
             search_space = {
@@ -527,21 +607,28 @@ if __name__ == "__main__":
                     "episodes_total": result["episodes_total"],
                     "reward/agent": result.get("policy_reward_mean", {}).get("a", 0),
                     "reward/planner": result.get("policy_reward_mean", {}).get("p", 0),
+                    "worker_1/agent_0/Tot_Startidx_min": result["custom_metrics"].get(
+                        "worker_1/agent_0/Tot_Startidx_min"),
+                    "worker_1/agent_0/Tot_Startidx_max": logger.info(
+                        result["custom_metrics"].get("worker_1/agent_0/Tot_Startidx_max")),
+                    "worker_1/agent_0/Tot_Startidx_mean": logger.info(
+                        result["custom_metrics"].get("worker_1/agent_0/Tot_Startidx_mean")),
                     **metrics
-                }, step=result["episodes_total"])  # <-- add step to align by episode
+                }, step=result["episodes_total"])  # <-- add step to align by episode"""
 
                 # === Counters++ ===
                 num_parallel_episodes_done = result["episodes_total"]
                 global_step = result["timesteps_total"]
                 curr_iter = result["training_iteration"]
-
                 logger.info("=== Iteration %d results ===", curr_iter)
-                logger.info(pretty_print(result["custom_metrics"]))
-                logger.info("=== Finished logging results ===\n\n")
+                logger.info(result["custom_metrics"].get("worker_1/agent_0/Tot_Startidx_min"))
+                logger.info(result["custom_metrics"].get("worker_1/agent_0/Tot_Startidx_max"))
+                logger.info(result["custom_metrics"].get("worker_1/agent_0/Tot_Startidx_mean"))
+                logger.info(result["custom_metrics"].get("worker_1/agent_0/Tot_Certificates_Allocated_min"))
+                logger.info(result["custom_metrics"].get("worker_1/agent_0/Tot_Certificates_Allocated_max"))
+                logger.info(result["custom_metrics"].get("worker_1/agent_0/Tot_Certificates_Allocated_mean"))
 
-                reward_result_a.append(result.get('policy_reward_mean')["a"] if result.get('policy_reward_mean') else 0)
-                reward_result_p.append(result.get('policy_reward_mean')["p"] if result.get('policy_reward_mean') else 0)
-                plot_reward(run_dir, reward_result_a, reward_result_p)
+                logger.info("=== Finished logging results ===\n\n")
 
                 # === Dense logging ===
                 # step_last_log = maybe_store_dense_log(trainer, result, dense_log_frequency, dense_log_dir,
@@ -551,8 +638,7 @@ if __name__ == "__main__":
                 step_last_ckpt = maybe_save(
                     trainer, result, ckpt_frequency, ckpt_dir, step_last_ckpt
                 )
-            #run_single_episode_and_plot(trainer, run_dir)
-
+            # run_single_episode_and_plot(trainer, run_dir)
             # Finish up
             logger.info("Completing! Saving final snapshot...\n\n")
             # saving.save_snapshot(trainer, ckpt_dir)
