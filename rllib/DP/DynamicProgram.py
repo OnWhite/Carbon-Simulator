@@ -535,7 +535,7 @@ def isoelastic_coin_minus_labor(
         else:
             util_c = coin_endowment - 1
     util_l = total_labor * labor_coefficient
-    return float(util_c - util_l)
+    return float(util_c-util_l)
 
 
 def load_config(path: Path) -> Dict[str, Any]:
@@ -674,7 +674,7 @@ def print_optimal_trajectory(dp):
         next_state = dp.state_transition(action, state)
 
         print(f"  → Next State = {next_state}")
-
+        print(f"Reward = {dp.reward(next_state):.2f}")
         state = next_state
 
 

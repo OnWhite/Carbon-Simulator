@@ -84,7 +84,7 @@ class Carbon_env(BaseEnvironment):
         if self.energy_warmup_method == "auto":
             return float(
                 1.0
-                - np.exp(-self._auto_warmup_integrator / self.energy_warmup_constant)
+                - np.exp(-self.world.timestep / self.energy_warmup_constant)
             )
 
         raise NotImplementedError
@@ -116,7 +116,7 @@ class Carbon_env(BaseEnvironment):
                 else:  # isoelastic_eta >= 0
                     if np.all(agent.total_endowment("Coin") >= 0):
                         util_c = (agent.total_endowment("Coin") ** (1 - self.isoelastic_eta) - 1) / (
-                                    1 - self.isoelastic_eta)
+                                1 - self.isoelastic_eta)
                     else:
                         util_c = agent.total_endowment("Coin") - 1
 
@@ -125,6 +125,14 @@ class Carbon_env(BaseEnvironment):
                 agent.state["endogenous"]["LaborUtility"] = util_l
                 agent.state["endogenous"]["CoinUtility"] = util_c
                 agent.state["endogenous"]["CoinEndowment"] = agent.total_endowment("Coin")
+                agent.state["endogenous"]["CurrentUtility"] = float(
+                    1.0
+                    - np.exp(-self.world.timestep / self.energy_warmup_constant)
+                ) * self.energy_cost
+                agent.state["endogenous"]["PastUtility"] = float(
+                    1.0
+                    - np.exp(-self._auto_warmup_integrator / self.energy_warmup_constant)
+                ) * self.energy_cost
 
         # (for the planner)
         curr_optimization_metric[self.world.planner.idx] = rewards.planner_strategy(
@@ -359,18 +367,11 @@ class Carbon_env(BaseEnvironment):
         # Store rewards in agent state
         for agent in self.world.agents:
             agent.state["endogenous"]["Reward"] = rew[agent.idx]
-            agent.state["endogenous"]["CurrentUtility"] = self.curr_optimization_metric[agent.idx]
-            agent.state["endogenous"]["PastUtility"] = utility_at_end_of_last_time_step[agent.idx]
 
         self.world.planner.state["endogenous"]["Reward"] = rew[self.world.planner.idx]
 
         # store the previous objective values
         self.prev_optimization_metric.update(utility_at_end_of_last_time_step)
-
-        avg_agent_rew = np.mean([rew[a.idx] for a in self.world.agents])
-
-        if avg_agent_rew > 0:
-            self._auto_warmup_integrator += 1
 
         return rew
 
