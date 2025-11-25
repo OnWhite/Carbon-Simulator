@@ -367,8 +367,8 @@ class Carbon_env(BaseEnvironment):
 
         avg_agent_rew = np.mean([rew[a.idx] for a in self.world.agents])
 
-        if avg_agent_rew > 0:
-            self._auto_warmup_integrator += 1
+
+        self._auto_warmup_integrator += 1
 
         return rew
 
