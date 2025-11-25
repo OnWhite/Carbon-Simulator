@@ -77,14 +77,14 @@ def compare_rl_vs_dp(rl_algo, dp_instance, env, n_eval_episodes=20):
         truncated = False
         rl_obs = obs.copy()
 
-        while not (done or truncated):
+        """while not (done or truncated):
             action = rl_algo.compute_single_action(rl_obs, explore=False)
             rl_obs, reward, done, truncated, info = env.step(action)
             rl_ep_return += reward
             print(env._obs_to_state(rl_obs))
             print(action)
             print(dp.actions[action])
-        rl_returns.append(rl_ep_return)
+        rl_returns.append(rl_ep_return)"""
 
         # DP rollout (same initial state)
         obs, _ = env.reset(seed=ep)  # Use same seed

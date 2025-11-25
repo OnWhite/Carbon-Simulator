@@ -674,7 +674,7 @@ def print_optimal_trajectory(dp):
         next_state = dp.state_transition(action, state)
 
         print(f"  → Next State = {next_state}")
-
+        print(f"Reward = {dp.reward(next_state):.2f}")
         state = next_state
 
 
