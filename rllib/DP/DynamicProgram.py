@@ -535,7 +535,7 @@ def isoelastic_coin_minus_labor(
         else:
             util_c = coin_endowment - 1
     util_l = total_labor * labor_coefficient
-    return float(util_c - util_l)
+    return float(util_c)
 
 
 def load_config(path: Path) -> Dict[str, Any]:

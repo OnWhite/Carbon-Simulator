@@ -20,7 +20,7 @@ class Carbon_component(BaseComponent):
             *base_component_args,
             payment=10,
             require_Carbon_idx=1.0,
-            labor=10.0,
+            labor=1.0,
             debuff=0.3,
             env_recover_ability=3,
             research_setting=["e^-", 0.5], # ["-log"or"e^-", int]
