@@ -33,7 +33,6 @@ env:
   dense_log_frequency: 1
   isoelastic_eta: 0.23
   energy_cost: 0.1
-  total_idx: 200
   energy_warmup_constant: 1
   energy_warmup_method: auto
   starting_agent_coin: 0
@@ -110,11 +109,11 @@ trainer:
   seed: null
   framework: "torch"
   num_gpus: 1
-  num_envs_per_worker: 2
+  num_envs_per_worker: 1
   num_sgd_iter: 1
   num_workers: 16
   shuffle_sequences: true
-  sgd_minibatch_size: 2000
-  train_batch_size: 8000
+  sgd_minibatch_size: 1000
+  train_batch_size: 4000
   observation_filter: NoFilter
   rollout_fragment_length: 250
