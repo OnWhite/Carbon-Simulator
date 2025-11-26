@@ -1,7 +1,6 @@
 from pathlib import Path
 
 import ray
-from appdirs import system
 from ray.tune.registry import register_env
 from ray.rllib.algorithms import ppo
 from dataclasses import replace
