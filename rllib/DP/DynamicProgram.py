@@ -271,6 +271,56 @@ class DPImpl:
 
         return int(index)
 
+    def index_to_state(self, index: int) -> State:
+        """Convert a discrete index back to a State object."""
+
+        # Reverse the lexicographic product in reverse order
+        timestep_idx = index % len(self.timestep)
+        index //= len(self.timestep)
+
+        on_cert_idx = index % len(self.on_certificate_bins)
+        index //= len(self.on_certificate_bins)
+
+        total_green_idx = index % len(self.total_green_bins)
+        index //= len(self.total_green_bins)
+
+        hist_idx = index % self.history_states
+        index //= self.history_states
+
+        labor_idx = index % len(self.labor_bins)
+        index //= len(self.labor_bins)
+
+        rcount_idx = index % len(self.research_count_bins)
+        index //= len(self.research_count_bins)
+
+        ryearly_idx = index % len(self.research_yearly_bins)
+        index //= len(self.research_yearly_bins)
+
+        carbon_idx = index % len(self.carbon_bins)
+        index //= len(self.carbon_bins)
+
+        coin_idx = index  # Remaining value
+
+        # Decode research history from bits
+        max_hist_len = max(self.delay, self.forget)
+        research_history = tuple(
+            (hist_idx // (2 ** i)) % 2
+            for i in range(max_hist_len)
+        )
+
+        # Construct State from bin values
+        return State(
+            coin=self.coin_bins[coin_idx],
+            carbon=self.carbon_bins[carbon_idx],
+            research_yearly=int(self.research_yearly_bins[ryearly_idx]),
+            research_count=int(self.research_count_bins[rcount_idx]),
+            labor=self.labor_bins[labor_idx],
+            research_history=research_history,
+            total_green=self.total_green_bins[total_green_idx],
+            on_certificate=int(self.on_certificate_bins[on_cert_idx]),
+            timestep=int(self.timestep[timestep_idx])
+        )
+
     from copy import deepcopy
 
     def build_transition_and_reward_matrices(self):

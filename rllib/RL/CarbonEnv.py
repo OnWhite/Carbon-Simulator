@@ -153,6 +153,27 @@ class CarbonEnv(gym.Env):
             truncated,
             {"action": action, "state": next_state},
         )
+    def single_transition(self, action_idx: int, state:State):
+        """Step with Action dataclass."""
+        action = self.actions[action_idx]
+
+        next_state = self.dp.state_transition(action, state)
+        reward = self.dp.reward(next_state)
+
+        self.state = next_state
+        return (
+            next_state,
+            reward
+        )
+
 
     def render(self):
         pass
+    def get_action(self, action_idx: int) -> Action:
+        """Get Action dataclass from action index."""
+        return self.actions[action_idx]
+    def get_state(self,state_idx) -> State:
+        """Get State dataclass from state index."""
+        return self.dp.index_to_state(state_idx)
+    def get_max_timesteps(self) ->int:
+        return self.dp.max_timesteps
