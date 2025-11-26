@@ -43,7 +43,7 @@ env:
 general:
   ckpt_frequency_steps: 500
   cpus: 32
-  episodes: 12000
+  episodes: 100000
   gpus: 1
   restore_weights_agents: ''   # start from scratch
   restore_weights_planner: ''  # start from scratch
@@ -111,9 +111,9 @@ trainer:
   seed: null
   framework: "torch"
   num_gpus: 1
-  num_envs_per_worker: 2
+  num_envs_per_worker: 0
   num_sgd_iter: 1
-  num_workers: 16
+  num_workers: 32
   shuffle_sequences: true
   sgd_minibatch_size: 2000
   train_batch_size: 8000

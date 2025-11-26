@@ -216,7 +216,7 @@ class InfoMetricsCallback(DefaultCallbacks):
         for key, series in items:
             if not key.startswith(f"worker_{wid}/") or not series:
                 continue
-
+            agent=key.split("/", 2)[1]
             base = key.split("/", 2)[2]  # drop "worker_X/agent_Y/"
             if base != curr_base:
                 if curr_base != "":
@@ -226,14 +226,16 @@ class InfoMetricsCallback(DefaultCallbacks):
                 arr2 = []
                 curr_base = base
             series = np.asarray(series, dtype=float)
-            arr.append(float(np.median(series)))
+            arr.append(float(np.sum(series)))
+            if base=="Startidx" and eid == 0 and wid <= self.worker_id:
+                episode.custom_metrics[f"worker_{wid}/{agent}/Total_{curr_base}"] = float(np.sum(arr))
             if base == "Certificates_Allocated":
                 arr_cert_sum.append(float(np.sum(series)))
             elif base == "Carbon_idx":
                 arr_idx_sum.append(float(np.sum(series)))
             arr2.append(float(np.mean(series)))
         if curr_base is not None and arr:
-            episode.custom_metrics[f"worker_{wid}/Med_{curr_base}"] = float(np.median(arr))
+            episode.custom_metrics[f"worker_{wid}/Total_{curr_base}"] = float(np.sum(arr))
             episode.custom_metrics[f"worker_{wid}/Avg_{curr_base}"] = float(np.mean(arr2))
 
         # Derived per-worker metric
