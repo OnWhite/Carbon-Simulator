@@ -120,6 +120,7 @@ class CarbonRedistribution(BaseComponent):
                 # world.planner.state["env_idx"] = idx_action[-1]
                 # env_idx = 10% of this year total idx, this year total idx = self.total_idx * total_percent/100
                 year_idx = self.total_idx * total_percent / 100
+                raise Exception(year_idx)
 
                 world.planner.state["env_idx"] = int(year_idx * self.env_idx_percent)
                 for i in range(self.n_agents):
