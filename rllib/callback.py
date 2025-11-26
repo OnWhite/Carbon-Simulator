@@ -220,7 +220,7 @@ class InfoMetricsCallback(DefaultCallbacks):
             base = key.split("/", 2)[2]  # drop "worker_X/agent_Y/"
             if base != curr_base:
                 if curr_base != "":
-                    episode.custom_metrics[f"worker_{wid}/Med_{curr_base}"] = float(np.median(arr))
+                    episode.custom_metrics[f"worker_{wid}/Total_{curr_base}"] = float(np.sum(arr))
                     episode.custom_metrics[f"worker_{wid}/Avg_{curr_base}"] = float(np.mean(arr2))
                 arr = []
                 arr2 = []
