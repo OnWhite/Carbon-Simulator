@@ -88,7 +88,7 @@ class CarbonRedistribution(BaseComponent):
         world.planner.state["year_num"] = self.world.timestep // self.period
 
         # divided idx at start of years # when does this start counting at 0 or at 1?
-        if (world.timestep - 1) % self.period == 0:
+        if world.timestep  % self.period == 1:
             for agent in world.agents:
                 if agent.state["inventory"]["Carbon_idx"] < 0:
                     self.world.planner.state["settlement_idx"][agent.idx] -= agent.state["inventory"]["Carbon_idx"]
@@ -204,7 +204,7 @@ class CarbonRedistribution(BaseComponent):
             })
         else:
             self.log.append([])
-        if self.world.timestep  % self.period == 0:
+        if self.world.timestep % self.period == 0:
             # punishment at end of years#
             for agent in world.agents:
 
