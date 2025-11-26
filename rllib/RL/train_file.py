@@ -1,6 +1,5 @@
 from pathlib import Path
 
-import gym
 import ray
 from appdirs import system
 from ray.tune.registry import register_env
