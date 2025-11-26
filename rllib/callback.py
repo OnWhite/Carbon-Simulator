@@ -349,8 +349,8 @@ class InfoMetricsCallback(DefaultCallbacks):
             for k, v in episode._last_infos.items():
                 if k != 'p':
                     valf = fn(v)
-                    raise Exception( valf )
                     if valf is not None:
+                        raise Exception(valf)
                         metric.append(float(valf))
             if not metric:
                 continue
