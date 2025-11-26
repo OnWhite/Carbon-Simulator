@@ -120,13 +120,10 @@ class InfoMetricsCallback(DefaultCallbacks):
 
     STEP_METRICS = {
         # name               extractor – receives the agent_info dict
-        "Reward": lambda info: info.get("endogenous", {}).get("Reward", 0.0),
-        "Research_count": lambda info: info.get("Research_count", [0, 0])[1],
+        "Research_count_1": lambda info: info.get("Research_count", [0, 0])[1],
         "Manufacture_volume": lambda info: info.get("Manufacture_volume"),
         "Carbon_idx": lambda info: info.get("inventory", {}).get("Carbon_idx"),
         "Emission_rate": lambda info: info.get("Carbon_emission_rate"),
-        "CoinEndowment": lambda info: info.get("endogenous", {}).get("CoinEndowment", 0.0),
-        "Coin": lambda info: info.get("inventory", {}).get("Coin", 0.0),
         "Power_efficiency": lambda info: info.get("Power_efficiency"),
         "Green_rate": lambda info: info.get("Green_rate"),
         "Startidx": lambda info: info.get("Startidx"),
@@ -134,6 +131,8 @@ class InfoMetricsCallback(DefaultCallbacks):
         "CoinUtility": lambda info: info.get("endogenous", {}).get("CoinUtility", 0.0),
         "CurrentUtility": lambda info: info.get("endogenous", {}).get("CurrentUtility", 0.0),
         "PastUtility": lambda info: info.get("endogenous", {}).get("PastUtility", 0.0),
+        "CoinEndowment": lambda info: info.get("endogenous", {}).get("CoinEndowment", 0.0),
+        "Building_count": lambda info: info.get("Build", 0.0),
         "Research_ability": lambda info: info.get("Research_ability", 0.0),
         "MoveLabor": lambda info: info.get("MoveLabor", 0.0),
 
@@ -207,7 +206,12 @@ class InfoMetricsCallback(DefaultCallbacks):
         wid = worker.worker_index
         eid = _env_id_of(episode)
 
-        # ---- step metrics -----------------
+        # ---- step metrics: avg / median -----------------
+        curr_base = ""
+        arr = []
+        arr2 = []
+        arr_cert_sum = []
+        arr_idx_sum = []
         items = sorted(
             episode.user_data.items(),
             key=lambda kv: (kv[0].split("/")[1], kv[0].split("/", 2)[2])
@@ -216,23 +220,147 @@ class InfoMetricsCallback(DefaultCallbacks):
             if not key.startswith(f"worker_{wid}/") or not series:
                 continue
 
-            base = key.split("/", 2)[2]  # drop "worker_X/agent_Y/" and just get the metric name
+            base = key.split("/", 2)[2]  # drop "worker_X/agent_Y/"
+            if base != curr_base:
+                if curr_base != "":
+                    episode.custom_metrics[f"worker_{wid}/Med_{curr_base}"] = float(np.median(arr))
+                    episode.custom_metrics[f"worker_{wid}/Avg_{curr_base}"] = float(np.mean(arr2))
+                arr = []
+                arr2 = []
+                curr_base = base
+            series = np.asarray(series, dtype=float)
+            arr.append(float(np.median(series)))
+            if base == "Certificates_Allocated":
+                arr_cert_sum.append(float(np.sum(series)))
+            elif base == "Carbon_idx":
+                arr_idx_sum.append(float(np.sum(series)))
+            arr2.append(float(np.mean(series)))
+        if curr_base is not None and arr:
+            episode.custom_metrics[f"worker_{wid}/Med_{curr_base}"] = float(np.median(arr))
+            episode.custom_metrics[f"worker_{wid}/Avg_{curr_base}"] = float(np.mean(arr2))
+            episode.custom_metrics[f"worker_{wid}/Tot_{curr_base}"] = float(sum(arr))
 
-            episode.custom_metrics[f"worker_{wid}/Med_{base}"] = float(np.median(series))
-            episode.custom_metrics[f"worker_{wid}/Avg_{base}"] = float(np.mean(series))
-            episode.custom_metrics[f"worker_{wid}/Tot_{base}"] = float(sum(series))
+        # Derived per-worker metric
+        episode.custom_metrics[f"worker_{wid}/Remaining_Manufacturing_Potential"] = (
+            float(np.sum(arr_idx_sum) / np.sum(arr_cert_sum)) if np.sum(arr_cert_sum) != 0 else 0.0
+        )
 
         # ---- per-agent FINAL snapshot & episode totals (Revenue, Costs, Profit, Margin) ----
         if wid <= self.worker_id and eid == 0:
-
+            val = {}
+            val1 = {}
+            startidx = {}
+            emissionrate = {}
+            manufacturevolume = {}
+            total_optimal_capacity = 0.0
             for key, series in episode.user_data.items():
                 if not key.startswith(f"worker_{wid}/") or not series:
                     continue
                 agent, name = key.split("/", 2)[1], key.split("/", 2)[2]
-                if agent=='__common__':
-                    continue
                 series = np.asarray(series, dtype=float)
-                episode.custom_metrics[f"worker_{wid}/{agent}/Tot_{name}"] = float(np.sum(series))
+                episode.custom_metrics[f"worker_{wid}/{agent}/Avg_{name}"] = float(np.average(series))
+                if name == "Certificates_Allocated" and agent != "p":
+                    val[agent] = float(np.sum(series))
+                elif name == "Carbon_idx" and agent != "p":
+                    val1[agent] = float(np.sum(series))
+                elif name == "RewardPlanner" and agent == "p":
+                    episode.custom_metrics[f"worker_{wid}/PlannerReward_final"] = float(np.sum(series))
+                elif name == "Startidx" and agent != "p":
+                    startidx[agent] = float(np.average(series))
+                elif name == "Emission_rate" and agent != "p":
+                    episode.custom_metrics[f"worker_{wid}/{agent}/Avg_Emission_rate"] = float(np.average(series))
+                    emissionrate[agent] = float(np.average(series))
+                elif name == "Manufacture_volume" and agent != "p":
+                    manufacturevolume[agent] = float(np.average(series))
+            optimal_capacity = 0.0
+            for agent, value in val.items():
+                episode.custom_metrics[f"worker_{wid}/{agent}/Remaining_Manufacturing_Potential"] = (
+                    float(val1[agent] / value) if value != 0 and agent in val1 else 0.0
+                )
+                optimal_capacity = float(startidx[agent] / (emissionrate[agent] * manufacturevolume[
+                    agent]) if agent in startidx and agent in emissionrate and agent in manufacturevolume else 0.0)
+                episode.custom_metrics[f"worker_{wid}/{agent}/Optimal_Production_Capacity"] = (
+                    optimal_capacity
+                )
+                episode.custom_metrics[f"worker_{wid}/{agent}/emmissionrate"] = (emissionrate[agent])
+                episode.custom_metrics[f"worker_{wid}/{agent}/manufacturevolume"] = (manufacturevolume[agent])
+                episode.custom_metrics[f"worker_{wid}/{agent}/startidx"] = (startidx[agent])
+                total_optimal_capacity += optimal_capacity
+            episode.custom_metrics[f"worker_{wid}/Total_Optimal_Production_Capacity"] = float(total_optimal_capacity)
+        tot_rev = 0.0
+        tot_prf = 0.0
+        tot_cost = 0.0
+        tot_coinlaborcost = 0.0
+        tot_pun = 0.0
+        for k, info in episode._last_infos.items():
+            if k == 'p' or not isinstance(info, dict):
+                continue
+            inv = info.get("inventory", {}) or {}
+            endo = info.get("endogenous", {}) or {}
+
+            rev = float(endo.get("Revenue", 0.0) or 0.0)
+            cst = float(endo.get("Costs", 0.0) or 0.0)
+            prf = rev - cst
+            coin = inv.get("Coin", None)
+            lc = endo.get("LaborCost", None)
+            pun = endo.get("Cum_Punishment", None)
+            if wid <= self.worker_id and eid == 0:
+                base = f"worker_{wid}/agent_{k}"
+                episode.custom_metrics[f"{base}/Revenue_final"] = rev
+                episode.custom_metrics[f"{base}/Costs_final"] = cst
+                episode.custom_metrics[f"{base}/Profit_final"] = prf
+                episode.custom_metrics[f"{base}/ProfitMargin_final"] = (prf / rev) if rev != 0 else 0.0
+
+                # other finals
+                mv = info.get("Manufacture_volume", None)
+                if mv is not None:
+                    episode.custom_metrics[f"{base}/Manufacture_volume_final"] = float(mv)
+                if coin is not None:
+                    episode.custom_metrics[f"{base}/Coin_final"] = float(coin)
+                carbon_idx = inv.get("Carbon_idx", None)
+                if carbon_idx is not None:
+                    episode.custom_metrics[f"{base}/Carbon_idx_final"] = float(carbon_idx)
+                labor = endo.get("Labor", None)
+                if labor is not None:
+                    episode.custom_metrics[f"{base}/Labor_final"] = float(labor)
+                ce = endo.get("Carbon_emission", None)
+                if ce is not None:
+                    episode.custom_metrics[f"{base}/Carbon_emission_final"] = float(ce)
+                if pun is not None:
+                    episode.custom_metrics[f"{base}/Punishment_final"] = float(pun)
+                if lc is not None:
+                    episode.custom_metrics[f"{base}/Labor_Cost_final"] = float(lc)
+                if coin is not None and lc is not None:
+                    episode.custom_metrics[f"{base}/Coin-LaborCost_final"] = float(coin - lc)
+                    episode.custom_metrics[f"{base}/Profit-(Coin-LaborCost)_final"] = prf - float(coin - lc)
+            tot_rev += rev
+            tot_prf += prf
+            tot_cost += cst
+            tot_pun += pun if pun is not None else 0.0
+            tot_coinlaborcost += float(coin - lc) if coin is not None and lc is not None else 0.0
+
+        episode.custom_metrics[f"worker_{wid}/Episode_Revenue_final"] = tot_rev
+        episode.custom_metrics[f"worker_{wid}/Episode_Profit_final"] = tot_prf
+        episode.custom_metrics[f"worker_{wid}/Episode_Cost_final"] = tot_cost
+        episode.custom_metrics[f"worker_{wid}/Episode_Coin-LaborCost_final"] = tot_coinlaborcost
+        episode.custom_metrics[f"worker_{wid}/Episode_Profit-(Coin-LaborCost)_final"] = tot_prf - tot_coinlaborcost
+        episode.custom_metrics[f"worker_{wid}/Episode_Punishment_final"] = tot_pun
+        episode.custom_metrics[f"worker_{wid}/Episode_ProfitMargin_final"] = (
+            float(tot_prf / tot_rev) if tot_rev != 0 else 0.0
+        )
+        # ---- FINAL distribution stats (Avg/Med) and Gini for Coin ---
+        for name, fn in self.FINAL_METRICS.items():
+            metric = []
+            for k, v in episode._last_infos.items():
+                if k != 'p':
+                    valf = fn(v)
+                    if valf is not None:
+                        metric.append(float(valf))
+            if not metric:
+                continue
+            episode.custom_metrics[f"worker_{wid}/Total_{name}_final"] = float(np.sum(metric))
+            if name == "Coin":
+                episode.custom_metrics[f"worker_{wid}/Gini_idx_final"] = get_gini(np.array(metric, float))
 
         # ---- FINAL distribution stats and Gini for Coin ---
         for name, fn in self.FINAL_METRICS.items():
