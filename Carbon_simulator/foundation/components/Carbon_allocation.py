@@ -95,6 +95,8 @@ class CarbonRedistribution(BaseComponent):
                     # when in the negative, the overspending of emissions gets logged per agent
 
             if self.planner_mode == "active":
+                for a in world.agents:
+                    a.state["Startidx"] = 0
                 idx_action = []
                 total_percent = 0
                 for i in range(self.n_agents + 2):
