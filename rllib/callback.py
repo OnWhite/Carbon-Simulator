@@ -130,7 +130,7 @@ class InfoMetricsCallback(DefaultCallbacks):
         "Building_count": lambda info: info.get("Build", 0.0),
         "Power_efficiency": lambda info: info.get("Power_efficiency"),
         "Green_rate": lambda info: info.get("Green_rate"),
-        "Startidx": lambda info: info.get("inventory", {}).get("Startidx"),
+        "Startidx": lambda info: info.get("Startidx"),
         "LaborUtility": lambda info: info.get("endogenous", {}).get("LaborUtility", 0.0),
         "CoinUtility": lambda info: info.get("endogenous", {}).get("CoinUtility", 0.0),
         "CurrentUtility": lambda info: info.get("endogenous", {}).get("CurrentUtility", 0.0),

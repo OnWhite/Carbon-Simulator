@@ -72,7 +72,7 @@ class CarbonRedistribution(BaseComponent):
     def get_additional_state_fields(self, agent_cls_name):
         """This component does not add any state fields."""
         if agent_cls_name == "BasicMobileAgent":
-            return {"Cum_Punishment": 0, }
+            return {"Cum_Punishment": 0, "Startidx": 0}
         if agent_cls_name == "BasicPlanner":
             return {"punishment": 0,
                     "year_num": 0,
@@ -120,7 +120,6 @@ class CarbonRedistribution(BaseComponent):
                 # world.planner.state["env_idx"] = idx_action[-1]
                 # env_idx = 10% of this year total idx, this year total idx = self.total_idx * total_percent/100
                 year_idx = self.total_idx * total_percent / 100
-                raise Exception(self.total_idx)
 
                 world.planner.state["env_idx"] = int(year_idx * self.env_idx_percent)
                 for i in range(self.n_agents):
@@ -137,7 +136,7 @@ class CarbonRedistribution(BaseComponent):
                 for agent in world.agents:
                     agent.state["inventory"]["Carbon_idx"] = world.planner.state["mobile_idx"][agent.idx]
                     agent.state["escrow"]["Carbon_idx"] = 0
-                    agent.state["inventory"]["Startidx"] = world.planner.state["mobile_idx"][agent.idx]
+                    agent.state["Startidx"] = world.planner.state["mobile_idx"][agent.idx]
             elif self.planner_mode == "inactive":
                 agent = world.agents[0]
                 if agent.state["inventory"]["Carbon_idx"] < 0 and agent.idx == 0:
