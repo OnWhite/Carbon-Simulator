@@ -127,7 +127,6 @@ class InfoMetricsCallback(DefaultCallbacks):
         "Emission_rate": lambda info: info.get("Carbon_emission_rate"),
         "CoinEndowment": lambda info: info.get("endogenous", {}).get("CoinEndowment", 0.0),
         "Coin": lambda info: info.get("inventory", {}).get("Coin", 0.0),
-        "Building_count": lambda info: info.get("Build", 0.0),
         "Power_efficiency": lambda info: info.get("Power_efficiency"),
         "Green_rate": lambda info: info.get("Green_rate"),
         "Startidx": lambda info: info.get("Startidx"),
