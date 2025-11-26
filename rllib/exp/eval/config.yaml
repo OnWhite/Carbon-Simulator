@@ -43,13 +43,14 @@ env:
 general:
   ckpt_frequency_steps: 500
   cpus: 32
-  episodes: 12000
+  episodes: 2000
   gpus: 1
-  restore_weights_agents: ''   # start from scratch
-  restore_weights_planner: ''  # start from scratch
-  train_planner: true
+  restore_weights_agents: 'rllib/exp/allinone/ckpts255/agent.weights.train-step-8000'   # start from scratch
+  restore_weights_planner: 'rllib/exp/allinone/ckpts255/planner.weights.train-step-8000'  # start from scratch
+  train_planner: false
   fix_mobile: false
   dense_log_frequency: 250
+  eval_only: true
 
 agent_policy:
   clip_param: 0.3
@@ -111,11 +112,11 @@ trainer:
   seed: null
   framework: "torch"
   num_gpus: 1
-  num_envs_per_worker: 2
+  num_envs_per_worker: 1
   num_sgd_iter: 1
-  num_workers: 16
+  num_workers: 1
   shuffle_sequences: true
-  sgd_minibatch_size: 2000
-  train_batch_size: 8000
+  sgd_minibatch_size: 200
+  train_batch_size: 250
   observation_filter: NoFilter
   rollout_fragment_length: 250

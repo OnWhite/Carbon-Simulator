@@ -12,7 +12,7 @@ class Carbon_component(BaseComponent):
 
     name = "Carbon_component"
     component_type = "Carbon_component"
-    required_entities = ["Carbon_idx", "Carbon_emission", "Coin", "Revenue", "Property", "Carbon_pollution", "Labor", "Carbon_project", "Green_project"]
+    required_entities = ["Carbon_idx", "Carbon_emission", "Coin", "Revenue", "Property", "Carbon_pollution", "Labor", "Green_project"]
     agent_subclasses = ["BasicMobileAgent"]
 
     def __init__(
@@ -383,8 +383,8 @@ class Carbon_component(BaseComponent):
                     raise ValueError(agent.idx)
             else:
                 # 0.5 ~ PMSM, 0.1.0.0
-                agent.state["Research_ability"] = random.choice([1.0, 1.2, 1.4, 1.6])
-                agent.state["Manufacture_volume"] = random.choice([1.0, 1.2, 1.4, 1.6])
+                agent.state["Research_ability"] = 1.0
+                agent.state["Manufacture_volume"] = 1.0
 
             # initiate the Carbon_emission_rate be 1.0.0.0
             agent.state["Carbon_emission_rate"] = 1.0
@@ -394,10 +394,15 @@ class Carbon_component(BaseComponent):
             agent.state["Last_emission"] = 0
             agent.state["endogenous"]["Costs"] = 0
             agent.state["endogenous"]["Revenue"] = 0
+            agent.state["Green_rate"] = 0.0
+            agent.state["Power_efficiency"] = 0.0
+            agent.state["Last_emission"] = 0.0
+            agent.state["Debuff"] = 0.0
+            agent.state["endogenous"]["Build"] = 0.0
             # initiate the [total research count, this year research count] be [0, 0]
             agent.state["Research_count"] = [0, 0]
 
-            agent.state["Research_history"] = [0] * max(self.delay, self.forget)
+            agent.state["Research_history"] = agent.state["Research_history"] = [0] * (max(self.delay, self.forget) + 1)
 
         self.Manufactures = {"builds": [], "research": []}
 
