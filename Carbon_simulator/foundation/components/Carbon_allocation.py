@@ -11,7 +11,7 @@ from Carbon_simulator.foundation.base.base_component import (
 @component_registry.add
 class CarbonRedistribution(BaseComponent):
     name = "CarbonRedistribution"
-    required_entities = ["Carbon_idx", "Carbon_project", "Startidx"]
+    required_entities = ["Carbon_idx", "Carbon_project"]
     agent_subclasses = ["BasicMobileAgent", "BasicPlanner"]
 
     """
@@ -73,7 +73,7 @@ class CarbonRedistribution(BaseComponent):
     def get_additional_state_fields(self, agent_cls_name):
         """This component does not add any state fields."""
         if agent_cls_name == "BasicMobileAgent":
-            return {"Cum_Punishment": 0, }
+            return {"Cum_Punishment": 0,"Startidx":0 }
         if agent_cls_name == "BasicPlanner":
             return {"punishment": 0,
                     "year_num": 0,
@@ -158,7 +158,7 @@ class CarbonRedistribution(BaseComponent):
                 for agent in world.agents:
                     agent.state["inventory"]["Carbon_idx"] = world.planner.state["mobile_idx"][agent.idx]
                     agent.state["escrow"]["Carbon_idx"] = 0
-                    agent.state["inventory"]["Startidx"] =  world.planner.state["mobile_idx"][agent.idx]
+                    agent.state["Startidx"] =  world.planner.state["mobile_idx"][agent.idx]
             elif self.planner_mode == "inactive":
                 agent = world.agents[0]
                 if agent.state["inventory"]["Carbon_idx"] < 0 and agent.idx == 0:
@@ -191,7 +191,7 @@ class CarbonRedistribution(BaseComponent):
 
                     agent.state["inventory"]["Carbon_idx"] = world.planner.state["mobile_idx"][i]
                     agent.state["escrow"]["Carbon_idx"] = 0
-                    agent.state["inventory"]["Startidx"] = world.planner.state["mobile_idx"][i]
+                    agent.state["Startidx"] = world.planner.state["mobile_idx"][i]
                     with open("/nas/ucb/sophialudewig/Minimalist/logger.json", "a") as f:
                         info = {
                             "timestep": (world.timestep-1),
