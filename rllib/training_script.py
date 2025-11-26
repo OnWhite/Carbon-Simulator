@@ -10,7 +10,6 @@ from callback import InfoMetricsCallback, ProfilingCallbacks, ResultInfoMetricsC
 import matplotlib.pyplot as plt
 import numpy as np
 import wandb
-from rllib.Comparisons import eval_marl, eval_dp
 from rllib.DP.DynamicProgram import DPImpl, load_config
 from rllib.RL.CarbonEnv import CarbonEnv
 from rllib.RL.train_file import compare_rl_vs_dp, compare_rl_to_dp
