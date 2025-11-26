@@ -12,8 +12,8 @@ class Carbon_env(BaseEnvironment):
     name = "Carbon/Carbon_env"
     agent_subclasses = ["BasicMobileAgent", "BasicPlanner"]
     required_entities = ["Carbon_idx", "Carbon_emission", "Coin", "Property", "Carbon_pollution", "Labor", "LaborCost",
-                         "Costs", "Revenue", "Reward", "LaborUtility", "CoinUtility", "CurrentUtility", "PastUtility"]
-
+                         "Costs", "Revenue", "CoinEndowment", "Reward", "LaborUtility", "CoinUtility", "CurrentUtility",
+                         "PastUtility"]
 
     def __init__(
             self,
@@ -95,7 +95,7 @@ class Carbon_env(BaseEnvironment):
         if self.energy_warmup_method == "auto":
             return float(
                 1.0
-                - np.exp(-self._auto_warmup_integrator / self.energy_warmup_constant)
+                - np.exp(-self.world.timestep / self.energy_warmup_constant)
             )
 
         raise NotImplementedError
@@ -126,22 +126,24 @@ class Carbon_env(BaseEnvironment):
                     util_c = np.log(np.max(1, agent.total_endowment("Coin")))
                 else:  # isoelastic_eta >= 0
                     if np.all(agent.total_endowment("Coin") >= 0):
-                        util_c = (agent.total_endowment("Coin") ** (1 - agent.total_endowment("Coin")) - 1) / (
-                                    1 - self.isoelastic_eta)
+                        util_c = (agent.total_endowment("Coin") ** (1 - self.isoelastic_eta) - 1) / (
+                                1 - self.isoelastic_eta)
                     else:
                         util_c = agent.total_endowment("Coin") - 1
 
                 # disutility from labor
                 util_l = agent.state["endogenous"]["Labor"] * self.energy_weight * self.energy_cost
-
-                # Make sure these fields exist before incrementing them
-                if "LaborUtility" not in agent.state:
-                    agent.state["endogenous"]["LaborUtility"] = 0.0
-                if "CoinUtility" not in agent.state:
-                    agent.state["endogenous"]["CoinUtility"] = 0.0
-
-                agent.state["endogenous"]["LaborUtility"] += util_l
-                agent.state["endogenous"]["CoinUtility"] += util_c
+                agent.state["endogenous"]["LaborUtility"] = util_l
+                agent.state["endogenous"]["CoinUtility"] = util_c
+                agent.state["endogenous"]["CoinEndowment"] = agent.total_endowment("Coin")
+                agent.state["endogenous"]["CurrentUtility"] = float(
+                    1.0
+                    - np.exp(-self.world.timestep / self.energy_warmup_constant)
+                ) * self.energy_cost
+                agent.state["endogenous"]["PastUtility"] = float(
+                    1.0
+                    - np.exp(-self._auto_warmup_integrator / self.energy_warmup_constant)
+                ) * self.energy_cost
 
         # (for the planner)
         curr_optimization_metric[self.world.planner.idx] = rewards.planner_strategy(
@@ -203,7 +205,7 @@ class Carbon_env(BaseEnvironment):
             agent.state["escrow"] = {k: 0 for k in agent.inventory.keys()}
             agent.state["endogenous"] = {k: 0 for k in agent.endogenous.keys()}
             # Add starting coin
-
+            agent.state["inventory"]["Coin"] = self.starting_agent_coin
         # Clear everything for the planner
         self.world.planner.state["inventory"] = {
             k: 0 for k in self.world.planner.inventory.keys()
@@ -370,15 +372,13 @@ class Carbon_env(BaseEnvironment):
 
         # reward = curr - prev objectives
         rew = {
-            k: float(v - utility_at_end_of_last_time_step[k])
-            for k, v in self.curr_optimization_metric.items()
+            agent_id: self.curr_optimization_metric[agent_id]
+            for agent_id in self.curr_optimization_metric
         }
 
         # Store rewards in agent state
         for agent in self.world.agents:
             agent.state["endogenous"]["Reward"] = rew[agent.idx]
-            agent.state["CurrentUtility"] = self.curr_optimization_metric[agent.idx]
-            agent.state["PastUtility"] = utility_at_end_of_last_time_step[agent.idx]
 
         self.world.planner.state["endogenous"]["Reward"] = rew[self.world.planner.idx]
 
@@ -387,8 +387,7 @@ class Carbon_env(BaseEnvironment):
 
         avg_agent_rew = np.mean([rew[a.idx] for a in self.world.agents])
 
-        if avg_agent_rew > 0:
-            self._auto_warmup_integrator += 1
+        self._auto_warmup_integrator = self.world.timestep
 
         return rew
 

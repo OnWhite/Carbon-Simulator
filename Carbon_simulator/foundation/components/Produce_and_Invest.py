@@ -24,7 +24,7 @@ class Carbon_component(BaseComponent):
             debuff=0.3,
             env_recover_ability=3,
             research_setting=["e^-", 0.5], # ["-log"or"e^-", int]
-            labor_multiple=False,
+            labor_multiple=True,
             ability_independent=True,
 
             evaluate=False,
@@ -124,9 +124,9 @@ class Carbon_component(BaseComponent):
         if agent_cls_name not in self.agent_subclasses:
             return {}
         if agent_cls_name == "BasicMobileAgent":
-            return {"Manufacture_volume": 1, "Research_ability": 1, "Carbon_emission_rate": 1, "Start_Er": 1,
-                    "Research_count": [0, 0], "Research_history": [0] * max(self.delay, self.forget),  "Power_efficiency": 1.0,
-        "Green_rate": 1.0,}
+            return {"Manufacture_volume": 1.0, "Research_ability": 1, "Carbon_emission_rate": 1, "Start_Er": 1,
+                    "Research_count": [0, 0], "Research_history": [0] * (max(self.delay, self.forget)+1),  "Power_efficiency": 1.0,
+        "Green_rate": 1.0, "ResearchCount":0.0, "Last_emission":0.0, "Build":0.0, "Debuff":0.0}
         raise NotImplementedError
 
     def component_step(self):
@@ -211,11 +211,6 @@ class Carbon_component(BaseComponent):
                         Carbon_emission = self.require_Carbon_idx * agent.state["Manufacture_volume"] * agent.state[
                             "Carbon_emission_rate"]
 
-                        # Get debuff
-                        for public, health in world.location_public(loc_r, loc_c).items():
-                            if public == "Carbon_pollution" and health >= 1:
-                                Carbon_emission = (1 + self.debuff) * Carbon_emission
-
                         # Update Carbon_idx
                         agent.state["inventory"]["Carbon_idx"] -= Carbon_emission
 
@@ -233,6 +228,7 @@ class Carbon_component(BaseComponent):
                         income = self.payment * agent.state["Manufacture_volume"]
                         agent.state["inventory"]["Coin"] += income
                         agent.state["endogenous"]["Revenue"] += income
+                        agent.state["Build"] += agent.state["Manufacture_volume"]
                         assert income > 0, income
 
                         # Incur the Labor cost and Carbon_emission for building
@@ -271,10 +267,10 @@ class Carbon_component(BaseComponent):
                     )
                     agent.state["endogenous"]["Labor"] += self.labor * agent.state[
                         "Research_ability"] if self.labor_multiple else self.labor
-
                     agent.state["inventory"]["Coin"] -= self.payment/(2* agent.state["Research_ability"])
                     agent.state["endogenous"]["Costs"] += self.payment/(2* agent.state["Research_ability"])
-
+                    agent.state["ResearchCount"] += self.labor * agent.state[
+                        "Research_ability"] if self.labor_multiple else self.labor
                 else:
                     raise ValueError
 

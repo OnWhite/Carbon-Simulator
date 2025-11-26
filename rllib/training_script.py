@@ -4,11 +4,18 @@ import logging
 import os
 import ray
 import sys
+from collections import defaultdict
 import time
-from callback import InfoMetricsCallback
+from callback import InfoMetricsCallback, ProfilingCallbacks, ResultInfoMetricsCallback
 import matplotlib.pyplot as plt
 import numpy as np
 import wandb
+from rllib.Comparisons import eval_marl, eval_dp
+from rllib.DP.DynamicProgram import DPImpl, load_config
+from rllib.RL.CarbonEnv import CarbonEnv
+from rllib.RL.train_file import compare_rl_vs_dp, compare_rl_to_dp
+import json
+
 import shutil
 wandb.login(key="2c1f8f77f938086f691891b269af9d5e4925c425")
 from torch_models import ConvRnn
@@ -118,20 +125,36 @@ def build_trainer(run_configuration, tune_params=None):
             "multiagent": {
                 "policies": policies,
                 "policies_to_train": policies_to_train,
-                "policy_mapping_fn": lambda agent_id, episode, worker, **kwargs: "a" if str(agent_id).isdigit() else "p",
+                "policy_mapping_fn": lambda agent_id, episode, worker, **kwargs: "a" if str(
+                    agent_id).isdigit() else "p",
             },
             "metrics_smoothing_episodes": trainer_config.get("num_workers")
                                           * trainer_config.get("num_envs_per_worker"),
+            "evaluation_interval": None,  # Don't auto-evaluate during training
+            "evaluation_duration": 1,  # Run 1 episode when evaluate() is called
+            "evaluation_duration_unit": "episodes",
+            "evaluation_num_workers": 1,
+            "create_env_on_driver": True,
+            "evaluation_config": {
+                "explore": False,
+                "callbacks": lambda: ResultInfoMetricsCallback(worker_id=1),
+            },
         }
     )
 
     def logger_creator(config):
         return NoopLogger({}, "/tmp")
 
-    ppo_trainer = PPOConfig().update_from_dict(trainer_config).callbacks(
-        lambda: InfoMetricsCallback(worker_id=1)).reporting(keep_per_episode_custom_metrics=False,
-                                                            metrics_num_episodes_for_smoothing=1).build(
-        env=RLlibEnvWrapper, logger_creator=logger_creator)
+    if run_config["general"].get("eval_only", False):
+        ppo_trainer = PPOConfig().update_from_dict(trainer_config).callbacks(
+            lambda: ResultInfoMetricsCallback(worker_id=1)).reporting(keep_per_episode_custom_metrics=False,
+                                                                      metrics_num_episodes_for_smoothing=1).build(
+            env=RLlibEnvWrapper, logger_creator=logger_creator)
+    else:
+        ppo_trainer = PPOConfig().update_from_dict(trainer_config).callbacks(
+            lambda: InfoMetricsCallback(worker_id=1)).reporting(keep_per_episode_custom_metrics=False,
+                                                                metrics_num_episodes_for_smoothing=1).build(
+            env=RLlibEnvWrapper, logger_creator=logger_creator)
     return ppo_trainer
 
 def set_up_dirs_and_maybe_restore(run_directory, run_configuration, trainer_obj):
@@ -273,6 +296,7 @@ def plot_reward(run_directory, reward_a, reward_p):
     fig2.savefig(fig_dir)
     plt.close()
 
+
 def tune_train(config, run_dir="exp", run_config=None):
     run_config["trainer"].update(config)
     trainer = build_trainer(run_config)
@@ -282,10 +306,12 @@ def tune_train(config, run_dir="exp", run_config=None):
         train.report({
             "agent_reward": agent_reward,
         })
-def log_custom_metrics(result):
+
+
+def log_custom_metrics(result, mode="custom_metrics"):
     """Format RLlib custom metrics for W&B with media types."""
     metrics = {}
-    cm = result.get("custom_metrics", {})
+    cm = result.get(mode, {})
 
     for key, val in cm.items():
         if val is None:
@@ -419,7 +445,6 @@ if __name__ == "__main__":
         elif True:
 
             while num_parallel_episodes_done < run_config["general"]["episodes"]:
-
                 # Training
                 result = trainer.train()
                 # Get formatted metrics
@@ -455,13 +480,14 @@ if __name__ == "__main__":
                 plot_reward(run_dir, reward_result_a, reward_result_p)
 
                 # === Dense logging ===
-                #step_last_log = maybe_store_dense_log(trainer, result, dense_log_frequency, dense_log_dir,
+                # step_last_log = maybe_store_dense_log(trainer, result, dense_log_frequency, dense_log_dir,
                 #                                     step_last_log)
 
                 # === Saving ===
                 step_last_ckpt = maybe_save(
                     trainer, result, ckpt_frequency, ckpt_dir, step_last_ckpt
                 )
+            # run_single_episode_and_plot(trainer, run_dir)
             # Finish up
             logger.info("Completing! Saving final snapshot...\n\n")
             # saving.save_snapshot(trainer, ckpt_dir)
@@ -469,6 +495,6 @@ if __name__ == "__main__":
             saving.save_model_weights(trainer, ckpt_dir, global_step, suffix="planner")
             logger.info("Final snapshot saved! All done.")
     finally:
-        #ray.timeline(os.path.join(run_dir, "timeline.json"))
+        # ray.timeline(os.path.join(run_dir, "timeline.json"))
         ray.shutdown()
         wandb.finish()
