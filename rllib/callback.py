@@ -134,9 +134,9 @@ class InfoMetricsCallback(DefaultCallbacks):
         "CurrentUtility": lambda info: info.get("endogenous", {}).get("CurrentUtility", 0.0),
         "PastUtility": lambda info: info.get("endogenous", {}).get("PastUtility", 0.0),
         "Research_ability": lambda info: info.get("Research_ability", 0.0),
-        "MoveLabor": lambda info: info.get("MoveLabor", 0.0),
         "Move": lambda info: info.get("Move", 0.0),
         "Carbon_idx": lambda info: info.get("endogenous", {}).get("Rel_Carbon_emission", 0.0),
+        "Carbon_project": lambda info: info.get("Carbon_project_it", 0.0),
 
     }
 
@@ -156,7 +156,7 @@ class InfoMetricsCallback(DefaultCallbacks):
         "BidIncome": lambda info: info.get("BidIncome", 0.0),
         "Research_ability": lambda info: info.get("Research_ability", 0.0),
         "MoveLabor": lambda info: info.get("MoveLabor", 0.0),
-        "Carbon_project_it": lambda info: info.get("Carbon_project_it", 0.0),
+
         "BidLabor": lambda info: info.get("BidLabor", 0.0),
         "ResearchCount": lambda info: info.get("ResearchCount", 0.0),
     }
@@ -204,8 +204,6 @@ class InfoMetricsCallback(DefaultCallbacks):
         eid = _env_id_of(episode)
 
         # ---- step metrics: avg / median -----------------
-        curr_base = ""
-        arr_idx_sum = []
         items = sorted(
             episode.user_data.items(),
             key=lambda kv: (kv[0].split("/")[1], kv[0].split("/", 2)[2])
@@ -222,15 +220,13 @@ class InfoMetricsCallback(DefaultCallbacks):
                 series = np.asarray(series, dtype=float)
                 arr.append(float(np.sum(series)))
                 if (
-                        base == "Startidx" or base == "Build" or base == "Move" or "Cum_Punishment" == base or "Carbon_idx" == base) and eid == 0 and wid <= self.worker_id:
+                        base == "Startidx" or base == "Build" or base == "Move" or "Cum_Punishment" == base or "Carbon_idx" == base or "Carbon_project"== base) and eid == 0 and wid <= self.worker_id:
                     episode.custom_metrics[f"worker_{wid}/{agent}/Total_{base}"] = float(np.sum(series))
-                elif base == "Carbon_idx":
-                    arr_idx_sum.append(float(np.sum(series)))
                 arr2.append(float(np.average(series)))
-            if base is not None and arr and arr2:
-                episode.custom_metrics[f"worker_{wid}/Total_{base}"] = float(
+            if name is not None and arr and arr2:
+                episode.custom_metrics[f"worker_{wid}/Avg_Total_{name}"] = float(
                     np.average(arr))  # mean of totals per agent
-                episode.custom_metrics[f"worker_{wid}/Avg_{base}"] = float(np.average(arr2))
+                episode.custom_metrics[f"worker_{wid}/Avg_{name}"] = float(np.average(arr2))
 
         # ---- per-agent FINAL snapshot & episode totals (Revenue, Costs, Profit, Margin) ----
         if wid <= self.worker_id and eid == 0:
