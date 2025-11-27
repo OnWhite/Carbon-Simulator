@@ -223,14 +223,14 @@ class InfoMetricsCallback(DefaultCallbacks):
                 arr.append(float(np.sum(series)))
                 if (
                         base == "Startidx" or base == "Build" or base == "Move" or "Cum_Punishment" == base or "Carbon_idx" == base) and eid == 0 and wid <= self.worker_id:
-                    episode.custom_metrics[f"worker_{wid}/{agent}/Total_{curr_base}"] = float(np.sum(series))
+                    episode.custom_metrics[f"worker_{wid}/{agent}/Total_{base}"] = float(np.sum(series))
                 elif base == "Carbon_idx":
                     arr_idx_sum.append(float(np.sum(series)))
                 arr2.append(float(np.average(series)))
-            if curr_base is not None and arr and arr2:
-                episode.custom_metrics[f"worker_{wid}/Total_{curr_base}"] = float(
+            if base is not None and arr and arr2:
+                episode.custom_metrics[f"worker_{wid}/Total_{base}"] = float(
                     np.average(arr))  # mean of totals per agent
-                episode.custom_metrics[f"worker_{wid}/Avg_{curr_base}"] = float(np.average(arr2))
+                episode.custom_metrics[f"worker_{wid}/Avg_{base}"] = float(np.average(arr2))
 
         # ---- per-agent FINAL snapshot & episode totals (Revenue, Costs, Profit, Margin) ----
         if wid <= self.worker_id and eid == 0:
