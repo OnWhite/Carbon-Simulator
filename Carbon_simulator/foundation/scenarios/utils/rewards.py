@@ -54,6 +54,7 @@ def planner_strategy(coin_endowments, mobile_idx, remained_idx, mobile_coefficie
     util = equality * prod * idx_used_mobile - 50.0 * idx_overspent ** 2
     if idx_overspent>100:
         raise Exception("Overspent by alot!")
+
     return util
 
 def get_gini(endowments):

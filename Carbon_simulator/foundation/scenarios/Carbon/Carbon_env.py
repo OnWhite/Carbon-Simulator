@@ -147,10 +147,8 @@ class Carbon_env(BaseEnvironment):
 
         # (for the planner)
         curr_optimization_metric[self.world.planner.idx] = rewards.planner_strategy(
-            coin_endowments=np.array(
-                [agent.state["endogenous"]["Revenue"] - agent.state["endogenous"]["Costs"] for agent in
-                 self.world.agents]
-            ),
+            coin_endowments=np.array(agent.total_endowment("Coin") for agent in
+                 self.world.agents),
             mobile_idx=self.world.planner.state["settlement_idx"],
             remained_idx=self.world.planner.state["remained_idx"],
             mobile_coefficient=self.mobile_coefficient
