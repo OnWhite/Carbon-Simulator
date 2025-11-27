@@ -149,7 +149,7 @@ class InfoMetricsCallback(DefaultCallbacks):
         "Power_efficiency": lambda info: info.get("Power_efficiency"),
         "Green_rate": lambda info: info.get("Green_project"),
         "CoinEndowment": lambda info: info.get("endogenous", {}).get("CoinEndowment", 0.0),
-        "Reward": lambda info: info.get("endogenous", {}).get("CurrentUtility", 0.0),
+        "Reward": lambda info: info.get("endogenous", {}).get("Reward", 0.0),
         "Building_count": lambda info: info.get("Build", 0.0),
         "BidCost": lambda info: info.get("BidCost", 0.0),
         "BidIncome": lambda info: info.get("BidIncome", 0.0),
@@ -158,7 +158,6 @@ class InfoMetricsCallback(DefaultCallbacks):
         "Carbon_project_it": lambda info: info.get("Carbon_project_it", 0.0),
         "BidLabor": lambda info: info.get("BidLabor", 0.0),
         "ResearchCount": lambda info: info.get("ResearchCount", 0.0),
-        "Debuff": lambda info: info.get("Debuff", 0.0),
     }
 
     def __init__(self, worker_id: int = 1):
@@ -218,9 +217,10 @@ class InfoMetricsCallback(DefaultCallbacks):
                 continue
             agent=key.split("/", 2)[1]
             base = key.split("/", 2)[2]  # drop "worker_X/agent_Y/"
+            # because all the different agents have to be aggregated with eachother and you can assume that they come in order you have to check
             if base != curr_base:
                 if curr_base != "":
-                    episode.custom_metrics[f"worker_{wid}/Total_{curr_base}"] = float(np.sum(arr))
+                    episode.custom_metrics[f"worker_{wid}/Total_{curr_base}"] = float(np.mean(arr))
                     episode.custom_metrics[f"worker_{wid}/Avg_{curr_base}"] = float(np.mean(arr2))
                 arr = []
                 arr2 = []
@@ -228,14 +228,14 @@ class InfoMetricsCallback(DefaultCallbacks):
             series = np.asarray(series, dtype=float)
             arr.append(float(np.sum(series)))
             if base=="Startidx" and eid == 0 and wid <= self.worker_id:
-                episode.custom_metrics[f"worker_{wid}/{agent}/Total_{curr_base}"] = float(np.sum(arr))
+                episode.custom_metrics[f"worker_{wid}/{agent}/Total_{curr_base}"] = float(np.sum(series))
             if base == "Certificates_Allocated":
                 arr_cert_sum.append(float(np.sum(series)))
             elif base == "Carbon_idx":
                 arr_idx_sum.append(float(np.sum(series)))
             arr2.append(float(np.mean(series)))
         if curr_base is not None and arr:
-            episode.custom_metrics[f"worker_{wid}/Total_{curr_base}"] = float(np.sum(arr))
+            episode.custom_metrics[f"worker_{wid}/Total_{curr_base}"] = float(np.mean(arr)) # mean of totals per agent
             episode.custom_metrics[f"worker_{wid}/Avg_{curr_base}"] = float(np.mean(arr2))
 
         # Derived per-worker metric
