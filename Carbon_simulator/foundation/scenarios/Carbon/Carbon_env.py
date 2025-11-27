@@ -12,7 +12,7 @@ class Carbon_env(BaseEnvironment):
 
     name = "Carbon/Carbon_env"
     agent_subclasses = ["BasicMobileAgent", "BasicPlanner"]
-    required_entities = ["Carbon_idx", "Carbon_emission", "Coin", "Property", "Carbon_pollution", "Labor", "Carbon_project", "Green_project"]
+    required_entities = ["Carbon_idx", "Carbon_emission", "Coin", "Property", "Carbon_pollution", "Labor", "Carbon_project", "Green_project", "Reward"]
 
     def __init__(
             self,
@@ -80,7 +80,7 @@ class Carbon_env(BaseEnvironment):
         if self.energy_warmup_method == "auto":
             return float(
                 1.0
-                - np.exp(-self._auto_warmup_integrator / self.energy_warmup_constant)
+                - np.exp(-self.world.timestep / self.energy_warmup_constant)
             )
 
         raise NotImplementedError
@@ -329,10 +329,10 @@ class Carbon_env(BaseEnvironment):
 
         # reward = curr - prev objectives
         rew = {
-            k: float(v - utility_at_end_of_last_time_step[k])
+            k: v
             for k, v in self.curr_optimization_metric.items()
         }
-
+        self.world.planner.state["endogenous"]["Reward"] = rew[self.world.planner.idx]
         # store the previous objective values
         self.prev_optimization_metric.update(utility_at_end_of_last_time_step)
 
