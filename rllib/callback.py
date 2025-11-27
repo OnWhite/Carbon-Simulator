@@ -123,11 +123,9 @@ class InfoMetricsCallback(DefaultCallbacks):
         "Reward": lambda info: info.get("endogenous", {}).get("Reward", 0.0),
         "Research_count": lambda info: info.get("Research_count", [0, 0])[1],
         "Manufacture_volume": lambda info: info.get("Manufacture_volume"),
-        "Carbon_idx": lambda info: info.get("inventory", {}).get("Carbon_idx"),
         "Emission_rate": lambda info: info.get("Carbon_emission_rate"),
         "CoinEndowment": lambda info: info.get("endogenous", {}).get("CoinEndowment", 0.0),
-        "Coin": lambda info: info.get("inventory", {}).get("Coin", 0.0),
-        "Building_count": lambda info: info.get("Build", 0.0),
+        "Build": lambda info: info.get("Build", 0.0),
         "Power_efficiency": lambda info: info.get("Power_efficiency"),
         "Green_rate": lambda info: info.get("Green_rate"),
         "Startidx": lambda info: info.get("Startidx"),
@@ -137,6 +135,8 @@ class InfoMetricsCallback(DefaultCallbacks):
         "PastUtility": lambda info: info.get("endogenous", {}).get("PastUtility", 0.0),
         "Research_ability": lambda info: info.get("Research_ability", 0.0),
         "MoveLabor": lambda info: info.get("MoveLabor", 0.0),
+        "Move": lambda info: info.get("Move", 0.0),
+        "Carbon_idx": lambda info: info.get("endogenous", {}).get("Rel_Carbon_emission", 0.0),
 
     }
 
@@ -147,13 +147,11 @@ class InfoMetricsCallback(DefaultCallbacks):
         "Labor": lambda info: info.get("endogenous", {}).get("Labor"),
         "Carbon_project": lambda info: info.get("inventory", {}).get("Carbon_project"),
         "Carbon_emission": lambda info: info.get("endogenous", {}).get("Carbon_emission"),
-        "Punishment": lambda info: info.get("Cum_Punishment"),
         "Labor_Cost": lambda info: info.get("endogenous", {}).get("LaborCost"),
         "Power_efficiency": lambda info: info.get("Power_efficiency"),
         "Green_rate": lambda info: info.get("Green_project"),
         "CoinEndowment": lambda info: info.get("endogenous", {}).get("CoinEndowment", 0.0),
         "Reward": lambda info: info.get("endogenous", {}).get("Reward", 0.0),
-        "Building_count": lambda info: info.get("Build", 0.0),
         "BidCost": lambda info: info.get("BidCost", 0.0),
         "BidIncome": lambda info: info.get("BidIncome", 0.0),
         "Research_ability": lambda info: info.get("Research_ability", 0.0),
@@ -223,7 +221,8 @@ class InfoMetricsCallback(DefaultCallbacks):
                 base = key.split("/", 2)[2]  # drop "worker_X/agent_Y/"
                 series = np.asarray(series, dtype=float)
                 arr.append(float(np.sum(series)))
-                if (base == "Startidx" or base == "Build" or base == "Move" or "Cum_Punishment" == base) and eid == 0 and wid <= self.worker_id:
+                if (
+                        base == "Startidx" or base == "Build" or base == "Move" or "Cum_Punishment" == base or "Carbon_idx" == base) and eid == 0 and wid <= self.worker_id:
                     episode.custom_metrics[f"worker_{wid}/{agent}/Total_{curr_base}"] = float(np.sum(series))
                 elif base == "Carbon_idx":
                     arr_idx_sum.append(float(np.sum(series)))
