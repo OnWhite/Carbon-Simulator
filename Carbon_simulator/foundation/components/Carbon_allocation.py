@@ -141,8 +141,7 @@ class CarbonRedistribution(BaseComponent):
 
                 # world.planner.state["env_idx"] = idx_action[-1]
                 # env_idx = 10% of this year total idx, this year total idx = self.total_idx * total_percent/100
-                year_idx = self.total_idx * total_percent / 100
-
+                year_idx = self.total_idx * (float(total_percent) / 100.0)
                 world.planner.state["env_idx"] = int(year_idx * self.env_idx_percent)
                 for i in range(self.n_agents):
                     # mobile_idx = idx_action[i] // sum(idx_action) * 0.9 * this year total idx
@@ -152,8 +151,8 @@ class CarbonRedistribution(BaseComponent):
                     else:
                         world.planner.state["mobile_idx"][i] = int(year_idx * (1 - self.env_idx_percent))
 
-                world.planner.state["remained_idx"] -= self.world.planner.state["env_idx"] + sum(
-                    self.world.planner.state["mobile_idx"])
+                world.planner.state["remained_idx"] -= max(0,self.world.planner.state["env_idx"] + sum(
+                    self.world.planner.state["mobile_idx"]))
                 with open("/nas/ucb/sophialudewig/Minimalist/logger.json", "a") as f:
                     info = {
                         "timestep": (world.timestep-1),
