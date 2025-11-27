@@ -154,6 +154,18 @@ class CarbonRedistribution(BaseComponent):
 
                 world.planner.state["remained_idx"] -= self.world.planner.state["env_idx"] + sum(
                     self.world.planner.state["mobile_idx"])
+                with open("/nas/ucb/sophialudewig/Minimalist/logger.json", "a") as f:
+                    info = {
+                        "timestep": (world.timestep-1),
+                        "period": self.period,
+                        "total_percent": total_percent,
+                        "year_idx": year_idx,
+                        "env_idx": world.planner.state["env_idx"],
+                        "mobile_idx": world.planner.state["mobile_idx"],
+                        "remained_idx": world.planner.state["remained_idx"],
+                    }
+                    json.dump(info, f, indent=2)
+                    f.write("\n")
 
                 for agent in world.agents:
                     agent.state["inventory"]["Carbon_idx"] = world.planner.state["mobile_idx"][agent.idx]
