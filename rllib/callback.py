@@ -19,6 +19,7 @@ logging.basicConfig(stream=sys.stdout, format="%(asctime)s %(message)s")
 logger = logging.getLogger("main")
 logger.setLevel(logging.DEBUG)
 
+
 def get_gini(endowments):
     n_agents = len(endowments)
 
@@ -41,6 +42,8 @@ def get_gini(endowments):
 
 def _env_id_of(episode):
     return getattr(episode, "env_id", getattr(episode, "_env_id", 0))
+
+
 class ProfilingCallbacks(DefaultCallbacks):
     SNAPSHOT_EVERY = 10  # episodes
 
@@ -204,51 +207,38 @@ class InfoMetricsCallback(DefaultCallbacks):
 
         # ---- step metrics: avg / median -----------------
         curr_base = ""
-        arr = []
-        arr2 = []
-        arr_cert_sum = []
         arr_idx_sum = []
         items = sorted(
             episode.user_data.items(),
             key=lambda kv: (kv[0].split("/")[1], kv[0].split("/", 2)[2])
         )
-        for key, series in items:
-            if not key.startswith(f"worker_{wid}/") or not series:
-                continue
-            agent=key.split("/", 2)[1]
-            base = key.split("/", 2)[2]  # drop "worker_X/agent_Y/"
+        for name, fn in self.STEP_METRICS.items():
+            arr = []
+            arr2 = []
             # because all the different agents have to be aggregated with eachother and you can assume that they come in order you have to check
-            if base != curr_base:
-                if curr_base != "":
-                    episode.custom_metrics[f"worker_{wid}/Total_{curr_base}"] = float(np.average(arr))
-                    episode.custom_metrics[f"worker_{wid}/Avg_{curr_base}"] = float(np.average(arr2))
-                arr = []
-                arr2 = []
-                curr_base = base
-            series = np.asarray(series, dtype=float)
-            arr.append(float(np.sum(series)))
-            if (base == "Startidx" or base == "Build" or base == "Move") and eid == 0 and wid <= self.worker_id:
-                episode.custom_metrics[f"worker_{wid}/{agent}/Total_{curr_base}"] = float(np.sum(series))
-            if base == "Certificates_Allocated":
-                arr_cert_sum.append(float(np.sum(series)))
-            elif base == "Carbon_idx":
-                arr_idx_sum.append(float(np.sum(series)))
-            arr2.append(float(np.average(series)))
-        if curr_base is not None and arr:
-            episode.custom_metrics[f"worker_{wid}/Total_{curr_base}"] = float(np.average(arr)) # mean of totals per agent
-            episode.custom_metrics[f"worker_{wid}/Avg_{curr_base}"] = float(np.average(arr2))
-
-        # Derived per-worker metric
-        episode.custom_metrics[f"worker_{wid}/Remaining_Manufacturing_Potential"] = (
-            float(np.sum(arr_idx_sum) / np.sum(arr_cert_sum)) if np.sum(arr_cert_sum) != 0 else 0.0
-        )
+            for key, series in items:
+                if not key.startswith(f"worker_{wid}/") or not series or name not in key:
+                    continue
+                agent = key.split("/", 2)[1]
+                base = key.split("/", 2)[2]  # drop "worker_X/agent_Y/"
+                series = np.asarray(series, dtype=float)
+                arr.append(float(np.sum(series)))
+                if (base == "Startidx" or base == "Build" or base == "Move" or "Cum_Punishment" == base) and eid == 0 and wid <= self.worker_id:
+                    episode.custom_metrics[f"worker_{wid}/{agent}/Total_{curr_base}"] = float(np.sum(series))
+                elif base == "Carbon_idx":
+                    arr_idx_sum.append(float(np.sum(series)))
+                arr2.append(float(np.average(series)))
+            if curr_base is not None and arr and arr2:
+                episode.custom_metrics[f"worker_{wid}/Total_{curr_base}"] = float(
+                    np.average(arr))  # mean of totals per agent
+                episode.custom_metrics[f"worker_{wid}/Avg_{curr_base}"] = float(np.average(arr2))
 
         # ---- per-agent FINAL snapshot & episode totals (Revenue, Costs, Profit, Margin) ----
         if wid <= self.worker_id and eid == 0:
             for name, fn in self.FINAL_METRICS.items():
                 metric = []
                 for k, v in episode._last_infos.items():
-                    if k != 'p' :
+                    if k != 'p':
                         valf = fn(v)
                         if valf is not None:
                             episode.custom_metrics[f"worker_{wid}/agent{k}/{name}_final"] = float(valf)
@@ -272,6 +262,8 @@ class InfoMetricsCallback(DefaultCallbacks):
             episode.custom_metrics[f"worker_{wid}/Total_{name}_final"] = float(np.sum(metric))
             if name == "Coin":
                 episode.custom_metrics[f"worker_{wid}/Gini_idx_final"] = get_gini(np.array(metric, float))
+
+
 class ResultInfoMetricsCallback(DefaultCallbacks):
     """
     Collects custom metrics from the `info` dict returned by the env.
@@ -282,18 +274,18 @@ class ResultInfoMetricsCallback(DefaultCallbacks):
         # name               extractor – receives the agent_info dict
         "Reward": lambda info: info.get("endogenous", {}).get("Reward", -42),
         "Research_count": lambda info: info.get("Research_count", [0, 0])[1],
-        "Manufacture_volume": lambda info: info.get("Manufacture_volume",-42),
-        "Cum_Punishment": lambda info: info.get("Cum_Punishment",-42),
+        "Manufacture_volume": lambda info: info.get("Manufacture_volume", -42),
+        "Cum_Punishment": lambda info: info.get("Cum_Punishment", -42),
         "Tot_Move": lambda info: info.get("Move", -42),
-        "Tot_Carbon_project": lambda info: info.get("inventory", {}).get("Carbon_project",-42),
-        "Carbon_idx": lambda info: info.get("inventory", {}).get("Carbon_idx",-42),
-        "Emission_rate": lambda info: info.get("Carbon_emission_rate",-42),
+        "Tot_Carbon_project": lambda info: info.get("inventory", {}).get("Carbon_project", -42),
+        "Carbon_idx": lambda info: info.get("inventory", {}).get("Carbon_idx", -42),
+        "Emission_rate": lambda info: info.get("Carbon_emission_rate", -42),
         "CoinEndowment": lambda info: info.get("endogenous", {}).get("CoinEndowment", -42),
         "Coin": lambda info: info.get("inventory", {}).get("Coin", -42),
         "Tot_Build": lambda info: info.get("Build", -42),
-        "Power_efficiency": lambda info: info.get("Power_efficiency",-42),
-        "Green_rate": lambda info: info.get("Green_rate",-42),
-        "Startidx": lambda info: info.get("Startidx",-42),
+        "Power_efficiency": lambda info: info.get("Power_efficiency", -42),
+        "Green_rate": lambda info: info.get("Green_rate", -42),
+        "Startidx": lambda info: info.get("Startidx", -42),
         "LaborUtility": lambda info: info.get("endogenous", {}).get("LaborUtility", -42),
         "CoinUtility": lambda info: info.get("endogenous", {}).get("CoinUtility", -42),
         "CurrentUtility": lambda info: info.get("endogenous", {}).get("CurrentUtility", -42),
@@ -310,7 +302,7 @@ class ResultInfoMetricsCallback(DefaultCallbacks):
 
     def on_episode_step(
             self, *, worker, base_env, policies, episode: Episode, env_index: Optional[int] = None,
- **kwargs
+            **kwargs
     ):
         # tracks metrics in STEP_METRICS every step per worker for all agents
         infos = episode._last_infos
@@ -327,7 +319,7 @@ class ResultInfoMetricsCallback(DefaultCallbacks):
         # Now access world
         world = env.world
         maps = world.maps
-        #to be continued
+        # to be continued
         """ path = f"/nas/ucb/sophialudewig/Minimalist/rllib/worker_{wid}_episode_info.log"
         with open(path, "a") as fh:
             # Get specific landmark maps
@@ -358,11 +350,10 @@ class ResultInfoMetricsCallback(DefaultCallbacks):
             for name, fn in self.STEP_METRICS.items():
                 value = fn(agent_info)
                 # (keep step collection minimal; profit is computed at episode end)
-                if value is None or agent_id=='__common__':
+                if value is None or agent_id == '__common__':
                     continue
                 key = f"worker_{wid}/agent_{agent_id}/{name}_ts"
                 episode.hist_data.setdefault(key, []).append(value)
-
 
     def on_episode_end(
             self, *, worker, base_env, policies, episode: Episode, env_index: Optional[int] = None, **kwargs

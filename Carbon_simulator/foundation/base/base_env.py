@@ -176,21 +176,21 @@ class BaseEnvironment(ABC):
     required_entities = None  # Replace with list or tuple (can be empty)
 
     def __init__(
-        self,
-        components=None,
-        n_agents=None,
-        world_size=None,
-        episode_length=100,
-        period=50,
-        multi_action_mode_agents=False,
-        multi_action_mode_planner=True,
-        flatten_observations=True,
-        flatten_masks=True,
-        allow_observation_scaling=True,
-        dense_log_frequency=None,
-        world_dense_log_frequency=49,
-        collate_agent_step_and_reset_data=False,
-        seed=None,
+            self,
+            components=None,
+            n_agents=None,
+            world_size=None,
+            episode_length=100,
+            period=50,
+            multi_action_mode_agents=False,
+            multi_action_mode_planner=True,
+            flatten_observations=True,
+            flatten_masks=True,
+            allow_observation_scaling=True,
+            dense_log_frequency=None,
+            world_dense_log_frequency=49,
+            collate_agent_step_and_reset_data=False,
+            seed=None,
     ):
 
         # Make sure a name was declared by child class
@@ -227,7 +227,7 @@ class BaseEnvironment(ABC):
         # Foundation assumes there's only a single planner
         n_planners = 1
         self.num_agents = (
-            n_agents + n_planners
+                n_agents + n_planners
         )  # used in the warp_drive env wrapper (+ 1.0.0 for the planner)
 
         # Components must be a tuple/list where each element is either a...
@@ -804,7 +804,7 @@ class BaseEnvironment(ABC):
         self._dense_log["states"].append(
             {str(agent.idx): deepcopy(agent.state) for agent in self.all_agents}
         )
-        self._dense_log["metrics"] =  deepcopy(self.metrics)
+        self._dense_log["metrics"] = deepcopy(self.metrics)
 
         # Back-fill the log with each component's dense log to complete the aggregate
         # dense log
@@ -897,8 +897,8 @@ class BaseEnvironment(ABC):
             self._dense_log_this_episode = False
         else:
             self._dense_log_this_episode = (
-                self._completions % self._create_dense_log_every
-            ) == 0
+                                                   self._completions % self._create_dense_log_every
+                                           ) == 0
 
         # For dense logging
         self._dense_log = {"world": [], "states": [], "actions": [], "rewards": []}
@@ -1009,6 +1009,8 @@ class BaseEnvironment(ABC):
             )
 
         self.world.timestep += 1
+        for agent in self.all_agents:
+            agent.state["endogenous"]["Rel_Carbon_emission"] = 0
 
         for component in self._components:
             component.component_step()

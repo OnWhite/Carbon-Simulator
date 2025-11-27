@@ -43,6 +43,11 @@ class Carbon_emission(Endogenous):
 
     name = "Carbon_emission"
 
+@endogenous_registry.add
+class Rel_Carbon_emission(Endogenous):
+    """Labor accumulated through working. Included in all environments by default."""
+
+    name = "Rel_Carbon_emission"
 
 @endogenous_registry.add
 class Costs(Endogenous):
