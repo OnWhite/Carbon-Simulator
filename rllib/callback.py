@@ -220,23 +220,23 @@ class InfoMetricsCallback(DefaultCallbacks):
             # because all the different agents have to be aggregated with eachother and you can assume that they come in order you have to check
             if base != curr_base:
                 if curr_base != "":
-                    episode.custom_metrics[f"worker_{wid}/Total_{curr_base}"] = float(np.mean(arr))
-                    episode.custom_metrics[f"worker_{wid}/Avg_{curr_base}"] = float(np.mean(arr2))
+                    episode.custom_metrics[f"worker_{wid}/Total_{curr_base}"] = float(np.average(arr))
+                    episode.custom_metrics[f"worker_{wid}/Avg_{curr_base}"] = float(np.average(arr2))
                 arr = []
                 arr2 = []
                 curr_base = base
             series = np.asarray(series, dtype=float)
             arr.append(float(np.sum(series)))
-            if base=="Startidx" and eid == 0 and wid <= self.worker_id:
+            if (base == "Startidx" or base == "Build" or base == "Move") and eid == 0 and wid <= self.worker_id:
                 episode.custom_metrics[f"worker_{wid}/{agent}/Total_{curr_base}"] = float(np.sum(series))
             if base == "Certificates_Allocated":
                 arr_cert_sum.append(float(np.sum(series)))
             elif base == "Carbon_idx":
                 arr_idx_sum.append(float(np.sum(series)))
-            arr2.append(float(np.mean(series)))
+            arr2.append(float(np.average(series)))
         if curr_base is not None and arr:
-            episode.custom_metrics[f"worker_{wid}/Total_{curr_base}"] = float(np.mean(arr)) # mean of totals per agent
-            episode.custom_metrics[f"worker_{wid}/Avg_{curr_base}"] = float(np.mean(arr2))
+            episode.custom_metrics[f"worker_{wid}/Total_{curr_base}"] = float(np.average(arr)) # mean of totals per agent
+            episode.custom_metrics[f"worker_{wid}/Avg_{curr_base}"] = float(np.average(arr2))
 
         # Derived per-worker metric
         episode.custom_metrics[f"worker_{wid}/Remaining_Manufacturing_Potential"] = (
