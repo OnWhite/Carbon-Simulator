@@ -87,6 +87,8 @@ class CarbonRedistribution(BaseComponent):
 
         world = self.world
         world.planner.state["year_num"] = self.world.timestep // self.period
+        for agent in self.world.agents:
+            agent.state["Startidx"] = 0
 
         # punishment at end of years#
         if self.world.timestep % self.period == 0:
@@ -159,6 +161,7 @@ class CarbonRedistribution(BaseComponent):
                         "period": self.period,
                         "total_percent": total_percent,
                         "year_idx": year_idx,
+                        "total_idx": self.total_idx,
                         "env_idx": world.planner.state["env_idx"],
                         "mobile_idx": world.planner.state["mobile_idx"],
                         "remained_idx": world.planner.state["remained_idx"],

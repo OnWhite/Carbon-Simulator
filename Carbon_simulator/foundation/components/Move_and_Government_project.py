@@ -9,19 +9,18 @@ from Carbon_simulator.foundation.base.base_component import (
 
 @component_registry.add
 class Gather(BaseComponent):
-
     name = "Gather"
     required_entities = ["Carbon_idx", "Carbon_emission", "Coin", "Green_project", "Labor"]
     agent_subclasses = ["BasicMobileAgent"]
 
     def __init__(
-        self,
-        *base_component_args,
-        move_labor=1.0,
-        collect_labor=30,
-        collect_cost_coin=10,# equivalent to manufacturing 1 unit of goods
-        collect_idx=1,
-        **base_component_kwargs
+            self,
+            *base_component_args,
+            move_labor=1.0,
+            collect_labor=30,
+            collect_cost_coin=10,  # equivalent to manufacturing 1 unit of goods
+            collect_idx=1,
+            **base_component_kwargs
     ):
         super().__init__(*base_component_args, **base_component_kwargs)
 
@@ -67,7 +66,7 @@ class Gather(BaseComponent):
         if agent_cls_name not in self.agent_subclasses:
             return {}
         if agent_cls_name == "BasicMobileAgent":
-            return {"Carbon_project_it":0.0, "MoveLabor":0.0, "Move":0.0}
+            return {"Carbon_project_it": 0.0, "MoveLabor": 0.0, "Move": 0.0}
         raise NotImplementedError
 
     def component_step(self):
@@ -80,6 +79,10 @@ class Gather(BaseComponent):
         """
         world = self.world
         gathers = []
+        for agent in world.agents:
+            agent.state["Carbon_project_it"] = 0
+            agent.state["Move"] = 0
+
         if self.world.timestep % self.period != 1:
             for agent in world.get_random_order_agents():
                 action = agent.get_component_action(self.name)
@@ -106,7 +109,7 @@ class Gather(BaseComponent):
                     # nothing will happen)
                     for resource, health in world.location_resources(new_r, new_c).items():
                         if resource == "Carbon_project" and health >= 1:
-                            if agent.state["inventory"]["Coin"]>self.collect_cost_coin:
+                            if agent.state["inventory"]["Coin"] > self.collect_cost_coin:
                                 agent.state["inventory"][resource] += world.location_resources(new_r, new_c)[resource]
 
                                 world.consume_resource(resource, new_r, new_c)
@@ -119,7 +122,8 @@ class Gather(BaseComponent):
 
                                 agent.state["inventory"]["Coin"] -= self.collect_cost_coin
                                 agent.state["endogenous"]["Costs"] += self.collect_cost_coin
-                                agent.state["Carbon_project_it"] += 1  # each time an agent collects carbon, it emits 5 units of carbon
+                                agent.state[
+                                    "Carbon_project_it"] += 1  # each time an agent collects carbon, it emits 5 units of carbon
                                 # Log the gather
                                 gathers.append(
                                     dict(
@@ -131,7 +135,6 @@ class Gather(BaseComponent):
                             else:
                                 new_r, new_c = r, c
 
-
                     new_r, new_c = world.set_agent_loc(agent, new_r, new_c)
 
                     # If the agent did move, incur the labor cost of moving
@@ -141,8 +144,6 @@ class Gather(BaseComponent):
                         agent.state["Move"] += 1
                 else:
                     raise ValueError
-
-
 
         self.gathers.append(gathers)
 
