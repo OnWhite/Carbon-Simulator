@@ -96,6 +96,7 @@ class DPImpl:
         # Year bucket logic
         start_idx = 0
         if new_state.timestep % self.yearsteps == 0:
+            new_state.research_yearly=0
             year = new_state.timestep // self.yearsteps
             if year < len(self.planner):
                 year_pct = self.planner[year][0]
