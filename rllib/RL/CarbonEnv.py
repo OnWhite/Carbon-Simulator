@@ -47,11 +47,11 @@ class CarbonEnv(gym.Env):
 
         high = np.array(
             [
-                1e3,  # coin
-                1e3,  # carbon
+                1000,  # coin
+                1000,  # carbon
                 self.dp.yearsteps,  # research_yearly
                 self.dp.yearsteps,  # research_count  <-- NEW
-                1e3,  # labor
+                10000,  # labor
                 *([1.0] * self.max_hist_len),  # research history bits
                 self.dp.total_idx,  # total_green
                 1.0,  # on_certificate
