@@ -32,9 +32,10 @@ def print_optimal_trajectory(algo,env):
     )
     timesteps= env.get_max_timesteps()
     for t in range(timesteps):
-        print(f"Current state (timestep {t}): {state}")
+
         obs = env._state_to_obs(state)
         action = algo.compute_single_action(obs, explore=False)
+        print(f"Current state (timestep {t}): {state}")
         print(f"RL selected action index: {action}")
         print(f"Environment-mapped action: {env.get_action(action)}")
         state, reward = env.single_transition(action, state)
@@ -146,7 +147,7 @@ if __name__ == "__main__":
         .environment(
             env="carbon_env",
             env_config={
-                "config_path": "/Users/work/PycharmProjects/Carbon-Simulator/rllib/DP/config.yaml",
+                "config_path": "/nas/ucb/sophialudewig/Minimalist/rllib/DP/config.yaml",
             },
         )
         .framework("torch")
@@ -163,7 +164,7 @@ if __name__ == "__main__":
 
     algo = config.build()
 
-    for i in range(40):
+    for i in range(2000):
         result = algo.train()
         # print(f"Iter {i}: reward_mean={result['episode_reward_mean']:.2f}")
 
@@ -174,7 +175,7 @@ if __name__ == "__main__":
     # Load DP solution (already computed, no training)
     policy = algo.get_policy()
     model = policy.model
-    env = CarbonEnv({"config_path": "/Users/work/PycharmProjects/Carbon-Simulator/rllib/DP/config.yaml"})
+    env = CarbonEnv({"config_path": "/nas/ucb/sophialudewig/Minimalist/rllib/DP/config.yaml"})
     print_optimal_trajectory(algo, env)
 """ config_path = "/Users/work/PycharmProjects/Carbon-Simulator/rllib/DP/config.yaml"
     dp = DPImpl(load_config(Path(config_path)))

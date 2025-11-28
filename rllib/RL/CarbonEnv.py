@@ -24,7 +24,7 @@ class CarbonEnv(gym.Env):
         cfg_path = Path(
             config.get(
                 "config_path",
-                "/Users/work/PycharmProjects/Carbon-Simulator/rllib/DP/config.yaml",
+                "/nas/ucb/sophialudewig/Minimalist/rllib/DP/config.yaml",
             )
         )
 
