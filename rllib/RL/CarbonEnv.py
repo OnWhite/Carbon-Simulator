@@ -50,7 +50,7 @@ class CarbonEnv(gym.Env):
                 1000,  # coin
                 1000,  # carbon
                 self.dp.yearsteps,  # research_yearly
-                self.dp.timestep,  # research_count  <-- NEW
+                self.dp.max_timesteps,  # research_count  <-- NEW
                 10000,  # labor
                 *([1.0] * self.max_hist_len),  # research history bits
                 self.dp.total_idx,  # total_green
