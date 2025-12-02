@@ -165,7 +165,7 @@ if __name__ == "__main__":
 
     algo = config.build()
 
-    for i in range(2000):
+    for i in range(200):
         result = algo.train()
         # print(f"Iter {i}: reward_mean={result['episode_reward_mean']:.2f}")
 

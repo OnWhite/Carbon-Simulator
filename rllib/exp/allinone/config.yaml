@@ -1,8 +1,8 @@
 env:
   n_agents: 5
   world_size: [40, 40]
-  episode_length: 500
-  period: 50
+  episode_length: 20
+  period: 4
   multi_action_mode_agents: false
   multi_action_mode_planner: true
   flatten_observations: true
@@ -22,12 +22,12 @@ env:
         lowest_rate: 0.02
         research_setting: ["e^-", 0.1]
         random_fails: 0.3
-        delay: 5
-        forget: 25
+        delay: 2
+        forget: 5
     - Carbon_auction:
         max_bid_ask: 20
         max_num_orders: 5
-        order_duration: 10
+        order_duration: 2
     - Gather:
         collect_labor: 30
         collect_cost_coin: 10
@@ -42,7 +42,7 @@ env:
 general:
   ckpt_frequency_steps: 500
   cpus: 32
-  episodes: 500000
+  episodes: 10000
   gpus: 1
   restore_weights_agents: ''   # start from scratch
   restore_weights_planner: ''  # start from scratch

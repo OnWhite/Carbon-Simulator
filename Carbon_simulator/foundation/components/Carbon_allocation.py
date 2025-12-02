@@ -91,29 +91,8 @@ class CarbonRedistribution(BaseComponent):
             agent.state["Startidx"] = 0
             agent.state["Cum_Punishment"] = 0
 
-        # punishment at end of years#
-        if self.world.timestep % self.period == 0:
-            for agent in world.agents:
-                if agent.state["inventory"]["Carbon_idx"] < 0:
-                    punishment = world.planner.state["punishment"] * abs(agent.state["inventory"]["Carbon_idx"])
-                    agent.state["inventory"]["Coin"] -= punishment
-                    agent.state["endogenous"]["Costs"] += punishment
-                    agent.state["Cum_Punishment"] += punishment
-
-            sum_Er = 0
-            for agent in world.agents:
-                sum_Er += agent.state["Carbon_emission_rate"]
-
-            world.planner.state["average_Er"] = sum_Er / world.n_agents
-            assert 0 <= world.planner.state["average_Er"] <= 1
-
-            self.log.append({
-                "settlement_idx": self.world.planner.state["settlement_idx"],
-            })
-
-
-        # divided idx at start of years#
-        elif world.timestep % self.period == 1:
+        # divided idx at start of years # when does this start counting at 0 or at 1?
+        if (world.timestep - 1) % self.period == 0:
             for agent in world.agents:
                 if agent.state["inventory"]["Carbon_idx"] < 0:
                     self.world.planner.state["settlement_idx"][agent.idx] -= agent.state["inventory"]["Carbon_idx"]
@@ -156,20 +135,6 @@ class CarbonRedistribution(BaseComponent):
 
                 world.planner.state["remained_idx"] -= max(0, self.world.planner.state["env_idx"] + sum(
                     self.world.planner.state["mobile_idx"]))
-                with open("/nas/ucb/sophialudewig/Minimalist/logger.json", "a") as f:
-                    info = {
-                        "timestep": (world.timestep - 1),
-                        "period": self.period,
-                        "total_percent": total_percent,
-                        "year_idx": year_idx,
-                        "total_idx": self.total_idx,
-                        "env_idx": world.planner.state["env_idx"],
-                        "mobile_idx": world.planner.state["mobile_idx"],
-                        "remained_idx": world.planner.state["remained_idx"],
-                    }
-                    json.dump(info, f, indent=2)
-                    f.write("\n")
-
                 for agent in world.agents:
                     agent.state["inventory"]["Carbon_idx"] = world.planner.state["mobile_idx"][agent.idx]
                     agent.state["escrow"]["Carbon_idx"] = 0
@@ -193,6 +158,7 @@ class CarbonRedistribution(BaseComponent):
                         total_percent = 0
                         world.planner.state["punishment"] = self.alloc_arr[len(self.alloc_arr) - 1][1]
 
+
                 year_idx = self.total_idx * (float(total_percent) / 100.0)
                 world.planner.state["env_idx"] = year_idx * self.env_idx_percent
                 for i in range(self.n_agents):
@@ -208,19 +174,6 @@ class CarbonRedistribution(BaseComponent):
                     agent.state["escrow"]["Carbon_idx"] = 0
                     agent.state["Startidx"] = world.planner.state["mobile_idx"][i]
                     agent.state["endogenous"]["Rel_Carbon_emission"] = world.planner.state["mobile_idx"][i]
-                    with open("/nas/ucb/sophialudewig/Minimalist/logger.json", "a") as f:
-                        info = {
-                            "timestep": (world.timestep - 1),
-                            "period": self.period,
-                            "agent_idx": agent.idx,
-                            "Startidx": world.planner.state["mobile_idx"][i],
-                            "test": test,
-                            "year_idx": year_idx,
-                            "idx_action[i]": idx_action[
-                                i]
-                        }
-                        json.dump(info, f, indent=2)
-                        f.write("\n")
 
             else:
                 assert self.planner_mode in ["inactive", "active"]
@@ -257,6 +210,26 @@ class CarbonRedistribution(BaseComponent):
             })
         else:
             self.log.append([])
+        if self.world.timestep  % self.period == 0:
+            # punishment at end of years#
+            for agent in world.agents:
+
+                if agent.state["inventory"]["Carbon_idx"] < 0:
+                    punishment = world.planner.state["punishment"] * abs(agent.state["inventory"]["Carbon_idx"])
+                    agent.state["inventory"]["Coin"] -= punishment
+                    agent.state["endogenous"]["Costs"] += punishment
+                    agent.state["Cum_Punishment"] += punishment
+
+            sum_Er = 0
+            for agent in world.agents:
+                sum_Er += agent.state["Carbon_emission_rate"]
+
+            world.planner.state["average_Er"] = sum_Er / world.n_agents
+            assert 0 <= world.planner.state["average_Er"] <= 1
+
+            self.log.append({
+                "settlement_idx": self.world.planner.state["settlement_idx"],
+            })
 
     def generate_observations(self):
         """This component does not add any observations."""
