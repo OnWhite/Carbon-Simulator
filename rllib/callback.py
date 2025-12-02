@@ -289,11 +289,11 @@ class ResultInfoMetricsCallback(DefaultCallbacks):
         "Research_ability": lambda info: info.get("Research_ability", -42),
         "MoveLabor": lambda info: info.get("MoveLabor", -42),
         "Labor": lambda info: info.get("endogenous", {}).get("Labor", -42),
-        "Buy_count": lambda info: info.get("state", {}).get("Buy_count", -42),
-        "Sell_count": lambda info: info.get("state", {}).get("Sell_count", -42),
-        "BidCost": lambda info: info.get("state", {}).get("BidCost", -42),
-        "BidIncome": lambda info: info.get("state", {}).get("BidIncome", -42),
-        "Env_idx": lambda info: info.get("state", {}).get("env_idx", -42),
+        "Buy_count": lambda info: info.get("Buy_count", -42),
+        "Sell_count": lambda info: info.get("Sell_count", -42),
+        "BidCost": lambda info: info.get("BidCost", -42),
+        "BidIncome": lambda info: info.get("BidIncome", -42),
+        "Env_idx": lambda info: info.get("env_idx", -42),
     }
 
     def __init__(self, worker_id: int = 1):
