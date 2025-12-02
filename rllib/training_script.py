@@ -428,7 +428,7 @@ if __name__ == "__main__":
                         metric = parts[2].replace("_ts", "")
                         agent_metrics[agent][metric] = values
 
-                    if agent == 'agent_0':
+                    if agent == 'agent_0' or agent=="agent_p":
                         logger.info("Made it here 2")
                         logger.info(f"{key}: {str(values)}")
 

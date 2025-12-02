@@ -480,6 +480,10 @@ class Carbon_auction(BaseComponent):
         elif self.world.timestep % self.period != 1:
             for resource in self.commodities:
                 for agent in world.agents:
+                    agent.state["Buy_count"] = 0
+                    agent.state["Sell_count"] = 0
+                    agent.state["BidCost"] = 0
+                    agent.state["BidIncome"] = 0
                     self.price_history[resource][agent.idx] *= 0.995
 
                     # Create bid action

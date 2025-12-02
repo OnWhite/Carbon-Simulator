@@ -265,6 +265,7 @@ class ResultInfoMetricsCallback(DefaultCallbacks):
     – Step metrics: aggregated (avg, median, total) over *all* agents on the worker.
     – Final metrics: last-step values (episode-final snapshot) per agent and totals.
     """
+
     STEP_METRICS = {
         # name               extractor – receives the agent_info dict
         "Reward": lambda info: info.get("endogenous", {}).get("Reward", -42),
@@ -288,7 +289,10 @@ class ResultInfoMetricsCallback(DefaultCallbacks):
         "Research_ability": lambda info: info.get("Research_ability", -42),
         "MoveLabor": lambda info: info.get("MoveLabor", -42),
         "Labor": lambda info: info.get("endogenous", {}).get("Labor", -42),
-
+        "Buy_count": lambda info: info.get("state", {}).get("Buy_count", -42),
+        "Sell_count": lambda info: info.get("state", {}).get("Sell_count", -42),
+        "BidCost": lambda info: info.get("state", {}).get("BidCost", -42),
+        "BidIncome": lambda info: info.get("state", {}).get("BidIncome", -42),
     }
 
     def __init__(self, worker_id: int = 1):
@@ -326,6 +330,10 @@ class ResultInfoMetricsCallback(DefaultCallbacks):
                 punishment = agent_info.get("punishment", [])
                 episode.hist_data.setdefault(f"worker_{wid}/punishment_ts", []).append(punishment)
                 mobile_idx_list = agent_info.get("mobile_idx", [])
+                envidx = agent_info.get("envidx", [])
+                episode.hist_data.setdefault(
+                    f"worker_{wid}/agent_p/Env_IDX_ts", []
+                ).append(envidx)
                 for i, v in enumerate(mobile_idx_list):
                     episode.hist_data.setdefault(f"worker_{wid}/agent_{i}/Certificates_Allocated_ts", []
                                                  ).append(v)
