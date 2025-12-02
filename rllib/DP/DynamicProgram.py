@@ -141,8 +141,9 @@ class DPImpl:
         )
 
         # Carbon update
+        if start_idx!=0:
+            new_state.carbon=start_idx
         new_state.carbon += (
-                start_idx
                 - self.require_carbon_idx * self.manufacture_volume * new_action.build * emit_rate
                 + self.collectidx * new_action.green
         )
