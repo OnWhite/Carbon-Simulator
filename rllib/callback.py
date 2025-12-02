@@ -330,10 +330,7 @@ class ResultInfoMetricsCallback(DefaultCallbacks):
                 punishment = agent_info.get("punishment", [])
                 episode.hist_data.setdefault(f"worker_{wid}/punishment_ts", []).append(punishment)
                 mobile_idx_list = agent_info.get("mobile_idx", [])
-                envidx = agent_info.get("envidx", [])
-                episode.hist_data.setdefault(
-                    f"worker_{wid}/agent_p/Env_IDX_ts", []
-                ).append(envidx)
+
                 for i, v in enumerate(mobile_idx_list):
                     episode.hist_data.setdefault(f"worker_{wid}/agent_{i}/Certificates_Allocated_ts", []
                                                  ).append(v)
