@@ -185,9 +185,9 @@ class Carbon_component(BaseComponent):
                     assert agent.state["Start_Er"] == 1
                     # Can't set research_type be e^- and tech_share_year be True at same time
                     power_efficiency = np.e ** (
-                                -agent.state["Research_ability"] * agent.state["Research_count"][0] * self.a)
+                                -agent.state["Research_ability"] * agent.state["Research_count"][0] * self.a*2)
                     sum_power_efficiency = np.sum(
-                        [np.e ** (-i_agent.state["Research_count"][0] * self.a) * i_agent.state["Manufacture_volume"]
+                        [np.e ** (-i_agent.state["Research_count"][0] * self.a*2) * i_agent.state["Manufacture_volume"]
                          for i_agent in world.agents])
                     green_rate = max(1 - np.sum(world.maps.get("Green_project")) / (
                                 sum_power_efficiency + np.sum(world.maps.get("Green_project"))), 0)
