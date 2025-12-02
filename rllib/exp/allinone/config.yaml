@@ -1,8 +1,8 @@
 env:
   n_agents: 5
   world_size: [40, 40]
-  episode_length: 20
-  period: 4
+  episode_length: 100
+  period: 10
   multi_action_mode_agents: false
   multi_action_mode_planner: true
   flatten_observations: true
@@ -12,31 +12,31 @@ env:
     - CarbonRedistribution:
         planner_mode: active
         fixed_punishment: 30
-        total_idx: 200
+        total_idx: 40
         max_year_percent: 25
         years_predefined: None
         agents_predefined: None
     - Carbon_component:
-        payment: 10
+        payment: 2
         require_Carbon_idx: 1
         lowest_rate: 0.02
         research_setting: ["e^-", 0.1]
-        random_fails: 0.5
-        delay: 2
-        forget: 5
+        random_fails: 0.2
+        delay: 1
+        forget: 6
     - Carbon_auction:
         max_bid_ask: 20
         max_num_orders: 5
         order_duration: 2
     - Gather:
-        collect_labor: 30
-        collect_cost_coin: 10
+        collect_labor: 6
+        collect_cost_coin: 2
   dense_log_frequency: 1
   isoelastic_eta: 0.23
   energy_cost: 0.1
   energy_warmup_constant: 10000
   energy_warmup_method: auto
-  starting_agent_coin: 20
+  starting_agent_coin: 4
   mobile_coefficient: 0.2
 
 general:
@@ -44,9 +44,9 @@ general:
   cpus: 32
   episodes: 500000
   gpus: 1
-  eval_only: true
-  restore_weights_agents: 'rllib/exp/allinone/ckpts297/agent.weights.train-step-10000000'   # start from scratch
-  restore_weights_planner: 'rllib/exp/allinone/ckpts297/planner.weights.train-step-10000000'  # start from scratch
+  eval_only: false
+  restore_weights_agents: ''#'rllib/exp/allinone/ckpts297/agent.weights.train-step-10000000'   # start from scratch
+  restore_weights_planner: '' #'rllib/exp/allinone/ckpts297/planner.weights.train-step-10000000'  # start from scratch
   train_planner: true
   fix_mobile: false
   dense_log_frequency: 250

@@ -29,7 +29,7 @@ class CarbonRedistribution(BaseComponent):
             alloc_arr=((1, 5), (2, 5)),
             years_predefined=None,
             agents_predefined=None,
-            env_idx_percent=0.5,
+            env_idx_percent=0.1,
 
             **base_component_kwargs
     ):
