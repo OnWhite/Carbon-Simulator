@@ -44,7 +44,7 @@ general:
   cpus: 32
   episodes: 500000
   gpus: 1
-  eval_only: true
+  eval_only: false
   restore_weights_agents: 'rllib/exp/allinone/ckpts292/agent.weights.train-step-2000000'   # start from scratch
   restore_weights_planner: 'rllib/exp/allinone/ckpts292/planner.weights.train-step-2000000'  # start from scratch
   train_planner: true
