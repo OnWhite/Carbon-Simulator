@@ -1,4 +1,3 @@
-##testttttttt
 import argparse
 import json
 import logging
@@ -380,7 +379,6 @@ if __name__ == "__main__":
             dir=run_dir #'/Users/work/PycharmProjects/Carbon-Simulator/rllib/exp/defuat'
         )
 
-
         # Create a trainer object
         trainer = build_trainer(run_config)
 
@@ -405,6 +403,62 @@ if __name__ == "__main__":
 
         reward_result_a, reward_result_p = [], []
 
+        if run_config["general"].get("eval_only", False):
+            logger.info("Running in evaluation-only mode — no training will occur.")
+
+            eval_results = trainer.evaluate()
+
+            eval_data = eval_results.get("evaluation", {})
+            hist_data = eval_results.get("evaluation", {}).get("hist_stats", {})
+
+            logger.info(f"Available hist_data keys: {list(hist_data.keys())}")
+
+            agent_metrics = defaultdict(lambda: defaultdict(list))
+
+            for key, values in hist_data.items():
+                if not isinstance(values, list) or len(values) == 0:
+                    continue
+                if key == 'build':
+                    logger.info("Made it here 1")
+                    logger.info(f"{key}: {str(values)}")
+                if "_ts" in key:
+                    parts = key.split("/")
+                    if len(parts) >= 3:
+                        agent = parts[1]
+                        metric = parts[2].replace("_ts", "")
+                        agent_metrics[agent][metric] = values
+
+                    if agent == 'agent_0':
+                        logger.info("Made it here 2")
+                        logger.info(f"{key}: {str(values)}")
+
+            for agent, metrics in agent_metrics.items():
+                m = True
+                for metric_name, timesteps in metrics.items():
+                    # Debug the structure
+
+                    # Flatten if nested
+                    if timesteps and isinstance(timesteps[0], (list, np.ndarray)):
+                        timesteps = [item[0] if isinstance(item, (list, np.ndarray)) else item for item in timesteps]
+
+                    table = wandb.Table(columns=["timestep", metric_name])
+                    for t, val in enumerate(timesteps):
+                        table.add_data(t, float(val))
+
+                    # Create a W&B line plot from the table
+                    line_plot = wandb.plot.line(
+                        table,
+                        x="timestep",
+                        y=metric_name,
+                        title=f"{agent} - {metric_name}",
+                    )
+
+                    wandb.log({
+                        f"final_episode/{agent}/{metric_name}": line_plot
+                    })
+
+            logger.info(f"Final episode line plots logged to wandb ({len(agent_metrics)} agents)")
+            sys.exit(0)
         if False:
             search_space = {
                 "lr": tune.loguniform(1e-5, 5e-4),

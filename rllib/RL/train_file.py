@@ -141,9 +141,10 @@ def compare_rl_vs_dp(rl_algo, dp_instance, env, n_eval_episodes=20):
 
 if __name__ == "__main__":
     ray.init(
-        _temp_dir="/nas/ucb/sophialudewig/ray_temp",  # Use a directory with more space
-    object_store_memory = 2 * 1024 * 1024 * 1024  # Limit object store to 2GB
-
+        _temp_dir="/nas/ucb/sophialudewig/ray_temp",
+        object_store_memory=10 * 1024 * 1024 * 1024,  # Increase to 10GB
+        num_cpus=32,  # Adjust based on your server
+        num_gpus=1
     )
 
     register_env("carbon_env", env_creator)
@@ -157,15 +158,14 @@ if __name__ == "__main__":
             },
         )
         .framework("torch")
-        .resources(num_gpus=1, num_cpus_per_worker=6)
+        .resources(num_gpus=1,
+        num_cpus_per_worker=4,
+        num_gpus_per_worker=0.2)
         .callbacks(ResultInfoMetricsCallback)  # Pass the class
-        .rollouts(num_rollout_workers=2)
+        .rollouts(num_rollout_workers=8)
         .training(
             gamma=0.998,
             lr=3e-4,
-            train_batch_size=4000,
-            sgd_minibatch_size=256,
-            num_sgd_iter=10,
         ).reporting(
         min_time_s_per_iteration=60,  # Report less frequently
         metrics_num_episodes_for_smoothing=1  # Reduce smoothing buffer
