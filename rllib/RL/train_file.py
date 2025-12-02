@@ -159,10 +159,10 @@ if __name__ == "__main__":
         )
         .framework("torch")
         .resources(num_gpus=1,
-        num_cpus_per_worker=4,
+        num_cpus_per_worker=1,
         num_gpus_per_worker=0.2)
         .callbacks(ResultInfoMetricsCallback)  # Pass the class
-        .rollouts(num_rollout_workers=8)
+        .rollouts(num_rollout_workers=32)
         .training(
             gamma=0.998,
             lr=3e-4,
