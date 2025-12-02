@@ -172,6 +172,7 @@ if __name__ == "__main__":
 
     for i in range(200):
         result = algo.train()
+        print(i)
         # print(f"Iter {i}: reward_mean={result['episode_reward_mean']:.2f}")
 
         # NOW your custom metrics should appear here!

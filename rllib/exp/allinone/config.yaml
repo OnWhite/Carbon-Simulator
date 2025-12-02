@@ -44,9 +44,9 @@ general:
   cpus: 32
   episodes: 500000
   gpus: 1
-  eval_only: false
-  restore_weights_agents: ''   # start from scratch
-  restore_weights_planner: ''  # start from scratch
+  eval_only: true
+  restore_weights_agents: 'rllib/exp/allinone/ckpts297/agent.weights.train-step-10000000'   # start from scratch
+  restore_weights_planner: 'rllib/exp/allinone/ckpts297/planner.weights.train-step-10000000'  # start from scratch
   train_planner: true
   fix_mobile: false
   dense_log_frequency: 250
