@@ -90,6 +90,7 @@ class CarbonRedistribution(BaseComponent):
         for agent in self.world.agents:
             agent.state["Startidx"] = 0
             agent.state["Cum_Punishment"] = 0
+            agent.state["env_idx"] = 0
 
         # divided idx at start of years # when does this start counting at 0 or at 1?
         if (world.timestep - 1) % self.period == 0:
@@ -159,7 +160,6 @@ class CarbonRedistribution(BaseComponent):
                         total_percent = 0
                         world.planner.state["punishment"] = self.alloc_arr[len(self.alloc_arr) - 1][1]
 
-
                 year_idx = self.total_idx * (float(total_percent) / 100.0)
                 world.planner.state["env_idx"] = year_idx * self.env_idx_percent
                 for i in range(self.n_agents):
@@ -211,7 +211,7 @@ class CarbonRedistribution(BaseComponent):
             })
         else:
             self.log.append([])
-        if self.world.timestep  % self.period == 0:
+        if self.world.timestep % self.period == 0:
             # punishment at end of years#
             for agent in world.agents:
 
