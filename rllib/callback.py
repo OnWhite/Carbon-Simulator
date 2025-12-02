@@ -293,6 +293,7 @@ class ResultInfoMetricsCallback(DefaultCallbacks):
         "Sell_count": lambda info: info.get("state", {}).get("Sell_count", -42),
         "BidCost": lambda info: info.get("state", {}).get("BidCost", -42),
         "BidIncome": lambda info: info.get("state", {}).get("BidIncome", -42),
+        "Env_idx": lambda info: info.get("state", {}).get("env_idx", -42),
     }
 
     def __init__(self, worker_id: int = 1):
