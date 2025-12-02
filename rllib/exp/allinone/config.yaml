@@ -42,7 +42,7 @@ env:
 general:
   ckpt_frequency_steps: 500
   cpus: 32
-  episodes: 500000
+  episodes: 1000000
   gpus: 1
   eval_only: false
   restore_weights_agents: ''#'rllib/exp/allinone/ckpts297/agent.weights.train-step-10000000'   # start from scratch
