@@ -159,17 +159,13 @@ if __name__ == "__main__":
         )
         .framework("torch")
         .resources(num_gpus=1,
-        num_cpus_per_worker=1,
-        num_gpus_per_worker=0.2)
+        num_cpus_per_worker=1)
         .callbacks(ResultInfoMetricsCallback)  # Pass the class
         .rollouts(num_rollout_workers=32)
         .training(
             gamma=0.998,
             lr=3e-4,
-        ).reporting(
-        min_time_s_per_iteration=60,  # Report less frequently
-        metrics_num_episodes_for_smoothing=1  # Reduce smoothing buffer
-    )
+        ).reporting(min_time_s_per_iteration=0)
     )
 
     algo = config.build()
