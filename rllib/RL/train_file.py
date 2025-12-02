@@ -11,6 +11,8 @@ import numpy as np
 
 from rllib.RL.callback import ResultInfoMetricsCallback
 from rllib.env_wrapper import pretty_print
+import shutil
+shutil.rmtree('/tmp/ray', ignore_errors=True)
 
 
 def env_creator(env_config):
@@ -138,7 +140,11 @@ def compare_rl_vs_dp(rl_algo, dp_instance, env, n_eval_episodes=20):
 
 
 if __name__ == "__main__":
-    ray.init()
+    ray.init(
+        _temp_dir="/nas/ucb/sophialudewig/ray_temp",  # Use a directory with more space
+    object_store_memory = 2 * 1024 * 1024 * 1024  # Limit object store to 2GB
+
+    )
 
     register_env("carbon_env", env_creator)
 
@@ -160,7 +166,10 @@ if __name__ == "__main__":
             train_batch_size=4000,
             sgd_minibatch_size=256,
             num_sgd_iter=10,
-        )
+        ).reporting(
+        min_time_s_per_iteration=60,  # Report less frequently
+        metrics_num_episodes_for_smoothing=1  # Reduce smoothing buffer
+    )
     )
 
     algo = config.build()
