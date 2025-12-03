@@ -20,10 +20,10 @@ env:
         payment: 10
         require_Carbon_idx: 1
         lowest_rate: 0.02
-        research_setting: ["e^-", 0.1]
-        random_fails: 0.3
-        delay: 2
-        forget: 5
+        research_setting: ["e^-", 0.2]
+        random_fails: 0.5
+        delay: 1
+        forget: 25
     - Carbon_auction:
         max_bid_ask: 20
         max_num_orders: 5

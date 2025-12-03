@@ -185,12 +185,12 @@ class Carbon_component(BaseComponent):
                     assert agent.state["Start_Er"] == 1
                     # Can't set research_type be e^- and tech_share_year be True at same time
                     power_efficiency = np.e ** (
-                                -agent.state["Research_ability"] * agent.state["Research_count"][0] * self.a)
+                            -agent.state["Research_ability"] * agent.state["Research_count"][0] * self.a)
                     sum_power_efficiency = np.sum(
                         [np.e ** (-i_agent.state["Research_count"][0] * self.a) * i_agent.state["Manufacture_volume"]
                          for i_agent in world.agents])
                     green_rate = max(1 - np.sum(world.maps.get("Green_project")) / (
-                                sum_power_efficiency + np.sum(world.maps.get("Green_project"))), 0)
+                            sum_power_efficiency + np.sum(world.maps.get("Green_project"))), 0)
                     assert 0 <= green_rate <= 1
                     agent.state["Carbon_emission_rate"] = max(power_efficiency * green_rate, self.lowest_rate)
                     agent.state["Power_efficiency"] = power_efficiency
@@ -274,9 +274,9 @@ class Carbon_component(BaseComponent):
                         }
                     )
                     agent.state["endogenous"]["Labor"] += self.labor * agent.state[
-                        "Research_ability"] if self.labor_multiple else self.labor
-                    agent.state["inventory"]["Coin"] -= self.payment / (2 * agent.state["Research_ability"])
-                    agent.state["endogenous"]["Costs"] += self.payment / (2 * agent.state["Research_ability"])
+                        "Research_ability"] * 0.5 if self.labor_multiple else self.labor * 0.5
+                    agent.state["inventory"]["Coin"] -= self.payment / (2 * agent.state["Research_ability"]) * 0.5
+                    agent.state["endogenous"]["Costs"] += self.payment / (2 * agent.state["Research_ability"]) * 0.5
                     agent.state["ResearchCount"] += self.labor * agent.state[
                         "Research_ability"] if self.labor_multiple else self.labor
                 else:
