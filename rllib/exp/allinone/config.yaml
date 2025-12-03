@@ -1,8 +1,8 @@
 env:
   n_agents: 5
   world_size: [40, 40]
-  episode_length: 20
-  period: 4
+  episode_length: 500
+  period: 50
   multi_action_mode_agents: false
   multi_action_mode_planner: true
   flatten_observations: true
@@ -20,14 +20,14 @@ env:
         payment: 10
         require_Carbon_idx: 1
         lowest_rate: 0.02
-        research_setting: ["e^-", 0.2]
-        random_fails: 0.5
-        delay: 1
+        research_setting: ["e^-", 0.1]
+        random_fails: 0.3
+        delay: 5
         forget: 25
     - Carbon_auction:
         max_bid_ask: 20
         max_num_orders: 5
-        order_duration: 2
+        order_duration: 10
     - Gather:
         collect_labor: 30
         collect_cost_coin: 10
@@ -40,13 +40,14 @@ env:
   mobile_coefficient: 0.2
 
 general:
+  eval_only: true
   ckpt_frequency_steps: 500
   cpus: 32
   episodes: 500000
   gpus: 1
-  restore_weights_agents: ''   # start from scratch
-  restore_weights_planner: ''  # start from scratch
-  train_planner: true
+  restore_weights_agents: 'rllib/exp/allinone/ckpts310/agent.weights.train-step-10000000'   # start from scratch
+  restore_weights_planner: 'rllib/exp/allinone/ckpts310/planner.weights.train-step-10000000'  # start from scratch
+  train_planner: false
   fix_mobile: false
   dense_log_frequency: 250
 

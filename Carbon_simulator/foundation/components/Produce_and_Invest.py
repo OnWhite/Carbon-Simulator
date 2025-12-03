@@ -274,9 +274,9 @@ class Carbon_component(BaseComponent):
                         }
                     )
                     agent.state["endogenous"]["Labor"] += self.labor * agent.state[
-                        "Research_ability"] * 0.5 if self.labor_multiple else self.labor * 0.5
-                    agent.state["inventory"]["Coin"] -= self.payment / (2 * agent.state["Research_ability"]) * 0.5
-                    agent.state["endogenous"]["Costs"] += self.payment / (2 * agent.state["Research_ability"]) * 0.5
+                        "Research_ability"] if self.labor_multiple else self.labor
+                    agent.state["inventory"]["Coin"] -= self.payment / (2 * agent.state["Research_ability"])
+                    agent.state["endogenous"]["Costs"] += self.payment / (2 * agent.state["Research_ability"])
                     agent.state["ResearchCount"] += self.labor * agent.state[
                         "Research_ability"] if self.labor_multiple else self.labor
                 else:
