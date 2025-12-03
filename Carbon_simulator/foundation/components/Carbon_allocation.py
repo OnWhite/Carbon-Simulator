@@ -137,7 +137,7 @@ class CarbonRedistribution(BaseComponent):
                 world.planner.state["remained_idx"] -= max(0, self.world.planner.state["env_idx"] + sum(
                     self.world.planner.state["mobile_idx"]))
                 for agent in world.agents:
-                    agent.state["inventory"]["Carbon_idx"] += world.planner.state["mobile_idx"][agent.idx]
+                    agent.state["inventory"]["Carbon_idx"] = world.planner.state["mobile_idx"][agent.idx]
                     agent.state["escrow"]["Carbon_idx"] = 0
                     agent.state["Startidx"] = world.planner.state["mobile_idx"][agent.idx]
                     agent.state["env_idx"] = int(year_idx * self.env_idx_percent)
