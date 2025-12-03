@@ -84,7 +84,7 @@ class Carbon_env(BaseEnvironment):
         if self.energy_warmup_method == "auto":
             return float(
                 1.0
-                - np.exp(-self.world.timestep / self.energy_warmup_constant)
+                - np.exp(-self._auto_warmup_integrator / self.energy_warmup_constant)
             )
 
         raise NotImplementedError
@@ -358,8 +358,8 @@ class Carbon_env(BaseEnvironment):
 
         # reward = curr - prev objectives
         rew = {
-            agent_id: self.curr_optimization_metric[agent_id]
-            for agent_id in self.curr_optimization_metric
+            k: float(v - utility_at_end_of_last_time_step[k])
+            for k, v in self.curr_optimization_metric.items()
         }
 
         # Store rewards in agent state
@@ -367,13 +367,13 @@ class Carbon_env(BaseEnvironment):
             agent.state["endogenous"]["Reward"] = rew[agent.idx]
 
         self.world.planner.state["endogenous"]["Reward"] = rew[self.world.planner.idx]
-
         # store the previous objective values
         self.prev_optimization_metric.update(utility_at_end_of_last_time_step)
 
         avg_agent_rew = np.mean([rew[a.idx] for a in self.world.agents])
 
-        self._auto_warmup_integrator = self.world.timestep
+        if avg_agent_rew > 0:
+            self._auto_warmup_integrator += 1
 
         return rew
 

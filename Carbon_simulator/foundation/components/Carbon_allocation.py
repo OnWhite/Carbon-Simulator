@@ -26,7 +26,7 @@ class CarbonRedistribution(BaseComponent):
             fixed_punishment=100,
             total_idx=200,
             max_year_percent=100,
-            alloc_arr=((1, 5), (2, 5)),
+            alloc_arr=((7, 5),(9, 5),(9,5),(10,4),(1,1)),
             years_predefined=None,
             agents_predefined=None,
             env_idx_percent=0.5,
@@ -151,7 +151,7 @@ class CarbonRedistribution(BaseComponent):
 
                     if ((world.timestep - 1) // self.period) < len(self.alloc_arr):
                         total_percent = self.alloc_arr[(world.timestep-1) // self.period][0]
-                        world.planner.state["punishment"] = self.alloc_arr[(world.timestep-1) // self.period][1]
+                        world.planner.state["punishment"] = 30
                     else:
                         test=True
                         total_percent = 0
@@ -159,15 +159,14 @@ class CarbonRedistribution(BaseComponent):
 
 
                 year_idx = self.total_idx * (float(total_percent) / 100.0)
-                world.planner.state["env_idx"] = year_idx * self.env_idx_percent
+                world.planner.state["env_idx"] = self.alloc_arr[len(self.alloc_arr) - 1][1]
                 for i in range(self.n_agents):
                     agent = world.agents[i]
                     # mobile_idx = idx_action[i] // sum(idx_action) * 0.9 * this year total idx
                     if sum(idx_action):
-                        world.planner.state["mobile_idx"][i] = year_idx * (1 - self.env_idx_percent) * idx_action[
-                            i] / sum(idx_action)
+                        world.planner.state["mobile_idx"][i] = self.alloc_arr[len(self.alloc_arr) - 1][0]
                     else:
-                        world.planner.state["mobile_idx"][i] = year_idx * (1 - self.env_idx_percent)
+                        world.planner.state["mobile_idx"][i] = self.alloc_arr[len(self.alloc_arr) - 1][0]
 
                     agent.state["inventory"]["Carbon_idx"] = world.planner.state["mobile_idx"][i]
                     agent.state["escrow"]["Carbon_idx"] = 0
