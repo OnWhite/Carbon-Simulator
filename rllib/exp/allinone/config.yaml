@@ -1,8 +1,8 @@
 env:
-  n_agents: 2
+  n_agents: 3
   world_size: [18, 18]
-  episode_length: 2
-  period: 1
+  episode_length: 20
+  period: 4
   multi_action_mode_agents: false
   multi_action_mode_planner: true
   flatten_observations: true
@@ -10,38 +10,39 @@ env:
   scenario_name: Carbon/Carbon_env
   components:
     - CarbonRedistribution:
-        alloc_arr:
-          - [ 100, 5 ]
-        env_idx_percent: 0.5
-        planner_mode: inactive
-        fixed_punishment: 5
-        total_idx: 2
+        planner_mode: active
+        fixed_punishment: 30
+        total_idx: 200
         max_year_percent: 25
-        years_predefined: test
+        years_predefined: None
         agents_predefined: None
     - Carbon_component:
-        payment: 2
+        payment: 10
         require_Carbon_idx: 1
         lowest_rate: 0.02
-        research_setting: ["e^-", 0.2]
-        random_fails: 0.1
-        delay: 1
-        forget: 1
+        research_setting: ["e^-", 0.1]
+        random_fails: 0.3
+        delay: 2
+        forget: 5
+    - Carbon_auction:
+        max_bid_ask: 20
+        max_num_orders: 5
+        order_duration: 2
     - Gather:
-        collect_labor: 1
-        collect_cost_coin: 1
+        collect_labor: 30
+        collect_cost_coin: 10
   dense_log_frequency: 1
   isoelastic_eta: 0.23
   energy_cost: 0.1
-  energy_warmup_constant: 1
+  energy_warmup_constant: 10000
   energy_warmup_method: auto
-  starting_agent_coin: 0
+  starting_agent_coin: 20
   mobile_coefficient: 0.2
 
 general:
   ckpt_frequency_steps: 500
   cpus: 32
-  episodes: 250000
+  episodes: 500000
   gpus: 1
   restore_weights_agents: ''   # start from scratch
   restore_weights_planner: ''  # start from scratch
@@ -111,9 +112,9 @@ trainer:
   num_gpus: 1
   num_envs_per_worker: 1
   num_sgd_iter: 1
-  num_workers: 16
+  num_workers: 32
   shuffle_sequences: true
-  sgd_minibatch_size: 1000
-  train_batch_size: 4000
+  sgd_minibatch_size: 2000
+  train_batch_size: 8000
   observation_filter: NoFilter
   rollout_fragment_length: 250
