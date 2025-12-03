@@ -9,7 +9,6 @@ from Carbon_simulator.foundation.base.base_component import (
 
 @component_registry.add
 class Gather(BaseComponent):
-
     name = "Gather"
     required_entities = ["Carbon_idx", "Carbon_emission", "Coin", "Green_project", "Labor"]
     agent_subclasses = ["BasicMobileAgent"]
@@ -67,7 +66,7 @@ class Gather(BaseComponent):
         if agent_cls_name not in self.agent_subclasses:
             return {}
         if agent_cls_name == "BasicMobileAgent":
-            return {"Carbon_project_it":0.0, "MoveLabor":0.0, "Move":0.0}
+            return {"Carbon_project_it": 0.0, "MoveLabor": 0.0, "Move": 0.0}
         raise NotImplementedError
 
     def component_step(self):
@@ -80,6 +79,10 @@ class Gather(BaseComponent):
         """
         world = self.world
         gathers = []
+        for agent in world.agents:
+            agent.state["Carbon_project_it"] = 0
+            agent.state["Move"] = 0
+
         if self.world.timestep % self.period != 1:
             for agent in world.get_random_order_agents():
                 if agent.idx == 0:
@@ -114,11 +117,12 @@ class Gather(BaseComponent):
 
                                     world.create_landmark("Green_project", new_r, new_c, agent.idx)
                                     agent.state["inventory"]["Carbon_idx"] += self.collect_idx
+                                    agent.state["endogenous"]["Rel_Carbon_emission"]+= self.collect_idx
 
                                     # Incur the labor cost of collecting a resource
                                     agent.state["endogenous"]["Labor"] += self.collect_labor
 
-                                    agent.state["inventory"]["Coin"] += self.collect_cost_coin
+                                    agent.state["inventory"]["Coin"] -= self.collect_cost_coin
                                     agent.state["endogenous"]["Costs"] += self.collect_cost_coin
                                     agent.state["Carbon_project_it"] += 1  # each time an agent collects carbon, it emits 5 units of carbon
                                     # Log the gather
@@ -142,8 +146,6 @@ class Gather(BaseComponent):
                             agent.state["Move"] += 1
                     else:
                         raise ValueError
-
-
 
         self.gathers.append(gathers)
 

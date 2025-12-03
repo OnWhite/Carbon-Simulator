@@ -9,6 +9,7 @@ from Carbon_simulator.foundation.scenarios.utils import rewards
 
 @scenario_registry.add
 class Carbon_env(BaseEnvironment):
+
     name = "Carbon/Carbon_env"
     agent_subclasses = ["BasicMobileAgent", "BasicPlanner"]
     required_entities = ["Carbon_idx", "Carbon_emission", "Coin", "Property", "Carbon_pollution", "Labor", "LaborCost",
@@ -21,7 +22,6 @@ class Carbon_env(BaseEnvironment):
             planner_gets_spatial_info=True,
             full_observability=False,
             mobile_agent_observation_range=5,
-            total_idx=200,
             starting_agent_coin=0,
             isoelastic_eta=0.23,
             energy_cost=0.21,
@@ -40,7 +40,6 @@ class Carbon_env(BaseEnvironment):
 
         # Whether the (non-planner) agents can see the whole world map
         self._full_observability = bool(full_observability)
-        self.total_idx = int(total_idx)
 
         self._mobile_agent_observation_range = int(mobile_agent_observation_range)
 
@@ -92,6 +91,10 @@ class Carbon_env(BaseEnvironment):
     def get_current_optimization_metrics(self):
         """
         Compute optimization metrics based on the current state. Used to compute reward.
+
+        Returns:
+            curr_optimization_metric (dict): A dictionary of {agent.idx: metric}
+                with an entry for each agent (including the planner) in the env.
         """
         curr_optimization_metric = {}
         # (for agents)
@@ -310,8 +313,8 @@ class Carbon_env(BaseEnvironment):
             for agent in self.world.agents:
                 r, c = [c + w for c in agent.loc]
                 visible_map = padded_map[
-                    :, (r - w): (r + w + 1), (c - w): (c + w + 1)
-                ]
+                              :, (r - w): (r + w + 1), (c - w): (c + w + 1)
+                              ]
                 visible_idx = np.array(
                     padded_idx[:, (r - w): (r + w + 1), (c - w): (c + w + 1)]
                 )

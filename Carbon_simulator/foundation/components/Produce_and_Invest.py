@@ -9,10 +9,10 @@ from Carbon_simulator.foundation.base.base_component import (
 
 @component_registry.add
 class Carbon_component(BaseComponent):
-
     name = "Carbon_component"
     component_type = "Carbon_component"
-    required_entities = ["Carbon_idx", "Carbon_emission", "Coin", "Revenue", "Property", "Carbon_pollution", "Labor", "Green_project", "Build"]
+    required_entities = ["Carbon_idx", "Carbon_emission", "Coin", "Revenue", "Property", "Carbon_pollution", "Labor",
+                         "Green_project"]
     agent_subclasses = ["BasicMobileAgent"]
 
     def __init__(
@@ -20,10 +20,10 @@ class Carbon_component(BaseComponent):
             *base_component_args,
             payment=10,
             require_Carbon_idx=1.0,
-            labor=1.0,
+            labor=10.0,
             debuff=0.3,
             env_recover_ability=3,
-            research_setting=["e^-", 0.5], # ["-log"or"e^-", int]
+            research_setting=["e^-", 0.5],  # ["-log"or"e^-", int]
             labor_multiple=True,
             ability_independent=True,
 
@@ -98,7 +98,7 @@ class Carbon_component(BaseComponent):
         if self.world.location_landmarks(*agent.loc):
             return False
         # If we made it here, the agent can build.
-        return agent.state["inventory"]["Coin"]>0
+        return agent.state["inventory"]["Coin"] > 0
 
     # Required methods for implementing components
     # --------------------------------------------
@@ -125,8 +125,9 @@ class Carbon_component(BaseComponent):
             return {}
         if agent_cls_name == "BasicMobileAgent":
             return {"Manufacture_volume": 1.0, "Research_ability": 1, "Carbon_emission_rate": 1, "Start_Er": 1,
-                    "Research_count": [0, 0], "Research_history": [0] * (max(self.delay, self.forget)+1),  "Power_efficiency": 1.0,
-        "Green_rate": 1.0, "ResearchCount":0.0, "Last_emission":0.0, "Build":0.0, "Debuff":0.0}
+                    "Research_count": [0, 0], "Research_history": [0] * (max(self.delay, self.forget) + 1),
+                    "Power_efficiency": 1.0,
+                    "Green_rate": 1.0, "ResearchCount": 0.0, "Last_emission": 0.0, "Build": 0.0, "Debuff": 0.0}
         raise NotImplementedError
 
     def component_step(self):
@@ -136,14 +137,10 @@ class Carbon_component(BaseComponent):
         Convert stone+wood to house+coin for agents that choose to build and can.
         """
         world = self.world
+        for agent in self.world.agents:
+            agent.state["Build"] = 0.0
         builds = []
         research = []
-        agent=world.agents[0]
-        ci=agent.state["inventory"]["Carbon_idx"]
-        with open('/nas/ucb/sophialudewig/Minimalist/output.log', 'a') as f:
-            f.write(f"timestep: {world.timestep}, Carbon_idx: {ci}, action: {agent.get_component_action(self.name)}")
-            f.write("\n")
-
         if self.world.timestep % self.period != 1:
 
             # Apply any building or research actions taken by the mobile agents
@@ -161,7 +158,7 @@ class Carbon_component(BaseComponent):
                             agent.state["Research_count"][0] -= 1
                             agent.state["Research_count"][1] -= 1
                             agent.state["Research_history"][0] = 2
-                    # delay research
+                    # Delay research
                     if agent.state["Research_history"][self.delay] == 1:
                         research_activity += 'Delayed improve'
                         # Research_count +1.0.0
@@ -185,12 +182,16 @@ class Carbon_component(BaseComponent):
                             self.lowest_rate
                         )
                     elif self.research_type == "e^-":
-                        assert agent.state["Start_Er"]==1
+                        assert agent.state["Start_Er"] == 1
                         # Can't set research_type be e^- and tech_share_year be True at same time
-                        power_efficiency = np.e**(-agent.state["Research_ability"] * agent.state["Research_count"][0] * self.a)
-                        sum_power_efficiency = np.sum([np.e**(-i_agent.state["Research_count"][0] * self.a) * i_agent.state["Manufacture_volume"] for i_agent in world.agents])
-                        green_rate = max(1-np.sum(world.maps.get("Green_project"))/(sum_power_efficiency + np.sum(world.maps.get("Green_project"))), 0)
-                        assert 0<= green_rate <=1
+                        power_efficiency = np.e ** (
+                                    -agent.state["Research_ability"] * agent.state["Research_count"][0] * self.a)
+                        sum_power_efficiency = np.sum(
+                            [np.e ** (-i_agent.state["Research_count"][0] * self.a) * i_agent.state["Manufacture_volume"]
+                             for i_agent in world.agents])
+                        green_rate = max(1 - np.sum(world.maps.get("Green_project")) / (
+                                    sum_power_efficiency + np.sum(world.maps.get("Green_project"))), 0)
+                        assert 0 <= green_rate <= 1
                         agent.state["Carbon_emission_rate"] = max(power_efficiency * green_rate, self.lowest_rate)
                         agent.state["Power_efficiency"] = power_efficiency
                         agent.state["Green_rate"] = green_rate
@@ -219,6 +220,7 @@ class Carbon_component(BaseComponent):
 
                             # Update Carbon_idx
                             agent.state["inventory"]["Carbon_idx"] -= Carbon_emission
+                            agent.state["endogenous"]["Rel_Carbon_emission"] -= Carbon_emission
 
                             # Place a Property where the agent is standing
                             world.create_landmark("Property", loc_r, loc_c, agent.idx)
@@ -273,8 +275,8 @@ class Carbon_component(BaseComponent):
                         )
                         agent.state["endogenous"]["Labor"] += self.labor * agent.state[
                             "Research_ability"] if self.labor_multiple else self.labor
-                        agent.state["inventory"]["Coin"] -= self.payment/(2* agent.state["Research_ability"])
-                        agent.state["endogenous"]["Costs"] += self.payment/(2* agent.state["Research_ability"])
+                        agent.state["inventory"]["Coin"] -= self.payment / (2 * agent.state["Research_ability"])
+                        agent.state["endogenous"]["Costs"] += self.payment / (2 * agent.state["Research_ability"])
                         agent.state["ResearchCount"] += self.labor * agent.state[
                             "Research_ability"] if self.labor_multiple else self.labor
                     else:
@@ -330,7 +332,7 @@ class Carbon_component(BaseComponent):
         """
         world = self.world
 
-        build_stats = {a.idx: {"n_builds": 0, "emission":0} for a in world.agents}
+        build_stats = {a.idx: {"n_builds": 0, "emission": 0} for a in world.agents}
         for actions in self.Manufactures["builds"]:
             for action in actions:
                 idx = action["enterprise"]
@@ -368,9 +370,6 @@ class Carbon_component(BaseComponent):
         world = self.world
 
         for agent in world.agents:
-            if world.timestep==1:
-                agent.state["Build"] = 10
-                raise Exception(agent.state["Build"])
             if self.evaluate:
                 assert self.n_agents == 5
                 if agent.idx == 0:

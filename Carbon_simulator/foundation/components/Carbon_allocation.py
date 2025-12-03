@@ -11,7 +11,7 @@ from Carbon_simulator.foundation.base.base_component import (
 @component_registry.add
 class CarbonRedistribution(BaseComponent):
     name = "CarbonRedistribution"
-    required_entities = ["Carbon_idx", "Carbon_project", "Startidx"]
+    required_entities = ["Carbon_idx", "Carbon_project"]
     agent_subclasses = ["BasicMobileAgent", "BasicPlanner"]
 
     """
@@ -29,7 +29,7 @@ class CarbonRedistribution(BaseComponent):
             alloc_arr=((7, 5),(9, 5),(9,5),(10,4),(1,1)),
             years_predefined=None,
             agents_predefined=None,
-            env_idx_percent=0.5,
+            env_idx_percent=0.1,
 
             **base_component_kwargs
     ):
@@ -73,7 +73,7 @@ class CarbonRedistribution(BaseComponent):
     def get_additional_state_fields(self, agent_cls_name):
         """This component does not add any state fields."""
         if agent_cls_name == "BasicMobileAgent":
-            return {"Cum_Punishment": 0, }
+            return {"Cum_Punishment": 0, "Startidx": 0, "env_idx": 0}
         if agent_cls_name == "BasicPlanner":
             return {"punishment": 0,
                     "year_num": 0,
@@ -87,6 +87,10 @@ class CarbonRedistribution(BaseComponent):
 
         world = self.world
         world.planner.state["year_num"] = self.world.timestep // self.period
+        for agent in self.world.agents:
+            agent.state["Startidx"] = 0
+            agent.state["Cum_Punishment"] = 0
+            agent.state["env_idx"] = 0
 
         # divided idx at start of years # when does this start counting at 0 or at 1?
         if (world.timestep - 1) % self.period == 0:
@@ -167,7 +171,8 @@ class CarbonRedistribution(BaseComponent):
 
                     agent.state["inventory"]["Carbon_idx"] = world.planner.state["mobile_idx"][i]
                     agent.state["escrow"]["Carbon_idx"] = 0
-                    agent.state["inventory"]["Startidx"] = world.planner.state["mobile_idx"][i]
+                    agent.state["Startidx"] = world.planner.state["mobile_idx"][i]
+                    agent.state["endogenous"]["Rel_Carbon_emission"] = world.planner.state["mobile_idx"][i]
 
             else:
                 assert self.planner_mode in ["inactive", "active"]
