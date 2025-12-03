@@ -150,15 +150,12 @@ class CarbonRedistribution(BaseComponent):
                     idx_action = [1, 0]
 
                     if ((world.timestep - 1) // self.period) < len(self.alloc_arr):
-                        total_percent = self.alloc_arr[(world.timestep-1) // self.period][0]
                         world.planner.state["punishment"] = 30
                     else:
                         test=True
-                        total_percent = 0
                         world.planner.state["punishment"] = 30
 
 
-                year_idx = self.total_idx * (float(total_percent) / 100.0)
                 world.planner.state["env_idx"] = self.alloc_arr[(world.timestep-1) // self.period][1]
                 for i in range(self.n_agents):
                     agent = world.agents[i]
@@ -178,7 +175,6 @@ class CarbonRedistribution(BaseComponent):
                             "agent_idx": agent.idx,
                             "Startidx": world.planner.state["mobile_idx"][i],
                             "test": test,
-                            "year_idx": year_idx,
                             "idx_action[i]":idx_action[
                             i]
                         }
