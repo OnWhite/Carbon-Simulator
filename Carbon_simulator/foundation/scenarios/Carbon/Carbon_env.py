@@ -83,7 +83,7 @@ class Carbon_env(BaseEnvironment):
         if self.energy_warmup_method == "auto":
             return float(
                 1.0
-                - np.exp(-self.world.timestep / self.energy_warmup_constant)
+                - np.exp(-self._auto_warmup_integrator / self.energy_warmup_constant)
             )
 
         raise NotImplementedError
