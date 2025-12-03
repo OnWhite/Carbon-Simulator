@@ -155,18 +155,18 @@ class CarbonRedistribution(BaseComponent):
                     else:
                         test=True
                         total_percent = 0
-                        world.planner.state["punishment"] = self.alloc_arr[len(self.alloc_arr) - 1][1]
+                        world.planner.state["punishment"] = 30
 
 
                 year_idx = self.total_idx * (float(total_percent) / 100.0)
-                world.planner.state["env_idx"] = self.alloc_arr[len(self.alloc_arr) - 1][1]
+                world.planner.state["env_idx"] = self.alloc_arr[(world.timestep-1) // self.period][1]
                 for i in range(self.n_agents):
                     agent = world.agents[i]
                     # mobile_idx = idx_action[i] // sum(idx_action) * 0.9 * this year total idx
-                    if sum(idx_action):
-                        world.planner.state["mobile_idx"][i] = self.alloc_arr[len(self.alloc_arr) - 1][0]
+                    if i==0:
+                        world.planner.state["mobile_idx"][i] = self.alloc_arr[(world.timestep-1) // self.period][0]
                     else:
-                        world.planner.state["mobile_idx"][i] = self.alloc_arr[len(self.alloc_arr) - 1][0]
+                        world.planner.state["mobile_idx"][i] =0
 
                     agent.state["inventory"]["Carbon_idx"] = world.planner.state["mobile_idx"][i]
                     agent.state["escrow"]["Carbon_idx"] = 0
