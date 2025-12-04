@@ -24,7 +24,7 @@ class CarbonEnv(gym.Env):
         cfg_path = Path(
             config.get(
                 "config_path",
-                "/Users/work/PycharmProjects/Carbon-Simulator/rllib/DP/config.yaml",
+                "/nas/ucb/sophialudewig/Minimalist/rllib/DP/config.yaml",
             )
         )
 
@@ -47,11 +47,11 @@ class CarbonEnv(gym.Env):
 
         high = np.array(
             [
-                1e3,  # coin
-                1e3,  # carbon
+                2000,  # coin
+                2000,  # carbon
                 self.dp.yearsteps,  # research_yearly
-                self.dp.yearsteps,  # research_count  <-- NEW
-                1e3,  # labor
+                self.dp.max_timesteps,  # research_count  <-- NEW
+                10000,  # labor
                 *([1.0] * self.max_hist_len),  # research history bits
                 self.dp.total_idx,  # total_green
                 1.0,  # on_certificate
@@ -153,6 +153,27 @@ class CarbonEnv(gym.Env):
             truncated,
             {"action": action, "state": next_state},
         )
+    def single_transition(self, action_idx: int, state:State):
+        """Step with Action dataclass."""
+        action = self.actions[action_idx]
+
+        next_state = self.dp.state_transition(action, state)
+        reward = self.dp.reward(next_state)
+
+        self.state = next_state
+        return (
+            next_state,
+            reward
+        )
+
 
     def render(self):
         pass
+    def get_action(self, action_idx: int) -> Action:
+        """Get Action dataclass from action index."""
+        return self.actions[action_idx]
+    def get_state(self,state_idx) -> State:
+        """Get State dataclass from state index."""
+        return self.dp.index_to_state(state_idx)
+    def get_max_timesteps(self) ->int:
+        return self.dp.max_timesteps

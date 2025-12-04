@@ -33,7 +33,6 @@ env:
   dense_log_frequency: 1
   isoelastic_eta: 0.23
   energy_cost: 0.1
-  total_idx: 200
   energy_warmup_constant: 1
   energy_warmup_method: auto
   starting_agent_coin: 0
