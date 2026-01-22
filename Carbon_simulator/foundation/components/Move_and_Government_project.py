@@ -117,7 +117,6 @@ class Gather(BaseComponent):
 
                                     world.create_landmark("Green_project", new_r, new_c, agent.idx)
                                     agent.state["inventory"]["Carbon_idx"] += self.collect_idx
-                                    agent.state["endogenous"]["Rel_Carbon_emission"]+= self.collect_idx
 
                                     # Incur the labor cost of collecting a resource
                                     agent.state["endogenous"]["Labor"] += self.collect_labor

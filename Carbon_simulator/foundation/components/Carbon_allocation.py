@@ -172,7 +172,6 @@ class CarbonRedistribution(BaseComponent):
                     agent.state["inventory"]["Carbon_idx"] += world.planner.state["mobile_idx"][i]
                     agent.state["escrow"]["Carbon_idx"] = 0
                     agent.state["Startidx"] = world.planner.state["mobile_idx"][i]
-                    agent.state["endogenous"]["Rel_Carbon_emission"] = world.planner.state["mobile_idx"][i]
 
             else:
                 assert self.planner_mode in ["inactive", "active"]

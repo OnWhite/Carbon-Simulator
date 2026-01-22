@@ -135,7 +135,6 @@ class InfoMetricsCallback(DefaultCallbacks):
         "PastUtility": lambda info: info.get("endogenous", {}).get("PastUtility", 0.0),
         "Research_ability": lambda info: info.get("Research_ability", 0.0),
         "Move": lambda info: info.get("Move", 0.0),
-        "Carbon_idx": lambda info: info.get("endogenous", {}).get("Rel_Carbon_emission", 0.0),
         "Carbon_project": lambda info: info.get("Carbon_project_it", 0.0),
 
     }
