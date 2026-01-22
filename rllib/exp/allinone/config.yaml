@@ -1,8 +1,8 @@
 env:
   n_agents: 3
   world_size: [18, 18]
-  episode_length: 20
-  period: 4
+  episode_length: 500
+  period: 50
   multi_action_mode_agents: false
   multi_action_mode_planner: true
   flatten_observations: true
@@ -22,8 +22,8 @@ env:
         lowest_rate: 0.02
         research_setting: ["e^-", 0.1]
         random_fails: 0.3
-        delay: 2
-        forget: 5
+        delay: 5
+        forget: 25
     - Gather:
         collect_labor: 30
         collect_cost_coin: 10
@@ -36,6 +36,7 @@ env:
   mobile_coefficient: 0.2
 
 general:
+  eval_only: true
   ckpt_frequency_steps: 500
   cpus: 32
   episodes: 500000
@@ -44,7 +45,6 @@ general:
   restore_weights_planner: ''  # start from scratch
   train_planner: false
   fix_mobile: false
-  eval_only: false
   dense_log_frequency: 250
 
 agent_policy:
