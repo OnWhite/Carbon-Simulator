@@ -36,7 +36,7 @@ env:
   mobile_coefficient: 0.2
 
 general:
-  eval_only: true
+  eval_only: false
   ckpt_frequency_steps: 500
   cpus: 32
   episodes: 500000
