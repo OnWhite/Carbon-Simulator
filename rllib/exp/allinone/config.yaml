@@ -3,7 +3,7 @@ env:
   world_size: [18, 18]
   episode_length: 500
   period: 50
-  multi_action_mode_agents: false
+  multi_action_mode_agents: true
   multi_action_mode_planner: true
   flatten_observations: true
   flatten_masks: true
@@ -43,7 +43,7 @@ general:
   gpus: 1
   restore_weights_agents: ''   # start from scratch
   restore_weights_planner: ''  # start from scratch
-  train_planner: false
+  train_planner: true
   fix_mobile: false
   dense_log_frequency: 250
 
