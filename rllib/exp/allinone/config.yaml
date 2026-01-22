@@ -10,7 +10,7 @@ env:
   scenario_name: Carbon/Carbon_env
   components:
     - CarbonRedistribution:
-        planner_mode: inactive
+        planner_mode: active
         fixed_punishment: 30
         total_idx: 200
         max_year_percent: 25
@@ -40,11 +40,11 @@ general:
   cpus: 32
   episodes: 500000
   gpus: 1
-  restore_weights_agents: 'rllib/exp/allinone/ckpts317/agent.weights.train-step-10000000'   # start from scratch
-  restore_weights_planner: 'rllib/exp/allinone/ckpts317/planner.weights.train-step-10000000'  # start from scratch
+  restore_weights_agents: ''   # start from scratch
+  restore_weights_planner: ''  # start from scratch
   train_planner: false
   fix_mobile: false
-  eval_only: true
+  eval_only: false
   dense_log_frequency: 250
 
 agent_policy:
