@@ -289,6 +289,7 @@ class CarbonRedistribution(BaseComponent):
     def additional_reset_steps(self):
 
         world = self.world
+
         world.planner.state["punishment"] = self.fixed_punishment if self.fixed_punishment else 100
         world.planner.state["year_num"] = 0
 
