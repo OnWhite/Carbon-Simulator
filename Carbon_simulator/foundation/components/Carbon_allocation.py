@@ -139,7 +139,7 @@ class CarbonRedistribution(BaseComponent):
                                                        self.world.planner.state["mobile_idx"][0]
                 for agent in world.agents:
                     if agent.idx == 0:
-                        agent.state["inventory"]["Carbon_idx"] = world.planner.state["mobile_idx"][agent.idx]
+                        agent.state["inventory"]["Carbon_idx"] += world.planner.state["mobile_idx"][agent.idx]
                         agent.state["escrow"]["Carbon_idx"] = 0
                         agent.state["inventory"]["Startidx"] = world.planner.state["mobile_idx"][agent.idx]
 
@@ -169,7 +169,7 @@ class CarbonRedistribution(BaseComponent):
                     else:
                         world.planner.state["mobile_idx"][i] =0
 
-                    agent.state["inventory"]["Carbon_idx"] = world.planner.state["mobile_idx"][i]
+                    agent.state["inventory"]["Carbon_idx"] += world.planner.state["mobile_idx"][i]
                     agent.state["escrow"]["Carbon_idx"] = 0
                     agent.state["Startidx"] = world.planner.state["mobile_idx"][i]
                     agent.state["endogenous"]["Rel_Carbon_emission"] = world.planner.state["mobile_idx"][i]

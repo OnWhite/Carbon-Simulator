@@ -361,7 +361,7 @@ class Carbon_env(BaseEnvironment):
 
         # reward = curr - prev objectives
         rew = {
-            k: float(v - utility_at_end_of_last_time_step[k])
+            k: v
             for k, v in self.curr_optimization_metric.items()
         }
 
