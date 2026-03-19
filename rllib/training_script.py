@@ -17,7 +17,7 @@ from rllib.RL.train_file import compare_rl_vs_dp, compare_rl_to_dp
 import json
 
 import shutil
-wandb.login(key="2c1f8f77f938086f691891b269af9d5e4925c425")
+wandb.login()
 from torch_models import ConvRnn
 
 from ray import train
@@ -353,10 +353,8 @@ def create_unique_temp_dir():
 
 if __name__ == "__main__":
     try:
-        # Process the args first
         run_dir, run_config = process_args()
 
-        # Initialize Ray with temp directory
         ray.init(
             log_to_driver=True,
             include_dashboard=False,
@@ -372,7 +370,7 @@ if __name__ == "__main__":
 
         fh = logging.FileHandler(run_dir+"/train.log")
         logger.addHandler(fh)
-        # Initialize W&B
+
         wandb.init(
             project="Minimal_Testing",
             name="gettingmetricsright",
@@ -404,7 +402,9 @@ if __name__ == "__main__":
 
         reward_result_a, reward_result_p = [], []
 
+        # Eval only episodes and logging
         if run_config["general"].get("eval_only", False):
+
             logger.info("Running in evaluation-only mode — no training will occur.")
 
             eval_results = trainer.evaluate()
@@ -415,12 +415,11 @@ if __name__ == "__main__":
             logger.info(f"Available hist_data keys: {list(hist_data.keys())}")
 
             agent_metrics = defaultdict(lambda: defaultdict(list))
-
+            #create different metrics
             for key, values in hist_data.items():
                 if not isinstance(values, list) or len(values) == 0:
                     continue
                 if key == 'build':
-                    logger.info("Made it here 1")
                     logger.info(f"{key}: {str(values)}")
                 if "_ts" in key:
                     parts = key.split("/")
@@ -429,10 +428,10 @@ if __name__ == "__main__":
                         metric = parts[2].replace("_ts", "")
                         agent_metrics[agent][metric] = values
 
-                    if agent == 'agent_0' or agent=="agent_p":
-                        logger.info("Made it here 2")
+                    if agent == 'agent_0' or agent =="agent_p":
                         logger.info(f"{key}: {str(values)}")
 
+            # change format of nested metrics to be flat lists of values per timestep, and log line plots for each metric
             for agent, metrics in agent_metrics.items():
                 m = True
                 for metric_name, timesteps in metrics.items():
@@ -460,7 +459,10 @@ if __name__ == "__main__":
 
             logger.info(f"Final episode line plots logged to wandb ({len(agent_metrics)} agents)")
             sys.exit(0)
+
         if False:
+            # For hyperparameter tuning of the reward function
+
             search_space = {
                 "lr": tune.loguniform(1e-5, 5e-4),
                 "entropy_coeff": tune.uniform(0.005, 0.01),  # Add entropy decay schedule if possible
@@ -513,7 +515,7 @@ if __name__ == "__main__":
                     **metrics
                 }, step=result["episodes_total"])  # <-- add step to align by episode
 
-                # === Counters++ ===
+                # === Counters ===
                 num_parallel_episodes_done = result["episodes_total"]
                 global_step = result["timesteps_total"]
                 curr_iter = result["training_iteration"]

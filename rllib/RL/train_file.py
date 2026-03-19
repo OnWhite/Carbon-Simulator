@@ -5,12 +5,11 @@ from ray.tune.registry import register_env
 from ray.rllib.algorithms import ppo
 from dataclasses import replace
 
-from rllib.DP.DynamicProgram import DPImpl, load_config, Action, State
+from rllib.DP.DynamicProgram import Action, State
 from rllib.RL.CarbonEnv import CarbonEnv
 import numpy as np
 
 from rllib.RL.callback import ResultInfoMetricsCallback
-from rllib.env_wrapper import pretty_print
 import shutil
 shutil.rmtree('/tmp/ray', ignore_errors=True)
 
@@ -20,7 +19,7 @@ def env_creator(env_config):
 
 
 def print_optimal_trajectory(algo, env):
-    # Initial state (adapt to your model's start state)
+    """Method to get the optimal trajectory from Zero state using the trained policy"""
     state = State(
         coin=0.0,
         carbon=0.0,
@@ -46,30 +45,27 @@ def print_optimal_trajectory(algo, env):
 def compare_rl_to_dp(rl_algo, dp_instance, env):
     """Compare RL and DP policies on identical rollouts"""
     count = 0
-    rewards1 = 0
-    rewards2 = 0
-    actions = [
-        Action(b, g, r, m)
-        for b in [0, 1]
-        for g in [0, 1]
-        for r in [0, 1]
-        for m in [0, 1]
-    ]
+    rewardsRL = 0
+    rewardsDP = 0
+    actions = [Action(b, g, r, m) for b in [0, 1] for g in [0, 1] for r in [0, 1] for m in [0, 1]]
     startstate = State(0, 0, 0, 0, 0, (0, 0), 0, 0, 0)
-    states = []
-    for a in actions:
-        states.append(dp_instance.state_transition(a, startstate))
-    tot_states = states.copy()
-    for state in states:
-        for a in actions:
-            tot_states.append(dp_instance.state_transition(a, state))
+
+    # generate all states
+    states = [dp_instance.state_transition(a, startstate) for a in actions]
+    tot_states = states + [dp_instance.state_transition(a, s) for s in states for a in actions]
+
     for state in tot_states:
         observation = env._state_to_obs(state)
+
+        # Get reward for RL optimal policy of the current state
         action = rl_algo.compute_single_action(observation, explore=False)
+        rewardsRL += (dp_instance.reward(dp_instance.state_transition(dp_instance.actions[action], state)))
+
+        # Get reward for DP optimal policy of the current state
         state_idx = dp_instance.state_to_index(state)
         action_idx = dp_instance.optimal_policy[state_idx]
-        rewards1 += (dp_instance.reward(dp_instance.state_transition(dp_instance.actions[action], state)))
-        rewards2 += (dp_instance.reward(dp_instance.state_transition(dp_instance.actions[action_idx], state)))
+        rewardsDP += (dp_instance.reward(dp_instance.state_transition(dp_instance.actions[action_idx], state)))
+
         if action != action_idx:
             if state.on_certificate == 0 and dp_instance.actions[action].green != dp_instance.actions[action_idx].green:
                 new_action1 = replace(dp_instance.actions[action], green=0)
@@ -86,7 +82,7 @@ def compare_rl_to_dp(rl_algo, dp_instance, env):
             print(new_action2)
             count += 1
     print(f"Total mismatches: {count} out of {len(dp_instance.statespace)} states")
-    print(f"Reward difference: {(rewards1 - rewards2) / (rewards1 + rewards2)}%")
+    print(f"Reward difference: {(rewardsRL - rewardsDP) / (rewardsRL + rewardsDP)}%")
 
 
 def compare_rl_vs_dp(rl_algo, dp_instance, env, n_eval_episodes=20):
