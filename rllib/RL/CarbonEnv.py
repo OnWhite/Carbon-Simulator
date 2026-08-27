@@ -8,6 +8,7 @@ import gymnasium as gym
 from gymnasium import spaces
 
 from rllib.DP.DynamicProgram import DPImpl, Action, State
+from rllib.DP.exact_dp import start_state
 
 
 class CarbonEnv(gym.Env):
@@ -31,6 +32,11 @@ class CarbonEnv(gym.Env):
         cfg = self.load_config(cfg_path)
         self.dp = DPImpl(cfg)
 
+        # Let a run override the horizon without editing the shared config, so
+        # the RL tier can train at whatever T the exact DP can still verify.
+        if config.get("horizon") is not None:
+            self.dp.max_timesteps = int(config["horizon"])
+
         # Action set (16 actions)
         self.actions = [
             Action(b, g, r, m)
@@ -43,7 +49,7 @@ class CarbonEnv(gym.Env):
         self.action_space = spaces.Discrete(self.n_actions)
 
         # Observation space
-        self.max_hist_len = max(self.dp.delay, self.dp.forget)
+        self.max_hist_len = self.dp.hist_len
 
         high = np.array(
             [
@@ -121,17 +127,9 @@ class CarbonEnv(gym.Env):
     def reset(self, *, seed=None, options=None):
         super().reset(seed=seed)
 
-        self.state = State(
-            coin=0.0,
-            carbon=0.0,
-            research_yearly=0,
-            research_count=0,
-            labor=1.0,
-            research_history=(0,) * self.max_hist_len,
-            total_green=0.0,
-            on_certificate=0,
-            timestep=0,
-        )
+        # One shared definition of the start state (rllib.DP.exact_dp), instead
+        # of three copies that disagreed about the initial labor value.
+        self.state = start_state(self.dp)
 
         return self._state_to_obs(self.state), {"action": None, "state": None}
 
@@ -139,10 +137,25 @@ class CarbonEnv(gym.Env):
         """Step with Action dataclass."""
         action = self.actions[action_idx]
 
-        next_state = self.dp.state_transition(action, self.state)
+        # Both shocks are drawn every step, whether or not the action can
+        # trigger them, so that the RNG stream stays aligned across policies
+        # and a seeded episode is comparable between runs.
+        research_success = int(self.np_random.random() < self.dp.p_research_success)
+        permit_granted = int(self.np_random.random() < self.dp.p_permit)
+
+        next_state = self.dp.state_transition(
+            action,
+            self.state,
+            research_success=research_success,
+            permit_granted=permit_granted,
+        )
         reward = self.dp.reward(next_state)
 
-        terminated = next_state.timestep >= self.dp.max_timesteps - 1
+        # T decisions per episode, at t = 0 .. T-1. The old bound was
+        # `max_timesteps - 1`, which terminated after a single decision when
+        # episode_length was 2, so the agent solved a one-step bandit while the
+        # dynamic program planned over the full horizon.
+        terminated = next_state.timestep >= self.dp.max_timesteps
         truncated = False
 
         self.state = next_state
@@ -153,18 +166,34 @@ class CarbonEnv(gym.Env):
             truncated,
             {"action": action, "state": next_state},
         )
-    def single_transition(self, action_idx: int, state:State):
-        """Step with Action dataclass."""
+    def single_transition(self, action_idx: int, state: State,
+                          research_success: int = 1, permit_granted: int = 0):
+        """Advance one step from an arbitrary state with given shock outcomes."""
         action = self.actions[action_idx]
 
-        next_state = self.dp.state_transition(action, state)
+        next_state = self.dp.state_transition(
+            action, state,
+            research_success=research_success,
+            permit_granted=permit_granted,
+        )
         reward = self.dp.reward(next_state)
 
         self.state = next_state
-        return (
-            next_state,
-            reward
+        return next_state, reward
+
+    def deterministic_step(self, action_idx: int, state: State,
+                          research_success: int, permit_granted: int):
+        """Pure transition used by the parity test. Does not touch self.state."""
+        next_state = self.dp.state_transition(
+            self.actions[action_idx], state,
+            research_success=research_success,
+            permit_granted=permit_granted,
         )
+        return next_state, self.dp.reward(next_state)
+
+    @property
+    def horizon(self) -> int:
+        return int(self.dp.max_timesteps)
 
 
     def render(self):

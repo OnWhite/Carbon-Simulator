@@ -5,7 +5,6 @@ import math
 from typing import Dict, Any
 from pathlib import Path
 import mdptoolbox
-import random
 from dataclasses import dataclass
 from typing import Tuple
 
@@ -70,27 +69,75 @@ class DPImpl:
         self.l_build = comps["Carbon_component"].get("labor", 1)
         self.l_research = comps["Carbon_component"].get("labor", 1)
         self.l_green = comps.get("Gather", {}).get("collect_labor", 1)
-        self.planner = [(100, 5)]
+        # Yearly planner schedule as (allocation_percent, punishment) per year.
+        #
+        # This used to be hard-coded to a single year, [(100, 5)], which meant a
+        # multi-year horizon received an allocation in year 0 and nothing after.
+        # Set `dp.planner_schedule` in the config to pin it explicitly; the
+        # fallback repeats the year-0 entry (a flat schedule) for long enough to
+        # cover any horizon we solve, using the configured fixed punishment.
+        _explicit = (cfg.get("dp") or {}).get("planner_schedule")
+        if _explicit:
+            self.planner = [(float(pct), float(pun)) for pct, pun in _explicit]
+        else:
+            _pun = float(comps["CarbonRedistribution"].get("fixed_punishment", 5))
+            self.planner = [(100.0, _pun)] * 64
         self.left_envidx = 0
         self.greenbudget: float = 0.0
         self.max_greenbudget = 0.0
         self.max_timesteps = env.get("episode_length", 2)
-        print(self.total_idx)
         self.max_greenbudget = (1 / 3) * self.total_idx
         ws = env.get("world_size", (100, 100))
         self.worldsize = ws[0] * ws[1]
         self.statespace = []
 
+        # Probabilities of the two exogenous shocks. Kept here so the exact
+        # solver and the gym env cannot disagree about them.
+        self.p_research_success: float = 1.0 - self.failrate
+
+        # Research history buffer length. Produce_and_Invest allocates
+        # [0] * (max(delay, forget) + 1) and indexes [delay] unguarded, so it
+        # is always one longer than the largest index it reads. The DP used
+        # max(delay, forget) and guarded the read with `len(hist) > delay`,
+        # which silently swallowed the out-of-range case: at delay == forget
+        # the buffer was length 1, the guard was false, and a successful
+        # research attempt could never mature at any horizon.
+        self.hist_len: int = max(self.delay, self.forget) + 1
+        self.p_permit: float = self.max_greenbudget / self.worldsize
+
     from copy import deepcopy
 
-    def state_transition(self, action: Action, state: State) -> State:
+    def state_transition(
+            self,
+            action: Action,
+            state: State,
+            *,
+            research_success: int = 1,
+            permit_granted: int = 0,
+    ) -> State:
+        """Deterministic transition.
+
+        The two exogenous shocks are ARGUMENTS, never drawn here, so that the
+        same function can be used to build an exact expectation (dynamic
+        program) and to step a sampled environment (RL).
+
+            research_success  1 if a research attempt lands in the pipeline.
+                              Costs are paid either way, matching
+                              Produce_and_Invest.component_step, where the
+                              labor/coin lines sit outside the success branch.
+            permit_granted    1 if a move yields a green-project certificate.
+
+        Defaults describe the no-shock branch (research lands, no permit) and
+        exist only so the legacy unit tests keep their meaning; every caller in
+        the exact solver passes both explicitly.
+        """
         new_state = deepcopy(state)
         new_action = deepcopy(action)
 
         # Research history must become a list for mutation
         hist = list(new_state.research_history)
-        if not hist:
-            hist.append(0)
+        if len(hist) < self.hist_len:
+            hist = hist + [0] * (self.hist_len - len(hist))
 
         # Year bucket logic
         start_idx = 0
@@ -106,7 +153,10 @@ class DPImpl:
             new_state.research_yearly -= 1
             new_state.research_count -= 1
             hist[0] = 2
-        if len(hist) > self.delay and hist[self.delay] == 1:
+        assert len(hist) > self.delay, (
+            f"research history of length {len(hist)} cannot be indexed at "
+            f"delay={self.delay}; expected length {self.hist_len}")
+        if hist[self.delay] == 1:
             new_state.research_yearly += 1
             new_state.research_count += 1
 
@@ -116,7 +166,7 @@ class DPImpl:
 
         # Shift history
         hist[1:] = hist[:-1]
-        hist[0] = 1 if new_action.research else 0
+        hist[0] = 1 if (new_action.research and research_success) else 0
 
         # Green budget
         if new_state.total_green >= self.max_greenbudget and new_action.green:
@@ -127,10 +177,9 @@ class DPImpl:
         elif new_action.green:
             new_action.green = 0
 
-        # Move → certificate
-        if new_action.move == 1:
-            if random.random() <= self.max_greenbudget / self.worldsize:
-                new_state.on_certificate = 1
+        # Move → certificate (exogenous, supplied by the caller)
+        if new_action.move == 1 and permit_granted:
+            new_state.on_certificate = 1
 
         # Coin update
         new_state.coin += (
@@ -190,7 +239,7 @@ class DPImpl:
         self.total_green_bins = np.linspace(0, self.total_idx, 3)
         self.on_certificate_bins = [0, 1]
         # Research history as bit patterns (0-2 states per position)
-        max_history_len = max(self.delay, self.forget)
+        max_history_len = self.hist_len
         self.history_states = 2 ** max_history_len
         self.timestep = range(0, self.max_timesteps)
 
@@ -255,7 +304,7 @@ class DPImpl:
                                0, len(self.timestep) - 1)
 
         # Research history → integer
-        max_hist_len = max(self.delay, self.forget)
+        max_hist_len = self.hist_len
         hist_idx = sum(v * (2 ** i) for i, v in enumerate(s.research_history[:max_hist_len]))
         hist_idx = min(hist_idx, self.history_states - 1)
 
@@ -304,7 +353,7 @@ class DPImpl:
         coin_idx = index  # Remaining value
 
         # Decode research history from bits
-        max_hist_len = max(self.delay, self.forget)
+        max_hist_len = self.hist_len
         research_history = tuple(
             (hist_idx // (2 ** i)) % 2
             for i in range(max_hist_len)
@@ -347,7 +396,7 @@ class DPImpl:
         transitions_recorded = 0
         sample_transitions = []
 
-        max_hist_len = max(self.delay, self.forget)
+        max_hist_len = self.hist_len
         total_combinations = 0
 
         # === Enumerate State Space ===
@@ -389,18 +438,17 @@ class DPImpl:
                                                 # If research fails
                                                 if act.research == 1:
                                                     # Success branch
-                                                    next_succ = self.state_transition(act, state)
+                                                    next_succ = self.state_transition(
+                                                        act, state, research_success=1, permit_granted=0)
                                                     next_succ_idx = self.state_to_index(next_succ)
                                                     P[a_idx, state_idx, next_succ_idx] = 1.0 - self.failrate
 
-                                                    # Failure branch (same action but research=0)
-                                                    fail_act = Action(
-                                                        build=act.build,
-                                                        green=act.green,
-                                                        research=0,
-                                                        move=act.move
-                                                    )
-                                                    next_fail = self.state_transition(fail_act, state)
+                                                    # Failure branch: the attempt still costs labor and
+                                                    # coin (it is the same action), only the pipeline bit
+                                                    # is not set. Zeroing the action here would refund
+                                                    # both costs and overvalue research.
+                                                    next_fail = self.state_transition(
+                                                        act, state, research_success=0, permit_granted=0)
                                                     next_fail_idx = self.state_to_index(next_fail)
                                                     P[a_idx, state_idx, next_fail_idx] = self.failrate
 
@@ -425,7 +473,8 @@ class DPImpl:
 
                                                 else:
                                                     # Deterministic transition
-                                                    next_state = self.state_transition(act, state)
+                                                    next_state = self.state_transition(
+                                                        act, state, research_success=1, permit_granted=0)
                                                     next_idx = self.state_to_index(next_state)
                                                     P[a_idx, state_idx, next_idx] = 1.0
                                                     R[a_idx, state_idx] = self.reward(next_state)

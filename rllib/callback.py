@@ -13,8 +13,20 @@ import numpy as np
 from ray.rllib.algorithms.callbacks import DefaultCallbacks
 from ray.rllib.evaluation.episode import Episode
 
-PROFILE_DIR = os.environ.get("PROFILE_DIR", "/nas/ucb/sophialudewig/rllib_profiles")
-os.makedirs(PROFILE_DIR, exist_ok=True)
+# Default to a path inside the repo. The old default was an absolute cluster
+# path, and the makedirs ran at import time, so `import rllib.callback` raised
+# OSError on any other machine -- which also made the callbacks untestable.
+PROFILE_DIR = os.environ.get(
+    "PROFILE_DIR",
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "rllib_profiles"),
+)
+
+
+def _profile_dir() -> str:
+    """Created on first use, not on import."""
+    os.makedirs(PROFILE_DIR, exist_ok=True)
+    return PROFILE_DIR
+
 logging.basicConfig(stream=sys.stdout, format="%(asctime)s %(message)s")
 logger = logging.getLogger("main")
 logger.setLevel(logging.DEBUG)
@@ -52,9 +64,10 @@ class ProfilingCallbacks(DefaultCallbacks):
             return
         wid, pid, host = worker.worker_index, os.getpid(), socket.gethostname()
         base = f"worker_{wid}_{pid}_{host}"
-        prof_path = os.path.join(PROFILE_DIR, f"{base}.prof")
-        log_path = os.path.join(PROFILE_DIR, f"{base}.log")
-        open(os.path.join(PROFILE_DIR, f"{base}.alive"), "a").close()
+        pdir = _profile_dir()
+        prof_path = os.path.join(pdir, f"{base}.prof")
+        log_path = os.path.join(pdir, f"{base}.log")
+        open(os.path.join(pdir, f"{base}.alive"), "a").close()
 
         lg = logging.getLogger(base)
         if not any(isinstance(h, logging.FileHandler) for h in lg.handlers):

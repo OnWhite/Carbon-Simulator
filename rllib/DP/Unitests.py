@@ -28,22 +28,37 @@ class TestDP(unittest.TestCase):
 
     def test_build(self):
         self.assertEqual(self.dp.state_transition(Action(1, 0, 0, 0), State(0, 0, 0, 0, 0, (), 0, 0, 0)),
-                         State(2.0, 0.0, 0, 0, 1, (0,), 0, 0, 1))
+                         State(2.0, 0.0, 0, 0, 1, (0, 0), 0, 0, 1))
 
     def test_green(self):
         self.assertEqual(self.dp.state_transition(Action(0, 1, 0, 0), State(0, 0, 0, 0, 0, (), 0, 0, 0)),
-                         State(0.0, 1.0, 0, 0,0, (0,), 0, 0, 1))
+                         State(0.0, 1.0, 0, 0, 0, (0, 0), 0, 0, 1))
 
     def test_green2(self):
         # when on certificate
         self.assertEqual(self.dp.state_transition(Action(0, 1, 0, 0), State(0, 0, 0, 0,0, (), 0, 1, 0)),
-                         State(-1.0, 2.0, 0,0, 1, (0,), 1.0, 0, 1))
+                         State(-1.0, 2.0, 0, 0, 1, (0, 0), 1.0, 0, 1))
 
     def test_move(self):
         self.assertEqual(self.dp.state_transition(Action(0, 0, 0, 1), State(0, 0, 0, 0,0, (), 0, 0, 0)),
-                         State(0.0, 1.0, 0,0, 1, (0,), 0, 0, 1))
+                         State(0.0, 1.0, 0, 0, 1, (0, 0), 0, 0, 1))
 
     def test_all_at_once(self):
+        """KNOWN RED, and red before any of the verification work: verified by
+        running this assertion against DynamicProgram.py at f1d8d10, which
+        produces the same values as HEAD does now.
+
+        The expected coin of 11.906 requires `carbon += start_idx` (certificates
+        carry over, so the incoming carbon of -2 survives to trigger the yearly
+        penalty). `main` implements `carbon = start_idx` (unused certificates
+        expire), so the -2 is discarded, no penalty fires, and coin stays 21.0.
+        The expectation was written against the single_agent branch.
+
+        Which behaviour is correct is the cumulative-vs-non-cumulative question,
+        i.e. a modelling decision, not a code fix -- so this is left failing and
+        visible rather than quietly re-baselined. Decide the regime, put it
+        behind the `certificates_cumulative` config flag, and then assert both.
+        """
         self.assertEqual(self.dp.state_transition(Action(1, 1, 1, 1), State(20, -2, 0,0, 2, (1, 1), 0, 0, 0)),
                          State(11.90634623461009, 0, 1,1, 5, (1, 1), 0, 0, 1))
 
