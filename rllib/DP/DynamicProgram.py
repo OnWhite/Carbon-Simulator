@@ -2,11 +2,9 @@ from copy import deepcopy
 
 import numpy as np
 import math
-from typing import Dict, Any, List, Tuple
+from typing import Dict, Any
 from pathlib import Path
-import yaml
 import mdptoolbox
-import random
 from dataclasses import dataclass
 from typing import Tuple
 
@@ -71,31 +69,80 @@ class DPImpl:
         self.l_build = comps["Carbon_component"].get("labor", 1)
         self.l_research = comps["Carbon_component"].get("labor", 1)
         self.l_green = comps.get("Gather", {}).get("collect_labor", 1)
-        self.planner = [(100, 5)]
+        # Yearly planner schedule as (allocation_percent, punishment) per year.
+        #
+        # This used to be hard-coded to a single year, [(100, 5)], which meant a
+        # multi-year horizon received an allocation in year 0 and nothing after.
+        # Set `dp.planner_schedule` in the config to pin it explicitly; the
+        # fallback repeats the year-0 entry (a flat schedule) for long enough to
+        # cover any horizon we solve, using the configured fixed punishment.
+        _explicit = (cfg.get("dp") or {}).get("planner_schedule")
+        if _explicit:
+            self.planner = [(float(pct), float(pun)) for pct, pun in _explicit]
+        else:
+            _pun = float(comps["CarbonRedistribution"].get("fixed_punishment", 5))
+            self.planner = [(100.0, _pun)] * 64
         self.left_envidx = 0
         self.greenbudget: float = 0.0
         self.max_greenbudget = 0.0
         self.max_timesteps = env.get("episode_length", 2)
-        print(self.total_idx)
         self.max_greenbudget = (1 / 3) * self.total_idx
         ws = env.get("world_size", (100, 100))
         self.worldsize = ws[0] * ws[1]
         self.statespace = []
 
+        # Probabilities of the two exogenous shocks. Kept here so the exact
+        # solver and the gym env cannot disagree about them.
+        self.p_research_success: float = 1.0 - self.failrate
+
+        # Research history buffer length. Produce_and_Invest allocates
+        # [0] * (max(delay, forget) + 1) and indexes [delay] unguarded, so it
+        # is always one longer than the largest index it reads. The DP used
+        # max(delay, forget) and guarded the read with `len(hist) > delay`,
+        # which silently swallowed the out-of-range case: at delay == forget
+        # the buffer was length 1, the guard was false, and a successful
+        # research attempt could never mature at any horizon.
+        self.hist_len: int = max(self.delay, self.forget) + 1
+        self.p_permit: float = self.max_greenbudget / self.worldsize
+
     from copy import deepcopy
 
-    def state_transition(self, action: Action, state: State) -> State:
+    def state_transition(
+            self,
+            action: Action,
+            state: State,
+            *,
+            research_success: int = 1,
+            permit_granted: int = 0,
+    ) -> State:
+        """Deterministic transition.
+
+        The two exogenous shocks are ARGUMENTS, never drawn here, so that the
+        same function can be used to build an exact expectation (dynamic
+        program) and to step a sampled environment (RL).
+
+            research_success  1 if a research attempt lands in the pipeline.
+                              Costs are paid either way, matching
+                              Produce_and_Invest.component_step, where the
+                              labor/coin lines sit outside the success branch.
+            permit_granted    1 if a move yields a green-project certificate.
+
+        Defaults describe the no-shock branch (research lands, no permit) and
+        exist only so the legacy unit tests keep their meaning; every caller in
+        the exact solver passes both explicitly.
+        """
         new_state = deepcopy(state)
         new_action = deepcopy(action)
 
         # Research history must become a list for mutation
         hist = list(new_state.research_history)
-        if not hist:
-            hist.append(0)
+        if len(hist) < self.hist_len:
+            hist = hist + [0] * (self.hist_len - len(hist))
 
         # Year bucket logic
         start_idx = 0
         if new_state.timestep % self.yearsteps == 0:
+            new_state.research_yearly = 0
             year = new_state.timestep // self.yearsteps
             if year < len(self.planner):
                 year_pct = self.planner[year][0]
@@ -106,7 +153,10 @@ class DPImpl:
             new_state.research_yearly -= 1
             new_state.research_count -= 1
             hist[0] = 2
-        if len(hist) > self.delay and hist[self.delay] == 1:
+        assert len(hist) > self.delay, (
+            f"research history of length {len(hist)} cannot be indexed at "
+            f"delay={self.delay}; expected length {self.hist_len}")
+        if hist[self.delay] == 1:
             new_state.research_yearly += 1
             new_state.research_count += 1
 
@@ -116,7 +166,7 @@ class DPImpl:
 
         # Shift history
         hist[1:] = hist[:-1]
-        hist[0] = 1 if new_action.research else 0
+        hist[0] = 1 if (new_action.research and research_success) else 0
 
         # Green budget
         if new_state.total_green >= self.max_greenbudget and new_action.green:
@@ -127,10 +177,9 @@ class DPImpl:
         elif new_action.green:
             new_action.green = 0
 
-        # Move → certificate
-        if new_action.move == 1:
-            if random.random() <= self.max_greenbudget / self.worldsize:
-                new_state.on_certificate = 1
+        # Move → certificate (exogenous, supplied by the caller)
+        if new_action.move == 1 and permit_granted:
+            new_state.on_certificate = 1
 
         # Coin update
         new_state.coin += (
@@ -140,8 +189,9 @@ class DPImpl:
         )
 
         # Carbon update
+        if start_idx != 0:
+            new_state.carbon = start_idx
         new_state.carbon += (
-                start_idx
                 - self.require_carbon_idx * self.manufacture_volume * new_action.build * emit_rate
                 + self.collectidx * new_action.green
         )
@@ -189,7 +239,7 @@ class DPImpl:
         self.total_green_bins = np.linspace(0, self.total_idx, 3)
         self.on_certificate_bins = [0, 1]
         # Research history as bit patterns (0-2 states per position)
-        max_history_len = max(self.delay, self.forget)
+        max_history_len = self.hist_len
         self.history_states = 2 ** max_history_len
         self.timestep = range(0, self.max_timesteps)
 
@@ -209,7 +259,8 @@ class DPImpl:
         print(f"Total discrete states: {self.n_states}")
 
     def discretize_state_space(self):
-        # Exact unique values observed in your printed next-states
+        # discretize the statespace with more intuitive bins based on the problem structure
+
         self.coin_bins = np.array([-3.0, -2.0, -1.0, 0.0, 1.0, 2.0, 3.0])
         self.carbon_bins = np.array([0, 1.0, 2.0])
         self.research_yearly_bins = np.array([0])  # or np.array([0, 1]) if you want to allow growth
@@ -253,7 +304,7 @@ class DPImpl:
                                0, len(self.timestep) - 1)
 
         # Research history → integer
-        max_hist_len = max(self.delay, self.forget)
+        max_hist_len = self.hist_len
         hist_idx = sum(v * (2 ** i) for i, v in enumerate(s.research_history[:max_hist_len]))
         hist_idx = min(hist_idx, self.history_states - 1)
 
@@ -271,7 +322,56 @@ class DPImpl:
 
         return int(index)
 
-    from copy import deepcopy
+    def index_to_state(self, index: int) -> State:
+        """Convert a discrete index back to a State object."""
+
+        # Reverse the lexicographic product in reverse order
+        timestep_idx = index % len(self.timestep)
+        index //= len(self.timestep)
+
+        on_cert_idx = index % len(self.on_certificate_bins)
+        index //= len(self.on_certificate_bins)
+
+        total_green_idx = index % len(self.total_green_bins)
+        index //= len(self.total_green_bins)
+
+        hist_idx = index % self.history_states
+        index //= self.history_states
+
+        labor_idx = index % len(self.labor_bins)
+        index //= len(self.labor_bins)
+
+        rcount_idx = index % len(self.research_count_bins)
+        index //= len(self.research_count_bins)
+
+        ryearly_idx = index % len(self.research_yearly_bins)
+        index //= len(self.research_yearly_bins)
+
+        carbon_idx = index % len(self.carbon_bins)
+        index //= len(self.carbon_bins)
+
+        coin_idx = index  # Remaining value
+
+        # Decode research history from bits
+        max_hist_len = self.hist_len
+        research_history = tuple(
+            (hist_idx // (2 ** i)) % 2
+            for i in range(max_hist_len)
+        )
+
+        # Construct State from bin values
+        return State(
+            coin=self.coin_bins[coin_idx],
+            carbon=self.carbon_bins[carbon_idx],
+            research_yearly=int(self.research_yearly_bins[ryearly_idx]),
+            research_count=int(self.research_count_bins[rcount_idx]),
+            labor=self.labor_bins[labor_idx],
+            research_history=research_history,
+            total_green=self.total_green_bins[total_green_idx],
+            on_certificate=int(self.on_certificate_bins[on_cert_idx]),
+            timestep=int(self.timestep[timestep_idx])
+        )
+
 
     def build_transition_and_reward_matrices(self):
         """Build P[a][s][s'] and R[a][s] using dataclasses and research_count"""
@@ -296,7 +396,7 @@ class DPImpl:
         transitions_recorded = 0
         sample_transitions = []
 
-        max_hist_len = max(self.delay, self.forget)
+        max_hist_len = self.hist_len
         total_combinations = 0
 
         # === Enumerate State Space ===
@@ -338,18 +438,17 @@ class DPImpl:
                                                 # If research fails
                                                 if act.research == 1:
                                                     # Success branch
-                                                    next_succ = self.state_transition(act, state)
+                                                    next_succ = self.state_transition(
+                                                        act, state, research_success=1, permit_granted=0)
                                                     next_succ_idx = self.state_to_index(next_succ)
                                                     P[a_idx, state_idx, next_succ_idx] = 1.0 - self.failrate
 
-                                                    # Failure branch (same action but research=0)
-                                                    fail_act = Action(
-                                                        build=act.build,
-                                                        green=act.green,
-                                                        research=0,
-                                                        move=act.move
-                                                    )
-                                                    next_fail = self.state_transition(fail_act, state)
+                                                    # Failure branch: the attempt still costs labor and
+                                                    # coin (it is the same action), only the pipeline bit
+                                                    # is not set. Zeroing the action here would refund
+                                                    # both costs and overvalue research.
+                                                    next_fail = self.state_transition(
+                                                        act, state, research_success=0, permit_granted=0)
                                                     next_fail_idx = self.state_to_index(next_fail)
                                                     P[a_idx, state_idx, next_fail_idx] = self.failrate
 
@@ -374,7 +473,8 @@ class DPImpl:
 
                                                 else:
                                                     # Deterministic transition
-                                                    next_state = self.state_transition(act, state)
+                                                    next_state = self.state_transition(
+                                                        act, state, research_success=1, permit_granted=0)
                                                     next_idx = self.state_to_index(next_state)
                                                     P[a_idx, state_idx, next_idx] = 1.0
                                                     R[a_idx, state_idx] = self.reward(next_state)
@@ -476,24 +576,6 @@ class DPImpl:
 
         print(f"Unique indices from 4 states: {len(unique_indices)} (expected: 4)")
 
-    def run_ddp_example(self):
-        coin_total = np.linspace(-self.payment / (2 * self.research_ability) * self.max_timesteps,
-                                 self.payment * self.manufacture_volume * self.total_idx, 10)
-        carbon_idx_total = np.linspace(- self.require_carbon_idx * self.max_timesteps, self.total_idx, 10)
-        research_total, research_yearly = np.linspace(0, self.max_timesteps, 10), np.linspace(0, self.yearsteps, 10)
-        labor_total = np.linspace(0, self.l_build * self.max_timesteps + self.l_research * self.max_timesteps, 10)
-        # total_green=np.linspace(0,self.total_idx,10)
-        # timestep=np.linspace(0,self.max_timesteps,10)
-        lenresrach_hist = max(self.delay, self.forget)
-        research_history = range(1 << lenresrach_hist)
-
-        ####### Actions #######
-        build_actions = [0, 1]  # build or not
-        green_actions = [0, 1]  # green or not
-        research_actions = [0, 1]  # research or not
-
-        Grid = [(b, g, r) for b in green_actions for g in green_actions for r in research_actions]
-
     def solve_mdp(self):
         """Solve the MDP after discretising and validating indexing."""
         self.discretize_state_space()
@@ -535,7 +617,7 @@ def isoelastic_coin_minus_labor(
         else:
             util_c = coin_endowment - 1
     util_l = total_labor * labor_coefficient
-    return float(util_c-util_l)
+    return float(util_c - util_l)
 
 
 def load_config(path: Path) -> Dict[str, Any]:
@@ -570,7 +652,7 @@ def main():
         print(f"  - Delay: {dp.delay}, Forget: {dp.forget}")
         print(f"  - Failure rate: {dp.failrate}")
     except Exception as e:
-        print(f"❌ Failed to initialize DP: {e}")
+        print(f"Failed to initialize DP: {e}")
         import traceback
         traceback.print_exc()
         return None, None
@@ -583,7 +665,7 @@ def main():
         policy = dp.solve_mdp()
 
         if policy is None:
-            print("❌ No policy returned (MDP solution failed).")
+            print("No policy returned (MDP solution failed).")
             return dp, policy
 
         print("\n" + "=" * 60)
@@ -613,7 +695,7 @@ def main():
         return dp, policy
 
     except Exception as e:
-        print(f"\n❌ Error during MDP solution: {e}")
+        print(f"\nError during MDP solution: {e}")
         import traceback
         traceback.print_exc()
         return None, None
@@ -690,224 +772,3 @@ if __name__ == "__main__":
         print("2. Use dp_instance.actions to decode action indices")
         print("3. Increase bin resolution in discretize_state_space()")
         print("4. Adjust horizon in solve_finite_horizon_mdp()")
-
-    """
-    CONFIG_PATH = Path("/Users/work/PycharmProjects/Carbon-Simulator/rllib/DP/config.yaml")
-    cfg = load_config(CONFIG_PATH)
-    dp = DPImpl(cfg)
-    #   Action: [build, green, research, move]
-    # print(dp.state_transition([1,0,0,0],[0,0,0,0,(),0,0,0])) #(1.0, -1.0,  0, 1, (0,), 0, 0, 1)
-    # [0,1,0,0],[0,0,0,0,(),0,0,0] #######(0.0, 0.0,  0, 0, (0,), 0, 0, 1)
-    # [0,1,0,0],[0,0,0,0,(),0,1,0] #######(-1.0, 1.0,  0, 1, (0,), 1.0, 0, 1)
-    # [0,0,0,1],[0,0,0,0,(),0,0,0] ####### (0.0, 0.0,  0, 1, (0,), 0, 0, 1)* 0.9875
-    # [1,1,1,1],[20,-2,0,2,(1,1),0,0,0] ####### (10.5, -0.9048374180359595, 1, 5, (1, 1), 0, 0, 1)
-    # [1,1,1,1],[20,-2,0,2,(1,1),0,1,0] ####### (9.5, 0.09516258196404048, 1, 6, (1, 1), 1.0, 0, 1)
-    actions = [
-        [1, 0, 0, 0],
-        [0, 1, 0, 0],
-        [0, 0, 1, 0],
-        [0, 0, 0, 1],
-        [1, 1, 1, 1],
-        [1, 1, 0, 0],
-        [1, 0, 1, 0],
-        [1, 0, 0, 1],
-        [1, 1, 1, 0],
-    ]
-    states=[(0, 0, 0, 0, (0, 0), 0, 0, 0)]
-    states_1 = [
-        (2.0, 0.0, 0, 1, (0, 0), 0, 0, 1),
-        (0.0, 1.0, 0, 0, (0, 0), 0, 0, 1),
-        (-1.0, 1.0, 0, 1, (1, 0), 0, 0, 1),
-        (0.0, 1.0, 0, 1, (0, 0), 0, 1, 1),
-        (1.0, 0.0, 0, 3, (1, 0), 0, 1, 1),
-        (2.0, 0.0, 0, 1, (0, 0), 0, 0, 1),
-        (1.0, 0.0, 0, 2, (1, 0), 0, 0, 1),
-        (2.0, 0.0, 0, 2, (0, 0), 0, 1, 1),
-        (1.0, 0.0, 0, 2, (1, 0), 0, 0, 1),
-    ]
-    states_2 = [
-        (4.0, 0.0, 0, 2, (0, 0), 0, 0, 2),
-        (2.0, 1.0, 0, 1, (0, 0), 0, 0, 2),
-        (1.0, 1.0, 0, 2, (0, 1), 0, 0, 2),
-        (2.0, 1.0, 0, 2, (0, 0), 0, 1, 2),
-        (3.0, 0.0, 0, 4, (0, 1), 0, 1, 2),
-        (4.0, 0.0, 0, 2, (0, 0), 0, 0, 2),
-        (3.0, 0.0, 0, 3, (0, 1), 0, 0, 2),
-        (4.0, 0.0, 0, 3, (0, 0), 0, 1, 2),
-        (3.0, 0.0, 0, 3, (0, 1), 0, 0, 2),
-        (2.0, 1.0, 0, 1, (0, 0), 0, 0, 2),
-        (0.0, 2.0, 0, 0, (0, 0), 0, 0, 2),
-        (-1.0, 2.0, 0, 1, (0, 1), 0, 0, 2),
-        (-1.0, 3.0, 0, 2, (0, 0), 1.0, 0, 2),
-        (0.0, 2.0, 0, 4, (0, 1), 1.0, 0, 2),
-        (2.0, 1.0, 0, 1, (0, 0), 0, 0, 2),
-        (1.0, 1.0, 0, 2, (0, 1), 0, 0, 2),
-        (1.0, 2.0, 0, 3, (0, 0), 1.0, 0, 2),
-        (1.0, 1.0, 0, 2, (0, 1), 0, 0, 2),
-        (1.0, 1.0, 0, 2, (1, 0), 0, 0, 2),
-        (-1.0, 2.0, 0, 1, (1, 0), 0, 0, 2),
-        (-2.0, 2.0, 0, 2, (1, 1), 0, 0, 2),
-        (-1.0, 2.0, 0, 2, (1, 0), 0, 1, 2),
-        (0.0, 1.0, 0, 4, (1, 1), 0, 1, 2),
-        (1.0, 1.0, 0, 2, (1, 0), 0, 0, 2),
-        (0.0, 1.0, 0, 3, (1, 1), 0, 0, 2),
-        (1.0, 1.0, 0, 3, (1, 0), 0, 1, 2),
-        (0.0, 1.0, 0, 3, (1, 1), 0, 0, 2),
-        (2.0, 1.0, 0, 2, (0, 0), 0, 1, 2),
-        (0.0, 2.0, 0, 1, (0, 0), 0, 1, 2),
-        (-1.0, 2.0, 0, 2, (0, 1), 0, 1, 2),
-        (0.0, 2.0, 0, 2, (0, 0), 0, 1, 2),
-        (1.0, 1.0, 0, 4, (0, 1), 0, 1, 2),
-        (2.0, 1.0, 0, 2, (0, 0), 0, 1, 2),
-        (1.0, 1.0, 0, 3, (0, 1), 0, 1, 2),
-        (2.0, 1.0, 0, 3, (0, 0), 0, 1, 2),
-        (1.0, 1.0, 0, 3, (0, 1), 0, 1, 2),
-        (3.0, 0.0, 0, 4, (1, 0), 0, 1, 2),
-        (1.0, 1.0, 0, 3, (1, 0), 0, 1, 2),
-        (0.0, 1.0, 0, 4, (1, 1), 0, 1, 2),
-        (0.0, 2.0, 0, 5, (1, 0), 1.0, 1, 2),
-        (1.0, 1.0, 0, 7, (1, 1), 1.0, 1, 2),
-        (3.0, 0.0, 0, 4, (1, 0), 0, 1, 2),
-        (2.0, 0.0, 0, 5, (1, 1), 0, 1, 2),
-        (2.0, 1.0, 0, 6, (1, 0), 1.0, 1, 2),
-        (2.0, 0.0, 0, 5, (1, 1), 0, 1, 2),
-        (4.0, 0.0, 0, 2, (0, 0), 0, 0, 2),
-        (2.0, 1.0, 0, 1, (0, 0), 0, 0, 2),
-        (1.0, 1.0, 0, 2, (0, 1), 0, 0, 2),
-        (1.0, 2.0, 0, 3, (0, 0), 1.0, 0, 2),
-        (2.0, 1.0, 0, 5, (0, 1), 1.0, 0, 2),
-        (4.0, 0.0, 0, 2, (0, 0), 0, 0, 2),
-        (3.0, 0.0, 0, 3, (0, 1), 0, 0, 2),
-        (3.0, 1.0, 0, 4, (0, 0), 1.0, 0, 2),
-        (3.0, 0.0, 0, 3, (0, 1), 0, 0, 2),
-        (3.0, 0.0, 0, 3, (1, 0), 0, 0, 2),
-        (1.0, 1.0, 0, 2, (1, 0), 0, 0, 2),
-        (0.0, 1.0, 0, 3, (1, 1), 0, 0, 2),
-        (1.0, 1.0, 0, 3, (1, 0), 0, 1, 2),
-        (2.0, 0.0, 0, 5, (1, 1), 0, 1, 2),
-        (3.0, 0.0, 0, 3, (1, 0), 0, 0, 2),
-        (2.0, 0.0, 0, 4, (1, 1), 0, 0, 2),
-        (3.0, 0.0, 0, 4, (1, 0), 0, 1, 2),
-        (2.0, 0.0, 0, 4, (1, 1), 0, 0, 2),
-        (4.0, 0.0, 0, 3, (0, 0), 0, 1, 2),
-        (2.0, 1.0, 0, 2, (0, 0), 0, 1, 2),
-        (1.0, 1.0, 0, 3, (0, 1), 0, 1, 2),
-        (2.0, 1.0, 0, 3, (0, 0), 0, 1, 2),
-        (3.0, 0.0, 0, 5, (0, 1), 0, 1, 2),
-        (4.0, 0.0, 0, 3, (0, 0), 0, 1, 2),
-        (3.0, 0.0, 0, 4, (0, 1), 0, 1, 2),
-        (4.0, 0.0, 0, 4, (0, 0), 0, 1, 2),
-        (3.0, 0.0, 0, 4, (0, 1), 0, 1, 2),
-        (3.0, 0.0, 0, 3, (1, 0), 0, 0, 2),
-        (1.0, 1.0, 0, 2, (1, 0), 0, 0, 2),
-        (0.0, 1.0, 0, 3, (1, 1), 0, 0, 2),
-        (0.0, 2.0, 0, 4, (1, 0), 1.0, 0, 2),
-        (1.0, 1.0, 0, 6, (1, 1), 1.0, 0, 2),
-        (3.0, 0.0, 0, 3, (1, 0), 0, 0, 2),
-        (2.0, 0.0, 0, 4, (1, 1), 0, 0, 2),
-        (2.0, 1.0, 0, 5, (1, 0), 1.0, 0, 2),
-        (2.0, 0.0, 0, 4, (1, 1), 0, 0, 2),
-    ]
-    new_state=[]
-    new_state_2=[]
-    for action in actions:
-            new_state.append( dp.state_transition(action, (0, 0, 0, 0, (0, 0), 0, 0, 0)))
-
-    discretization_arrs= [[], [], [], [], [], [], [], []]
-    for action in actions:
-        for state in new_state:
-            new_state_3=dp.state_transition(action, state)
-            i=0
-            for s in new_state_3:
-                if s not in discretization_arrs[i]:
-                    discretization_arrs[i].append(s)
-                i+=1
-    for i in range(len(discretization_arrs)):
-        discretization_arrs[i].sort()
-    print(discretization_arrs)
-    
-    results_states = [
-        (4.0, 0.0, 0, 2, (0, 0), 0, 1, 2),
-        (1.0, 2.5, 0, 2, (0, 0), 1.0, 1, 2),
-        (1.0, 1.0, 0, 2, (0, 1), 0, 1, 2),
-        (2.0, 1.0, 0, 2, (0, 0), 0, 1, 2),
-        (2.0, 1.5, 0, 5, (0, 1), 1.0, 1, 2),
-        (3.0, 1.5, 0, 3, (0, 0), 1.0, 1, 2),
-        (3.0, 0.0, 0, 3, (0, 1), 0, 1, 2),
-        (4.0, 0.0, 0, 3, (0, 0), 0, 1, 2),
-        (2.0, 1.5, 0, 4, (0, 1), 1.0, 1, 2),
-        (1.0, 2.0, 0, 2, (0, 0), 1.0, 0, 2),
-        (-1.0, 3.0, 0, 1, (0, 0), 1.0, 1, 2),
-        (-2.0, 3.0, 0, 2, (0, 1), 1.0, 0, 2),
-        (-1.0, 3.0, 0, 2, (0, 0), 1.0, 0, 2),
-        (0.0, 2.0, 0, 4, (0, 1), 1.0, 1, 2),
-        (1.0, 2.0, 0, 2, (0, 0), 1.0, 1, 2),
-        (0.0, 2.0, 0, 3, (0, 1), 1.0, 0, 2),
-        (1.0, 2.0, 0, 3, (0, 0), 1.0, 0, 2),
-        (0.0, 2.0, 0, 3, (0, 1), 1.0, 1, 2),
-        (1.0, 1.0, 0, 2, (1, 0), 0, 1, 2),
-        (-2.0, 3.0, 0, 2, (1, 0), 1.0, 1, 2),
-        (-2.0, 2.0, 0, 2, (1, 1), 0, 1, 2),
-        (-1.0, 2.0, 0, 2, (1, 0), 0, 1, 2),
-        (-1.0, 2.0, 0, 5, (1, 1), 1.0, 1, 2),
-        (0.0, 2.0, 0, 3, (1, 0), 1.0, 1, 2),
-        (0.0, 1.0, 0, 3, (1, 1), 0, 1, 2),
-        (1.0, 1.0, 0, 3, (1, 0), 0, 1, 2),
-        (-1.0, 2.0, 0, 4, (1, 1), 1.0, 1, 2),
-        (2.0, 1.0, 0, 2, (0, 0), 0, 1, 2),
-        (-1.0, 3.0, 0, 2, (0, 0), 1.0, 1, 2),
-        (-1.0, 2.0, 0, 2, (0, 1), 0, 1, 2),
-        (0.0, 2.0, 0, 2, (0, 0), 0, 1, 2),
-        (0.0, 2.0, 0, 5, (0, 1), 1.0, 1, 2),
-        (1.0, 2.0, 0, 3, (0, 0), 1.0, 1, 2),
-        (1.0, 1.0, 0, 3, (0, 1), 0, 1, 2),
-        (2.0, 1.0, 0, 3, (0, 0), 0, 1, 2),
-        (0.0, 2.0, 0, 4, (0, 1), 1.0, 1, 2),
-        (2.0, 1.0, 0, 5, (1, 0), 1.0, 1, 2),
-        (0.0, 2.5, 0, 4, (1, 0), 1.0, 1, 2),
-        (-1.0, 2.0, 0, 5, (1, 1), 1.0, 1, 2),
-        (0.0, 2.0, 0, 5, (1, 0), 1.0, 1, 2),
-        (1.0, 1.5, 0, 7, (1, 1), 1.0, 1, 2),
-        (2.0, 1.5, 0, 5, (1, 0), 1.0, 1, 2),
-        (1.0, 1.0, 0, 6, (1, 1), 1.0, 1, 2),
-        (2.0, 1.0, 0, 6, (1, 0), 1.0, 1, 2),
-        (1.0, 1.5, 0, 6, (1, 1), 1.0, 1, 2),
-        (3.0, 1.0, 0, 3, (0, 0), 1.0, 0, 2),
-        (1.0, 2.5, 0, 2, (0, 0), 1.0, 1, 2),
-        (0.0, 2.0, 0, 3, (0, 1), 1.0, 0, 2),
-        (1.0, 2.0, 0, 3, (0, 0), 1.0, 0, 2),
-        (2.0, 1.5, 0, 5, (0, 1), 1.0, 1, 2),
-        (3.0, 1.5, 0, 3, (0, 0), 1.0, 1, 2),
-        (2.0, 1.0, 0, 4, (0, 1), 1.0, 0, 2),
-        (3.0, 1.0, 0, 4, (0, 0), 1.0, 0, 2),
-        (2.0, 1.5, 0, 4, (0, 1), 1.0, 1, 2),
-        (3.0, 0.0, 0, 3, (1, 0), 0, 1, 2),
-        (0.0, 2.5, 0, 3, (1, 0), 1.0, 1, 2),
-        (0.0, 1.0, 0, 3, (1, 1), 0, 1, 2),
-        (1.0, 1.0, 0, 3, (1, 0), 0, 1, 2),
-        (1.0, 1.5, 0, 6, (1, 1), 1.0, 1, 2),
-        (2.0, 1.5, 0, 4, (1, 0), 1.0, 1, 2),
-        (2.0, 0.0, 0, 4, (1, 1), 0, 1, 2),
-        (3.0, 0.0, 0, 4, (1, 0), 0, 1, 2),
-        (1.0, 1.5, 0, 5, (1, 1), 1.0, 1, 2),
-        (4.0, 0.0, 0, 3, (0, 0), 0, 1, 2),
-        (1.0, 2.5, 0, 3, (0, 0), 1.0, 1, 2),
-        (1.0, 1.0, 0, 3, (0, 1), 0, 1, 2),
-        (2.0, 1.0, 0, 3, (0, 0), 0, 1, 2),
-        (2.0, 1.5, 0, 6, (0, 1), 1.0, 1, 2),
-        (3.0, 1.5, 0, 4, (0, 0), 1.0, 1, 2),
-        (3.0, 0.0, 0, 4, (0, 1), 0, 1, 2),
-        (4.0, 0.0, 0, 4, (0, 0), 0, 1, 2),
-        (2.0, 1.5, 0, 5, (0, 1), 1.0, 1, 2),
-        (2.0, 1.0, 0, 4, (1, 0), 1.0, 0, 2),
-        (0.0, 2.5, 0, 3, (1, 0), 1.0, 1, 2),
-        (-1.0, 2.0, 0, 4, (1, 1), 1.0, 0, 2),
-        (0.0, 2.0, 0, 4, (1, 0), 1.0, 0, 2),
-        (1.0, 1.5, 0, 6, (1, 1), 1.0, 1, 2),
-        (2.0, 1.5, 0, 4, (1, 0), 1.0, 1, 2),
-        (1.0, 1.0, 0, 5, (1, 1), 1.0, 0, 2),
-        (2.0, 1.0, 0, 5, (1, 0), 1.0, 0, 2),
-        (1.0, 1.5, 0, 5, (1, 1), 1.0, 1, 2)
-    ]
-    for res in states:
-        print("Reward:", dp.reward(res))"""

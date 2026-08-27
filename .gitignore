@@ -1,3 +1,10 @@
 __pycache__/
 *.pyc
-/rllib/DP/
+# Was `/rllib/DP/`, which excluded the entire directory -- so the dynamic
+# program, its tests and its solver could never be committed. Exclude only
+# generated artefacts.
+/rllib/DP/*.npy
+/rllib/DP/*.pkl
+/rllib/DP/*.lz4
+/rllib/DP/solved_*
+/rllib/DP/*.log
