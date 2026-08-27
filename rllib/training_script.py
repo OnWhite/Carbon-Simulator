@@ -645,15 +645,15 @@ if __name__ == "__main__":
                 num_parallel_episodes_done = result["episodes_total"]
                 global_step = result["timesteps_total"]
                 curr_iter = result["training_iteration"]
-                logger.info("=== Iteration %d results ===", curr_iter)
-                logger.info(result["custom_metrics"].get("worker_1/agent_0/Tot_Startidx_min"))
-                logger.info(result["custom_metrics"].get("worker_1/agent_0/Tot_Startidx_max"))
-                logger.info(result["custom_metrics"].get("worker_1/agent_0/Tot_Startidx_mean"))
-                logger.info(result["custom_metrics"].get("worker_1/agent_0/Tot_Certificates_Allocated_min"))
-                logger.info(result["custom_metrics"].get("worker_1/agent_0/Tot_Certificates_Allocated_max"))
-                logger.info(result["custom_metrics"].get("worker_1/agent_0/Tot_Certificates_Allocated_mean"))
-
-                logger.info("=== Finished logging results ===\n\n")
+                # These six printed None every iteration: they asked for
+                # "Tot_Startidx_*" while the callback writes "Total_Startidx".
+                # Log what is actually there, so the file is readable.
+                logger.info(
+                    "iter %d | env_steps %d | episodes %d | rew_a %.4g | rew_p %.4g",
+                    curr_iter, result["timesteps_total"], result["episodes_total"],
+                    result.get("policy_reward_mean", {}).get("a", float("nan")),
+                    result.get("policy_reward_mean", {}).get("p", float("nan")),
+                )
 
                 # === Dense logging ===
                 step_last_log = maybe_store_dense_log(

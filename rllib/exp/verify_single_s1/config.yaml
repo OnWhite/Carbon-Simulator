@@ -116,3 +116,9 @@ trainer:
   train_batch_size: 7000
   observation_filter: NoFilter
   rollout_fragment_length: 250
+  vf_clip_param: 200.0
+  vf_loss_coeff: 0.05
+  gamma: 0.998
+  lambda: 0.98
+  clip_param: 0.3
+  grad_clip: 10.0
