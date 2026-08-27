@@ -14,7 +14,7 @@ env:
   - CarbonRedistribution:
       planner_mode: active
       fixed_punishment: 30
-      total_idx: 200
+      total_idx: 40
       max_year_percent: 25
       years_predefined: None
       agents_predefined: None
@@ -38,8 +38,9 @@ env:
   energy_warmup_method: auto
   starting_agent_coin: 20
   mobile_coefficient: 0.2
+  total_idx: 40
 general:
-  ckpt_frequency_steps: 200
+  ckpt_frequency_steps: 100
   cpus: 8
   episodes: 10000000
   gpus: 0.25
@@ -48,6 +49,7 @@ general:
   train_planner: true
   fix_mobile: false
   dense_log_frequency: 250
+  max_hours: 15.0
 agent_policy:
   clip_param: 0.3
   entropy_coeff: 0.025

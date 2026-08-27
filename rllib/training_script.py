@@ -509,10 +509,15 @@ if __name__ == "__main__":
 
         _n_agents = run_config["env"]["n_agents"]
         _seed = run_config["trainer"].get("seed")
+        # Tier of the verification chain. v1 = exact DP, v2 = single-agent RL
+        # on the reduced env, v3 = MARL with one firm, v4 = MARL with many.
+        _tier = "v3-marl-n1" if _n_agents == 1 else "v4-marl-n5"
         _arm = os.environ.get("ARM", "single" if _n_agents == 1 else "multi")
 
         manifest = {
             "commit": _sha, "arm": _arm, "n_agents": _n_agents, "seed": _seed,
+            "per_firm_total_idx": run_config["env"]["total_idx"] / max(1, _n_agents),
+            "tier": _tier,
             "config": run_config,
         }
         with open(os.path.join(run_dir, "manifest.json"), "w") as _f:
@@ -520,11 +525,14 @@ if __name__ == "__main__":
 
         wandb.init(
             project=os.environ.get("WANDB_PROJECT", "carbon-verification"),
-            group=_arm,                       # grouping gives one line + seed band per arm
+            group=_tier,                      # grouping gives one line + seed band per tier
             job_type="train",
-            name=f"{_arm}-n{_n_agents}-s{_seed}",
-            tags=[f"n_agents={_n_agents}", f"commit={_sha[:8]}"],
-            config={**run_config, "arm": _arm, "commit": _sha, "seed": _seed},
+            name=f"{_tier}-s{_seed}",
+            tags=[f"tier={_tier}", f"n_agents={_n_agents}", f"arm={_arm}",
+                  f"seed={_seed}", f"commit={_sha[:8]}"],
+            config={**run_config, "tier": _tier, "arm": _arm,
+                    "commit": _sha, "seed": _seed,
+                    "per_firm_total_idx": run_config["env"]["total_idx"] / max(1, _n_agents)},
             dir=run_dir,
         )
         # Environment steps are the shared x-axis. Episodes are NOT comparable
@@ -651,7 +659,17 @@ if __name__ == "__main__":
             )
         elif True:
 
+            max_hours = float(run_config["general"].get("max_hours", 0) or 0)
+            deadline = (time.time() + max_hours * 3600) if max_hours > 0 else None
+            if deadline:
+                logger.info("wall-clock budget: %.2f h", max_hours)
+
             while num_parallel_episodes_done < run_config["general"]["episodes"]:
+                if deadline and time.time() >= deadline:
+                    logger.info(
+                        "wall-clock budget of %.2f h reached; stopping cleanly "
+                        "so the final checkpoint is written.", max_hours)
+                    break
                 # Training
                 result = trainer.train()
                 # Get formatted metrics
