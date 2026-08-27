@@ -94,10 +94,10 @@ class CarbonRedistribution(BaseComponent):
 
         # divided idx at start of years # when does this start counting at 0 or at 1?
         if (world.timestep - 1) % self.period == 0:
-            agent = world.agents[0]
-            if agent.state["inventory"]["Carbon_idx"] < 0 and agent.idx == 0:
-                self.world.planner.state["settlement_idx"][agent.idx] -= agent.state["inventory"]["Carbon_idx"]
-                # when in the negative, the overspending of emissions gets logged per agent
+            for agent in world.agents:
+                if agent.state["inventory"]["Carbon_idx"] < 0:
+                    self.world.planner.state["settlement_idx"][agent.idx] -= agent.state["inventory"]["Carbon_idx"]
+                    # when in the negative, the overspending of emissions gets logged per agent
 
             if self.planner_mode == "active":
                 idx_action = []
@@ -129,19 +129,21 @@ class CarbonRedistribution(BaseComponent):
                 world.planner.state["env_idx"] = int(year_idx * self.env_idx_percent)
                 for i in range(self.n_agents):
                     # mobile_idx = idx_action[i] // sum(idx_action) * 0.9 * this year total idx
-                    if sum(idx_action) and i == 0:
+                    if sum(idx_action):
                         world.planner.state["mobile_idx"][i] = int(
                             year_idx * (1 - self.env_idx_percent) * idx_action[i] / sum(idx_action))
-                    elif i == 0:
-                        world.planner.state["mobile_idx"][i] = int(year_idx * (1 - self.env_idx_percent))
+                    else:
+                        world.planner.state["mobile_idx"][i] = int(
+                            year_idx * (1 - self.env_idx_percent) / self.n_agents)
 
-                world.planner.state["remained_idx"] -= self.world.planner.state["env_idx"] + \
-                                                       self.world.planner.state["mobile_idx"][0]
+                world.planner.state["remained_idx"] -= (
+                    self.world.planner.state["env_idx"]
+                    + sum(self.world.planner.state["mobile_idx"][:self.n_agents]))
                 for agent in world.agents:
-                    if agent.idx == 0:
-                        agent.state["inventory"]["Carbon_idx"] += world.planner.state["mobile_idx"][agent.idx]
-                        agent.state["escrow"]["Carbon_idx"] = 0
-                        agent.state["inventory"]["Startidx"] = world.planner.state["mobile_idx"][agent.idx]
+                    agent.state["inventory"]["Carbon_idx"] += world.planner.state["mobile_idx"][agent.idx]
+                    agent.state["escrow"]["Carbon_idx"] = 0
+                    agent.state["inventory"]["Startidx"] = world.planner.state["mobile_idx"][agent.idx]
+                    agent.state["Startidx"] = world.planner.state["mobile_idx"][agent.idx]
 
             elif self.planner_mode == "inactive":
                 agent = world.agents[0]
