@@ -18,7 +18,7 @@ import json
 
 import shutil
 
-wandb.login(key="2c1f8f77f938086f691891b269af9d5e4925c425")
+wandb.login()  # key comes from WANDB_API_KEY or ~/.netrc, never from source
 from torch_models import ConvRnn
 
 from ray import train
@@ -150,12 +150,12 @@ def build_trainer(run_configuration, tune_params=None):
     if run_config["general"].get("eval_only", False):
         ppo_trainer = PPOConfig().update_from_dict(trainer_config).callbacks(
             lambda: ResultInfoMetricsCallback(worker_id=1)).reporting(keep_per_episode_custom_metrics=False,
-                                                                      metrics_num_episodes_for_smoothing=1).build(
+                                                                      metrics_num_episodes_for_smoothing=50).build(
             env=RLlibEnvWrapper, logger_creator=logger_creator)
     else:
         ppo_trainer = PPOConfig().update_from_dict(trainer_config).callbacks(
             lambda: InfoMetricsCallback(worker_id=1)).reporting(keep_per_episode_custom_metrics=False,
-                                                                metrics_num_episodes_for_smoothing=1).build(
+                                                                metrics_num_episodes_for_smoothing=50).build(
             env=RLlibEnvWrapper, logger_creator=logger_creator)
     return ppo_trainer
 
@@ -470,12 +470,42 @@ if __name__ == "__main__":
         fh = logging.FileHandler(run_dir + "/train.log")
         logger.addHandler(fh)
         # Initialize W&B
+        # --- run identity and provenance -------------------------------
+        import subprocess, json as _json
+        def _git(*a):
+            try:
+                return subprocess.run(["git", *a], capture_output=True, text=True,
+                                      timeout=10, check=True).stdout.strip()
+            except Exception:
+                return "unknown"
+        _sha = _git("rev-parse", "HEAD")
+        if _git("status", "--porcelain"):
+            _sha += "-dirty"
+
+        _n_agents = run_config["env"]["n_agents"]
+        _seed = run_config["trainer"].get("seed")
+        _arm = os.environ.get("ARM", "single" if _n_agents == 1 else "multi")
+
+        manifest = {
+            "commit": _sha, "arm": _arm, "n_agents": _n_agents, "seed": _seed,
+            "config": run_config,
+        }
+        with open(os.path.join(run_dir, "manifest.json"), "w") as _f:
+            _json.dump(manifest, _f, indent=2, sort_keys=True, default=str)
+
         wandb.init(
-            project="Minimal_Testing",
-            name="gettingmetricsright",
-            config=run_config,
-            dir=run_dir  # '/Users/work/PycharmProjects/Carbon-Simulator/rllib/exp/defuat'
+            project=os.environ.get("WANDB_PROJECT", "carbon-verification"),
+            group=_arm,                       # grouping gives one line + seed band per arm
+            job_type="train",
+            name=f"{_arm}-n{_n_agents}-s{_seed}",
+            tags=[f"n_agents={_n_agents}", f"commit={_sha[:8]}"],
+            config={**run_config, "arm": _arm, "commit": _sha, "seed": _seed},
+            dir=run_dir,
         )
+        # Environment steps are the shared x-axis. Episodes are NOT comparable
+        # across arms: at n=5 one episode carries five times the policy data.
+        wandb.define_metric("env_steps")
+        wandb.define_metric("*", step_metric="env_steps")
 
         # Create a trainer object
         trainer = build_trainer(run_config)
@@ -602,19 +632,14 @@ if __name__ == "__main__":
                 # Get formatted metrics
                 metrics = log_custom_metrics(result, mode="custom_metrics")
                 wandb.log({
+                    "env_steps": result["timesteps_total"],
+                    "agent_steps": result.get("agent_timesteps_total", 0),
+                    "episodes": result["episodes_total"],
                     "iteration": result["training_iteration"],
-                    "timesteps_total": result["timesteps_total"],
-                    "episodes_total": result["episodes_total"],
-                    "reward/agent": result.get("policy_reward_mean", {}).get("a", 0),
-                    "reward/planner": result.get("policy_reward_mean", {}).get("p", 0),
-                    "worker_1/agent_0/Tot_Startidx_min": result["custom_metrics"].get(
-                        "worker_1/agent_0/Tot_Startidx_min"),
-                    "worker_1/agent_0/Tot_Startidx_max": logger.info(
-                        result["custom_metrics"].get("worker_1/agent_0/Tot_Startidx_max")),
-                    "worker_1/agent_0/Tot_Startidx_mean": logger.info(
-                        result["custom_metrics"].get("worker_1/agent_0/Tot_Startidx_mean")),
+                    "policy/reward_agent_mean": result.get("policy_reward_mean", {}).get("a", 0),
+                    "policy/reward_planner": result.get("policy_reward_mean", {}).get("p", 0),
                     **metrics
-                }, step=result["episodes_total"])  # <-- add step to align by episode"""
+                })
 
                 # === Counters++ ===
                 num_parallel_episodes_done = result["episodes_total"]
@@ -631,8 +656,8 @@ if __name__ == "__main__":
                 logger.info("=== Finished logging results ===\n\n")
 
                 # === Dense logging ===
-                # step_last_log = maybe_store_dense_log(trainer, result, dense_log_frequency, dense_log_dir,
-                #                                     step_last_log)
+                step_last_log = maybe_store_dense_log(
+                    trainer, result, dense_log_frequency, dense_log_dir, step_last_log)
 
                 # === Saving ===
                 step_last_ckpt = maybe_save(

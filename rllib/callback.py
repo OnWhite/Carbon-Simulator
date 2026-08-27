@@ -13,7 +13,10 @@ import numpy as np
 from ray.rllib.algorithms.callbacks import DefaultCallbacks
 from ray.rllib.evaluation.episode import Episode
 
-PROFILE_DIR = os.environ.get("PROFILE_DIR", "/nas/ucb/sophialudewig/rllib_profiles")
+PROFILE_DIR = os.environ.get(
+    "PROFILE_DIR",
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "rllib_profiles"),
+)
 os.makedirs(PROFILE_DIR, exist_ok=True)
 logging.basicConfig(stream=sys.stdout, format="%(asctime)s %(message)s")
 logger = logging.getLogger("main")
@@ -219,7 +222,7 @@ class InfoMetricsCallback(DefaultCallbacks):
                 series = np.asarray(series, dtype=float)
                 arr.append(float(np.sum(series)))
                 if (
-                        base == "Startidx" or base == "Build" or base == "Move" or "Cum_Punishment" == base or "Carbon_idx" == base or "Carbon_project"== base) and eid == 0 and wid <= self.worker_id:
+                        base == "Startidx" or base == "Build" or base == "Move" or "Cum_Punishment" == base or "Carbon_idx" == base or "Carbon_project"== base):  # aggregate across every worker and env, not just worker 1 / env 0
                     episode.custom_metrics[f"worker_{wid}/{agent}/Total_{base}"] = float(np.sum(series))
                 arr2.append(float(np.average(series)))
             if name is not None and arr and arr2:
@@ -228,7 +231,7 @@ class InfoMetricsCallback(DefaultCallbacks):
                 episode.custom_metrics[f"worker_{wid}/Avg_{name}"] = float(np.average(arr2))
 
         # ---- per-agent FINAL snapshot & episode totals (Revenue, Costs, Profit, Margin) ----
-        if wid <= self.worker_id and eid == 0:
+        if True:  # was: worker 1 / env 0 only, which made each point a single episode
             for name, fn in self.FINAL_METRICS.items():
                 metric = []
                 for k, v in episode._last_infos.items():
@@ -267,32 +270,32 @@ class ResultInfoMetricsCallback(DefaultCallbacks):
 
     STEP_METRICS = {
         # name               extractor – receives the agent_info dict
-        "Reward": lambda info: info.get("endogenous", {}).get("Reward", -42),
+        "Reward": lambda info: info.get("endogenous", {}).get("Reward", None),
         "Research_count": lambda info: info.get("Research_count", [0, 0])[1],
-        "Manufacture_volume": lambda info: info.get("Manufacture_volume", -42),
-        "Cum_Punishment": lambda info: info.get("Cum_Punishment", -42),
-        "Tot_Move": lambda info: info.get("Move", -42),
-        "Tot_Carbon_project": lambda info: info.get("inventory", {}).get("Carbon_project", -42),
-        "Carbon_idx": lambda info: info.get("inventory", {}).get("Carbon_idx", -42),
-        "Emission_rate": lambda info: info.get("Carbon_emission_rate", -42),
-        "CoinEndowment": lambda info: info.get("endogenous", {}).get("CoinEndowment", -42),
-        "Coin": lambda info: info.get("inventory", {}).get("Coin", -42),
-        "Tot_Build": lambda info: info.get("Build", -42),
-        "Power_efficiency": lambda info: info.get("Power_efficiency", -42),
-        "Green_rate": lambda info: info.get("Green_rate", -42),
-        "Startidx": lambda info: info.get("Startidx", -42),
-        "LaborUtility": lambda info: info.get("endogenous", {}).get("LaborUtility", -42),
-        "CoinUtility": lambda info: info.get("endogenous", {}).get("CoinUtility", -42),
-        "CurrentUtility": lambda info: info.get("endogenous", {}).get("CurrentUtility", -42),
-        "PastUtility": lambda info: info.get("endogenous", {}).get("PastUtility", -42),
-        "Research_ability": lambda info: info.get("Research_ability", -42),
-        "MoveLabor": lambda info: info.get("MoveLabor", -42),
-        "Labor": lambda info: info.get("endogenous", {}).get("Labor", -42),
-        "Buy_count": lambda info: info.get("Buy_count", -42),
-        "Sell_count": lambda info: info.get("Sell_count", -42),
-        "BidCost": lambda info: info.get("BidCost", -42),
-        "BidIncome": lambda info: info.get("BidIncome", -42),
-        "Env_idx": lambda info: info.get("env_idx", -42),
+        "Manufacture_volume": lambda info: info.get("Manufacture_volume", None),
+        "Cum_Punishment": lambda info: info.get("Cum_Punishment", None),
+        "Tot_Move": lambda info: info.get("Move", None),
+        "Tot_Carbon_project": lambda info: info.get("inventory", {}).get("Carbon_project", None),
+        "Carbon_idx": lambda info: info.get("inventory", {}).get("Carbon_idx", None),
+        "Emission_rate": lambda info: info.get("Carbon_emission_rate", None),
+        "CoinEndowment": lambda info: info.get("endogenous", {}).get("CoinEndowment", None),
+        "Coin": lambda info: info.get("inventory", {}).get("Coin", None),
+        "Tot_Build": lambda info: info.get("Build", None),
+        "Power_efficiency": lambda info: info.get("Power_efficiency", None),
+        "Green_rate": lambda info: info.get("Green_rate", None),
+        "Startidx": lambda info: info.get("Startidx", None),
+        "LaborUtility": lambda info: info.get("endogenous", {}).get("LaborUtility", None),
+        "CoinUtility": lambda info: info.get("endogenous", {}).get("CoinUtility", None),
+        "CurrentUtility": lambda info: info.get("endogenous", {}).get("CurrentUtility", None),
+        "PastUtility": lambda info: info.get("endogenous", {}).get("PastUtility", None),
+        "Research_ability": lambda info: info.get("Research_ability", None),
+        "MoveLabor": lambda info: info.get("MoveLabor", None),
+        "Labor": lambda info: info.get("endogenous", {}).get("Labor", None),
+        "Buy_count": lambda info: info.get("Buy_count", None),
+        "Sell_count": lambda info: info.get("Sell_count", None),
+        "BidCost": lambda info: info.get("BidCost", None),
+        "BidIncome": lambda info: info.get("BidIncome", None),
+        "Env_idx": lambda info: info.get("env_idx", None),
     }
 
     def __init__(self, worker_id: int = 1):

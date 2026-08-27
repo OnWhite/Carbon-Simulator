@@ -12,7 +12,11 @@ class Carbon_env(BaseEnvironment):
 
     name = "Carbon/Carbon_env"
     agent_subclasses = ["BasicMobileAgent", "BasicPlanner"]
-    required_entities = ["Carbon_idx", "Carbon_emission", "Coin", "Property", "Carbon_pollution", "Labor", "LaborCost",
+    # "Startidx" is a registered resource that Carbon_allocation writes into
+    # agent.state["inventory"]. Without it here the agent gets an inventory key
+    # at runtime but never an escrow slot, and total_endowment (inventory +
+    # escrow) raises KeyError at the first metrics pass.
+    required_entities = ["Carbon_idx", "Carbon_emission", "Coin", "Startidx", "Property", "Carbon_pollution", "Labor", "LaborCost",
                          "Costs", "Revenue", "CoinEndowment", "Reward", "LaborUtility", "CoinUtility", "CurrentUtility",
                          "PastUtility"]
 

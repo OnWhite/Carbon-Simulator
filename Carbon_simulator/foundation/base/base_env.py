@@ -219,9 +219,12 @@ class BaseEnvironment(ABC):
         assert len(world_size) == 2
         self.world_size = world_size
 
-        # Number of agents must be an integer and there must be at least 2 agents
+        # Number of agents must be an integer. One agent is allowed: the
+        # isolated arm of the verification chain needs a genuinely single-firm
+        # economy, and the old `>= 2` floor is why that arm was previously
+        # approximated by neutering agents 1..n-1 instead.
         assert isinstance(n_agents, int)
-        assert n_agents >= 2
+        assert n_agents >= 1, f"n_agents must be >= 1, got {n_agents}"
         self.n_agents = n_agents
 
         # Foundation assumes there's only a single planner
