@@ -30,9 +30,21 @@ def _wandb_auth():
     if mode in ("offline", "disabled", "dryrun"):
         print(f"[wandb] WANDB_MODE={mode}: not logging in.")
         return
-    has_key = bool(os.environ.get("WANDB_API_KEY"))
-    has_netrc = os.path.exists(os.path.expanduser("~/.netrc"))
-    if not (has_key or has_netrc):
+    key = os.environ.get("WANDB_API_KEY")
+
+    # wandb.login() will not fall back to ~/.netrc without a tty: under nohup it
+    # goes straight to prompt_api_key and raises "api_key not configured
+    # (no-tty)". Read the key out of netrc ourselves and pass it explicitly.
+    if not key:
+        try:
+            import netrc as _netrc
+            auth = _netrc.netrc().authenticators("api.wandb.ai")
+            if auth and auth[2]:
+                key = auth[2]
+        except Exception:
+            pass
+
+    if not key:
         sys.exit(
             "W&B credentials not found.\n"
             "  export WANDB_API_KEY=<40-char key from https://wandb.ai/authorize>\n"
@@ -40,7 +52,9 @@ def _wandb_auth():
             "or set WANDB_MODE=offline to run without syncing.\n"
             "Refusing to prompt: an interactive login hangs an unattended run."
         )
-    wandb.login(anonymous="never", timeout=60)
+
+    os.environ["WANDB_API_KEY"] = key      # inherited by Ray workers
+    wandb.login(key=key, relogin=False, timeout=60)
 
 
 _wandb_auth()
