@@ -38,7 +38,6 @@ env:
   energy_warmup_method: auto
   starting_agent_coin: 20
   mobile_coefficient: 0.2
-  total_idx: 200
 general:
   ckpt_frequency_steps: 100
   cpus: 8

@@ -527,7 +527,20 @@ if __name__ == "__main__":
         if _git("status", "--porcelain"):
             _sha += "-dirty"
 
+        def _component_total_idx(rc):
+            """total_idx lives on the CarbonRedistribution component.
+
+            It is NOT a BaseEnvironment kwarg -- putting it at env level makes
+            make_env_instance raise TypeError: unexpected keyword 'total_idx'.
+            """
+            for comp in rc["env"].get("components", []):
+                for name, params in comp.items():
+                    if "CarbonRedistribution" in name and "total_idx" in params:
+                        return float(params["total_idx"])
+            return float("nan")
+
         _n_agents = run_config["env"]["n_agents"]
+        _total_idx = _component_total_idx(run_config)
         _seed = run_config["trainer"].get("seed")
         # Tier of the verification chain. v1 = exact DP, v2 = single-agent RL
         # on the reduced env, v3 = MARL with one firm, v4 = MARL with many.
@@ -536,7 +549,7 @@ if __name__ == "__main__":
 
         manifest = {
             "commit": _sha, "arm": _arm, "n_agents": _n_agents, "seed": _seed,
-            "per_firm_total_idx": run_config["env"]["total_idx"] / max(1, _n_agents),
+            "per_firm_total_idx": _total_idx / max(1, _n_agents),
             "tier": _tier,
             "config": run_config,
         }
@@ -552,7 +565,7 @@ if __name__ == "__main__":
                   f"seed={_seed}", f"commit={_sha[:8]}"],
             config={**run_config, "tier": _tier, "arm": _arm,
                     "commit": _sha, "seed": _seed,
-                    "per_firm_total_idx": run_config["env"]["total_idx"] / max(1, _n_agents)},
+                    "per_firm_total_idx": _total_idx / max(1, _n_agents)},
             dir=run_dir,
         )
         # Environment steps are the shared x-axis. Episodes are NOT comparable
