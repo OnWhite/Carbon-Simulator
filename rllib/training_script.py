@@ -18,7 +18,32 @@ import json
 
 import shutil
 
-wandb.login()  # key comes from WANDB_API_KEY or ~/.netrc, never from source
+
+def _wandb_auth():
+    """Authenticate without ever prompting.
+
+    wandb.login() falls back to an interactive prompt when it finds no key.
+    Under nohup that prompt has no tty, so a 20-hour run would hang at import
+    with no error in the log. Fail fast instead, or go offline on request.
+    """
+    mode = os.environ.get("WANDB_MODE", "").lower()
+    if mode in ("offline", "disabled", "dryrun"):
+        print(f"[wandb] WANDB_MODE={mode}: not logging in.")
+        return
+    has_key = bool(os.environ.get("WANDB_API_KEY"))
+    has_netrc = os.path.exists(os.path.expanduser("~/.netrc"))
+    if not (has_key or has_netrc):
+        sys.exit(
+            "W&B credentials not found.\n"
+            "  export WANDB_API_KEY=<40-char key from https://wandb.ai/authorize>\n"
+            "or run `wandb login` once to write ~/.netrc,\n"
+            "or set WANDB_MODE=offline to run without syncing.\n"
+            "Refusing to prompt: an interactive login hangs an unattended run."
+        )
+    wandb.login(anonymous="never", timeout=60)
+
+
+_wandb_auth()
 from torch_models import ConvRnn
 
 from ray import train
