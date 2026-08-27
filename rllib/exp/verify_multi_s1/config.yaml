@@ -52,7 +52,7 @@ general:
   train_planner: true
   fix_mobile: false
   dense_log_frequency: 250
-  max_hours: 15.0
+  max_hours: 9.0
 agent_policy:
   clip_param: 0.3
   entropy_coeff: 0.025
