@@ -26,6 +26,13 @@ logger.setLevel(logging.DEBUG)
 def get_gini(endowments):
     n_agents = len(endowments)
 
+    # Inequality among a single agent is undefined: the scale factor
+    # (n-1)/n is 0 at n=1, so the division produced NaN on every episode of
+    # the isolated arm. Zero is the meaningful value -- one firm holds all of
+    # a one-firm economy.
+    if n_agents < 2:
+        return 0.0
+
     if n_agents < 30:  # Slower. Accurate for all n.
         diff_ij = np.abs(
             endowments.reshape((n_agents, 1)) - endowments.reshape((1, n_agents))
