@@ -54,7 +54,13 @@ def _wandb_auth():
         )
 
     os.environ["WANDB_API_KEY"] = key      # inherited by Ray workers
-    wandb.login(key=key, relogin=False, timeout=60)
+
+    # Do NOT call wandb.login() here. It routes through try_save_api_key ->
+    # write_key, which still asserts a 40-character key, while the server now
+    # issues the longer "wandb_v1_..." format. wandb.init() reads
+    # WANDB_API_KEY from the environment directly and does not validate length,
+    # so setting the variable is both sufficient and more robust.
+    print(f"[wandb] key configured from environment ({len(key)} chars)")
 
 
 _wandb_auth()
