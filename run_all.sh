@@ -36,11 +36,26 @@ RL_WORKERS="${RL_WORKERS:-2}"
 #   OSError: AF_UNIX path length cannot exceed 107 bytes
 # training_script.py survived only because it overrides RAY_TMPDIR itself
 # with BASE=/scratch/$USER. Use the same base here so every tier agrees.
-RAY_BASE_DEFAULT="/scratch/$USER"
-[ -d "/scratch" ] && [ -w "/scratch" ] || RAY_BASE_DEFAULT="$HOME"
-export RAY_TMPDIR="${RAY_TMPDIR:-$RAY_BASE_DEFAULT/ray_tmp}"
+# Pick the first base we can actually create a directory in. Testing
+# `-w /scratch` was wrong: on the cluster /scratch is root-owned
+# drwxrwxr-x, so the test fails even though /scratch/$USER is ours and
+# writable. That sent RAY_TMPDIR to $HOME on the 100%-full / and the
+# disk check then refused to start at all.
+RAY_SPILL=""
+if [ -z "${RAY_TMPDIR:-}" ]; then
+  for _cand in "/scratch/$USER" "$HOME"; do
+    if mkdir -p "$_cand/ray_tmp" 2>/dev/null && [ -w "$_cand/ray_tmp" ]; then
+      RAY_TMPDIR="$_cand/ray_tmp"
+      RAY_SPILL="$_cand/ray_spill"
+      break
+    fi
+  done
+fi
+[ -n "${RAY_TMPDIR:-}" ] || die "no writable base for ray's temp dir (tried /scratch/$USER and $HOME)."
+[ -n "$RAY_SPILL" ] || RAY_SPILL="$(dirname "$RAY_TMPDIR")/ray_spill"
+export RAY_TMPDIR
 export TMPDIR="${TMPDIR_OVERRIDE:-$RAY_TMPDIR}"
-mkdir -p "$RAY_TMPDIR" "$RAY_BASE_DEFAULT/ray_spill"
+mkdir -p "$RAY_TMPDIR" "$RAY_SPILL"
 
 # 107 - 68 = 39 usable chars for the base. Checked before anything runs,
 # because the failure surfaces only after the DP solve.
