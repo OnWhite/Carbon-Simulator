@@ -55,10 +55,24 @@ preflight() {
     [ -f "$EXP/$d/config.yaml" ] || die "$EXP/$d/config.yaml missing."
   done
 
-  # Either an explicit key or an existing wandb login in ~/.netrc will do.
-  if [ -z "${WANDB_API_KEY:-}" ] && ! grep -q "api.wandb.ai" ~/.netrc 2>/dev/null; then
-    die "no wandb credentials: set WANDB_API_KEY or run 'wandb login'."
-  fi
+  # Mirror wandb_auth() exactly: env var, else a ~/.netrc that actually
+  # PARSES. Grepping for the hostname is not enough -- a netrc with stray
+  # text in it (e.g. a pasted "chmod 600 ~/.netrc") greps fine but raises
+  # in netrc.netrc(), which wandb_auth swallows, and the run then dies
+  # minutes later with "W&B credentials not found".
+  case "${WANDB_MODE:-}" in
+    offline|disabled|dryrun) log "WANDB_MODE=$WANDB_MODE: not syncing" ;;
+    *)
+      if [ -z "${WANDB_API_KEY:-}" ] && ! python3 - <<'PY' 2>/dev/null
+import netrc, sys
+a = netrc.netrc().authenticators("api.wandb.ai")
+sys.exit(0 if (a and a[2]) else 1)
+PY
+      then
+        die "no usable wandb credentials. Set WANDB_API_KEY, or repair ~/.netrc (it must parse), or run with WANDB_MODE=offline."
+      fi
+      ;;
+  esac
 
   # Free space on the filesystem that will hold ray's spill directory.
   local avail_kb
@@ -69,7 +83,7 @@ preflight() {
   log "ray tmp/spill: $RAY_TMPDIR ($((avail_kb / 1048576)) GiB free)"
 
   # A dirty tree means the logged commit does not describe what actually ran.
-  if [ -n "$(git status --porcelain -- Carbon_simulator rllib)" ]; then
+  if [ -n "$(git status --porcelain --untracked-files=no -- Carbon_simulator rllib)" ]; then
     log "WARNING: uncommitted changes under Carbon_simulator/ or rllib/."
     log "         manifest.json will record a commit that is not what ran."
   fi
@@ -142,8 +156,12 @@ status() {
     state="dead"
     [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null && state="alive"
     if [ -f "$EXP/$name/stdout.log" ]; then
-      line="$(grep -E 'iter |Traceback|Error|V\*|rel_regret' "$EXP/$name/stdout.log" | tail -1 | cut -c1-90)"
-      [ -z "$line" ] && line="$(tail -1 "$EXP/$name/stdout.log" | cut -c1-90)"
+      # `|| true` matters: under `set -e` with pipefail, a grep that finds
+      # nothing (a log that has only just been created) aborted the whole
+      # loop, so status printed its header and no rows at all.
+      line="$(grep -E 'iter |Traceback|Error|V\*|rel_regret' "$EXP/$name/stdout.log" 2>/dev/null | tail -1 | cut -c1-90 || true)"
+      [ -z "$line" ] && line="$(tail -1 "$EXP/$name/stdout.log" 2>/dev/null | cut -c1-90 || true)"
+      [ -z "$line" ] && line="(log empty)"
     else
       line="NO LOG"
     fi
