@@ -69,7 +69,17 @@ def episode_summary(log: dict, aidx: str = "0") -> dict:
         "emission_total": end["Carbon_emission"],
         "costs_total": end["Costs"],
         "revenue_total": end["Revenue"],
-        "research_count": last["Research_count"][0],
+        # Research has four distinguishable stages and they tell different
+        # stories: an attempt is the action being chosen at all; a success is
+        # the attempt passing the random_fails roll; matured is the success
+        # surviving `delay` steps to raise Research_count; labor is what was
+        # paid for the attempts regardless of outcome. Reporting only the
+        # matured count cannot distinguish "never tried" from "tried and the
+        # pipeline dropped it".
+        "research_attempts": 0.0,
+        "research_success": 0.0,
+        "research_matured": last["Research_count"][0],
+        "research_labor": last["ResearchCount"],
         # Green projects this agent built: each Gather collection turns a
         # Carbon_project tile into a Green_project landmark and adds the tile
         # to the agent's inventory.
@@ -78,6 +88,18 @@ def episode_summary(log: dict, aidx: str = "0") -> dict:
     }
     for k in PER_STEP:
         out[k.lower() + "_total"] = float(sum(s[aidx].get(k, 0) or 0 for s in states))
+
+    for step in log.get("Carbon_component-research", []):
+        for ev in step:
+            if str(ev.get("enterprise")) == str(aidx):
+                out["research_attempts"] += 1.0
+                out["research_success"] += float(ev.get("action_result") == "Success")
+
+    # Builds are the alternative use of the same action slot, so the ratio of
+    # the two is the readable quantity.
+    out["build_events"] = float(sum(
+        1 for step in log.get("Carbon_component-builds", []) for ev in step
+        if str(ev.get("enterprise")) == str(aidx)))
 
     # Episode return: rewards are deltas now, so the sum telescopes to
     # U(final) - U(initial).
