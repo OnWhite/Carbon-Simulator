@@ -26,19 +26,25 @@ HORIZON="${HORIZON:-10}"
 MAX_HOURS="${MAX_HOURS:-8}"
 RL_WORKERS="${RL_WORKERS:-2}"
 
-# Ray must not spill to /tmp. On the cluster / is a shared 1.8T disk that
-# other users keep at ~100%, and a raylet that cannot spill dies mid-run
-# ("is over 95% full ... Object creation will fail if spilling is
-# required"). training_script.py already redirects itself; train_v2.py
-# calls ray.init() with no _temp_dir, so it inherited /tmp and crashed.
-# Keeping both on the repo filesystem fixes it for every tier at once.
-export RAY_TMPDIR="${RAY_TMPDIR:-$PWD/rllib/ray_tmp}"
+# Ray must not spill to /tmp: on the cluster / is a shared 1.8T disk that
+# other users keep at ~100%, and a raylet that cannot spill dies mid-run.
+# But the replacement must also be SHORT. Ray builds
+#   $RAY_TMPDIR/ray/session_<26-char stamp>_<pid>/sockets/plasma_store
+# which adds ~68 chars, against a hard AF_UNIX limit of 107. Pointing
+# RAY_TMPDIR at the repo (66 chars) satisfied "not /tmp" and still killed
+# both train_v2 runs at ray.init(), 20 minutes into the DP solve:
+#   OSError: AF_UNIX path length cannot exceed 107 bytes
+# training_script.py survived only because it overrides RAY_TMPDIR itself
+# with BASE=/scratch/$USER. Use the same base here so every tier agrees.
+RAY_BASE_DEFAULT="/scratch/$USER"
+[ -d "/scratch" ] && [ -w "/scratch" ] || RAY_BASE_DEFAULT="$HOME"
+export RAY_TMPDIR="${RAY_TMPDIR:-$RAY_BASE_DEFAULT/ray_tmp}"
 export TMPDIR="${TMPDIR_OVERRIDE:-$RAY_TMPDIR}"
-mkdir -p "$RAY_TMPDIR" "$PWD/rllib/ray_spill"
+mkdir -p "$RAY_TMPDIR" "$RAY_BASE_DEFAULT/ray_spill"
 
-# Ray's session sockets live under RAY_TMPDIR and unix socket paths cap at
-# ~107 chars, so refuse a base that is already too deep to be usable.
-[ "${#RAY_TMPDIR}" -lt 80 ] || die "RAY_TMPDIR is ${#RAY_TMPDIR} chars; too long for ray's sockets."
+# 107 - 68 = 39 usable chars for the base. Checked before anything runs,
+# because the failure surfaces only after the DP solve.
+[ "${#RAY_TMPDIR}" -le 39 ] || die "RAY_TMPDIR is ${#RAY_TMPDIR} chars; ray's sockets need <= 39 (107-byte AF_UNIX limit minus ~68 for session+socket). Set RAY_TMPDIR to something shorter."
 
 log()  { printf '\033[1m[run_all]\033[0m %s\n' "$*"; }
 die()  { printf '\033[31m[run_all] ERROR:\033[0m %s\n' "$*" >&2; exit 1; }
