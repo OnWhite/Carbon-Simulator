@@ -9,7 +9,8 @@
 #   ./run_all.sh all      # test -> dp -> rl -> marl
 #   ./run_all.sh status   # one-line status per run
 #   ./run_all.sh eta      # how much wall-clock budget each run has left
-#   ./run_all.sh kill     # stop everything this script started
+#   ./run_all.sh kill     # stop every live run
+#   ./run_all.sh kill rl  # stop just one tier (or name a run: kill verify_v2_s1)
 #
 # Run from the repo root. Every tier writes to rllib/exp/<run>/stdout.log.
 
@@ -267,13 +268,39 @@ for n in names:
 PY
 }
 
-kill_all() {
-  [ -f "$PIDFILE" ] || die "no $PIDFILE; nothing launched from this script."
-  local name pid
-  while read -r name pid; do
-    if kill -0 "$pid" 2>/dev/null; then kill "$pid" && log "killed $name ($pid)"; fi
-  done < "$PIDFILE"
-  rm -f "$PIDFILE"
+kill_all() {                    # kill_all [rl|marl|<run name> ...]
+  # With no argument this kills every live run, which is rarely what you
+  # want when one tier is still training and another has finished. Accepts
+  # a tier or specific run names so you can stop just those.
+  [ -f "$PIDFILE" ] || die "no $PIDFILE; nothing was launched from this script."
+
+  local targets=() t
+  if [ "$#" -eq 0 ]; then
+    targets=("${ALL_RUNS[@]}")
+  else
+    for t in "$@"; do
+      case "$t" in
+        rl)   targets+=("${RL_RUNS[@]}") ;;
+        marl) targets+=("${MARL_RUNS[@]}") ;;
+        *)    targets+=("$t") ;;
+      esac
+    done
+  fi
+
+  local name pid killed=0
+  for name in "${targets[@]}"; do
+    # last pid wins: relaunches append, so earlier entries are stale.
+    pid="$(awk -v n="$name" '$1==n {p=$2} END {print p}' "$PIDFILE" 2>/dev/null || true)"
+    if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
+      kill "$pid" && log "killed $name ($pid)" && killed=$((killed + 1))
+    else
+      log "$name: not running"
+    fi
+  done
+  [ "$killed" -gt 0 ] || log "nothing was killed"
+
+  # The pidfile is kept. It is the only record status/eta have of runs that
+  # have already finished; deleting it threw that history away.
 }
 
 case "${1:-all}" in
@@ -284,6 +311,6 @@ case "${1:-all}" in
   all)    preflight; tier_test; tier_dp; tier_rl; tier_marl; sleep 5; status ;;
   status) status ;;
   eta)    eta ;;
-  kill)   kill_all ;;
+  kill)   shift; kill_all "$@" ;;
   *)      die "unknown tier '${1}'. Use: test | dp | rl | marl | all | status | eta | kill" ;;
 esac
