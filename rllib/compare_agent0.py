@@ -29,7 +29,8 @@ import numpy as np
 # Per-step fields the env zeroes at the top of each component_step, so the
 # episode total is their sum. Everything else below is already cumulative
 # and is read from the final step instead.
-PER_STEP = ("Build", "Move", "Cum_Punishment", "Buy_count", "Sell_count")
+PER_STEP = ("Build", "Move", "Cum_Punishment", "Buy_count", "Sell_count",
+            "Carbon_project_it")
 
 
 def latest_snapshot(run_dir: str) -> list[str]:
@@ -69,6 +70,10 @@ def episode_summary(log: dict, aidx: str = "0") -> dict:
         "costs_total": end["Costs"],
         "revenue_total": end["Revenue"],
         "research_count": last["Research_count"][0],
+        # Green projects this agent built: each Gather collection turns a
+        # Carbon_project tile into a Green_project landmark and adds the tile
+        # to the agent's inventory.
+        "green_built": inv["Carbon_project"],
         "emission_rate_final": last["Carbon_emission_rate"],
     }
     for k in PER_STEP:
@@ -79,6 +84,17 @@ def episode_summary(log: dict, aidx: str = "0") -> dict:
     out["return"] = float(sum(r.get(aidx, 0.0) for r in log["rewards"]))
     out["planner_return"] = float(sum(r.get("p", 0.0) for r in log["rewards"]))
     out["n_agents"] = len([k for k in states[0] if k != "p"])
+
+    # World-level context for the green channel: how many collectible tiles
+    # were left on the map when the episode ended. A high number next to a
+    # near-zero green_built means the tiles were there and went unused,
+    # which is a different finding from none ever spawning.
+    maps = [w for w in log["world"] if isinstance(w, dict) and w]
+    if maps:
+        cp = np.array(maps[-1]["Carbon_project"])
+        out["green_tiles_left"] = float((cp > 0).sum())
+    else:
+        out["green_tiles_left"] = float("nan")
     return out
 
 
