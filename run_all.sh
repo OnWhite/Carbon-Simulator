@@ -172,12 +172,27 @@ tier_marl() {
 }
 
 status() {
-  printf '%-20s %-8s %s\n' RUN PID LAST
+  printf '%-20s %-8s %-10s %s\n' RUN PID STATE LAST
   local name pid state line
   for name in "${ALL_RUNS[@]}"; do
     pid="$(awk -v n="$name" '$1==n {p=$2} END {print p}' "$PIDFILE" 2>/dev/null || true)"
-    state="dead"
-    [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null && state="alive"
+    # "dead" conflated a run that finished its job with one that crashed.
+    # Distinguish them from the log: a traceback means failed; a completion
+    # marker (MARL's budget line, or v2's verification.json) means done;
+    # exited with neither means it was killed or died without a trace.
+    local log="$EXP/$name/stdout.log"
+    if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
+      state="alive"
+    elif [ -z "$pid" ]; then
+      state="never run"
+    elif [ -f "$log" ] && grep -q "Traceback" "$log" 2>/dev/null; then
+      state="failed"
+    elif [ -f "$EXP/$name/verification.json" ] \
+      || { [ -f "$log" ] && grep -qE "budget of [0-9.]+ h reached" "$log" 2>/dev/null; }; then
+      state="done"
+    else
+      state="stopped"
+    fi
     if [ -f "$EXP/$name/stdout.log" ]; then
       # `|| true` matters: under `set -e` with pipefail, a grep that finds
       # nothing (a log that has only just been created) aborted the whole
@@ -188,7 +203,7 @@ status() {
     else
       line="NO LOG"
     fi
-    printf '%-20s %-8s %s  %s\n' "$name" "${pid:--}" "[$state]" "$line"
+    printf '%-20s %-8s %-10s %s\n' "$name" "${pid:--}" "[$state]" "$line"
   done
 }
 
