@@ -26,6 +26,20 @@ HORIZON="${HORIZON:-10}"
 MAX_HOURS="${MAX_HOURS:-8}"
 RL_WORKERS="${RL_WORKERS:-2}"
 
+# Ray must not spill to /tmp. On the cluster / is a shared 1.8T disk that
+# other users keep at ~100%, and a raylet that cannot spill dies mid-run
+# ("is over 95% full ... Object creation will fail if spilling is
+# required"). training_script.py already redirects itself; train_v2.py
+# calls ray.init() with no _temp_dir, so it inherited /tmp and crashed.
+# Keeping both on the repo filesystem fixes it for every tier at once.
+export RAY_TMPDIR="${RAY_TMPDIR:-$PWD/rllib/ray_tmp}"
+export TMPDIR="${TMPDIR_OVERRIDE:-$RAY_TMPDIR}"
+mkdir -p "$RAY_TMPDIR" "$PWD/rllib/ray_spill"
+
+# Ray's session sockets live under RAY_TMPDIR and unix socket paths cap at
+# ~107 chars, so refuse a base that is already too deep to be usable.
+[ "${#RAY_TMPDIR}" -lt 80 ] || die "RAY_TMPDIR is ${#RAY_TMPDIR} chars; too long for ray's sockets."
+
 log()  { printf '\033[1m[run_all]\033[0m %s\n' "$*"; }
 die()  { printf '\033[31m[run_all] ERROR:\033[0m %s\n' "$*" >&2; exit 1; }
 
@@ -41,7 +55,18 @@ preflight() {
     [ -f "$EXP/$d/config.yaml" ] || die "$EXP/$d/config.yaml missing."
   done
 
-  [ -n "${WANDB_API_KEY:-}" ] || die "WANDB_API_KEY is not set."
+  # Either an explicit key or an existing wandb login in ~/.netrc will do.
+  if [ -z "${WANDB_API_KEY:-}" ] && ! grep -q "api.wandb.ai" ~/.netrc 2>/dev/null; then
+    die "no wandb credentials: set WANDB_API_KEY or run 'wandb login'."
+  fi
+
+  # Free space on the filesystem that will hold ray's spill directory.
+  local avail_kb
+  avail_kb="$(df -Pk "$RAY_TMPDIR" | awk 'NR==2 {print $4}')"
+  if [ "${avail_kb:-0}" -lt 20971520 ]; then      # 20 GiB
+    die "only $((avail_kb / 1048576)) GiB free on $(df -Ph "$RAY_TMPDIR" | awk 'NR==2 {print $6}') -- ray will fail to spill. Free space or point RAY_TMPDIR elsewhere."
+  fi
+  log "ray tmp/spill: $RAY_TMPDIR ($((avail_kb / 1048576)) GiB free)"
 
   # A dirty tree means the logged commit does not describe what actually ran.
   if [ -n "$(git status --porcelain -- Carbon_simulator rllib)" ]; then
