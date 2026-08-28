@@ -8,6 +8,7 @@
 #   ./run_all.sh marl     # V3 multi-agent, 4 runs on GPU 0-3, background
 #   ./run_all.sh all      # test -> dp -> rl -> marl
 #   ./run_all.sh status   # one-line status per run
+#   ./run_all.sh eta      # how much wall-clock budget each run has left
 #   ./run_all.sh kill     # stop everything this script started
 #
 # Run from the repo root. Every tier writes to rllib/exp/<run>/stdout.log.
@@ -190,6 +191,82 @@ status() {
   done
 }
 
+eta() {
+  # When does each live run stop? Two different clocks:
+  #   MARL   -- training_script logs "wall-clock budget: N h" when the loop
+  #             starts, so the deadline is that line's timestamp + N hours.
+  #   v2-rl  -- train_v2 sets its deadline only AFTER the exact DP solve, so
+  #             it is process-start + DP seconds + --max-hours. Its log has
+  #             no timestamps, hence the arithmetic off ps.
+  # v2 also runs policy extraction, verify() and a checkpoint save after the
+  # training loop; that tail is reported separately, not folded into ETA.
+  python3 - "$EXP" "$PIDFILE" "${ALL_RUNS[@]}" <<'PY'
+import os, re, subprocess, sys, time
+
+exp, pidfile, names = sys.argv[1], sys.argv[2], sys.argv[3:]
+last = {}
+try:
+    for line in open(pidfile):
+        f = line.split()
+        if len(f) == 2:
+            last[f[0]] = int(f[1])
+except OSError:
+    pass
+
+def alive(pid):
+    try:
+        os.kill(pid, 0); return True
+    except OSError:
+        return False
+
+def ps(fmt, pid):
+    try:
+        return subprocess.run(["ps", "-o", fmt, "-p", str(pid)],
+                              capture_output=True, text=True).stdout.strip()
+    except Exception:
+        return ""
+
+def hms(sec):
+    sec = int(max(0, sec))
+    return f"{sec // 3600}h{(sec % 3600) // 60:02d}m"
+
+now = time.time()
+print(f"{'RUN':<20} {'BUDGET':<8} {'REMAINING':<10} {'STOPS AT':<10} NOTE")
+for n in names:
+    pid = last.get(n)
+    if not pid or not alive(pid):
+        print(f"{n:<20} {'-':<8} {'-':<10} {'-':<10} not running")
+        continue
+    log = os.path.join(exp, n, "stdout.log")
+    try:
+        text = open(log, errors="replace").read()
+    except OSError:
+        text = ""
+    note, deadline, budget = "", None, "?"
+    m = re.search(r"^(\d{4}-\d\d-\d\d \d\d:\d\d:\d\d).*wall-clock budget: ([\d.]+) h",
+                  text, re.M)
+    if m:                                    # MARL
+        start = time.mktime(time.strptime(m.group(1), "%Y-%m-%d %H:%M:%S"))
+        budget = f"{float(m.group(2)):.1f}h"
+        deadline = start + float(m.group(2)) * 3600
+    else:                                    # v2-rl
+        et = ps("etimes=", pid)
+        mh = re.search(r"--max-hours\s+([\d.]+)", ps("args=", pid) or "")
+        dp = re.search(r"V\*\(s0\).*?,\s*([\d.]+)s", text)
+        if et and mh:
+            budget = f"{float(mh.group(1)):.1f}h"
+            started = now - int(et)
+            solve = float(dp.group(1)) if dp else 0.0
+            deadline = started + solve + float(mh.group(1)) * 3600
+            note = "+ ~15m verify/checkpoint after" if dp else "still solving DP"
+    if deadline:
+        print(f"{n:<20} {budget:<8} {hms(deadline - now):<10} "
+              f"{time.strftime('%H:%M', time.localtime(deadline)):<10} {note}")
+    else:
+        print(f"{n:<20} {budget:<8} {'?':<10} {'?':<10} could not determine")
+PY
+}
+
 kill_all() {
   [ -f "$PIDFILE" ] || die "no $PIDFILE; nothing launched from this script."
   local name pid
@@ -206,6 +283,7 @@ case "${1:-all}" in
   marl)   preflight; tier_marl; sleep 5; status ;;
   all)    preflight; tier_test; tier_dp; tier_rl; tier_marl; sleep 5; status ;;
   status) status ;;
+  eta)    eta ;;
   kill)   kill_all ;;
-  *)      die "unknown tier '${1}'. Use: test | dp | rl | marl | all | status | kill" ;;
+  *)      die "unknown tier '${1}'. Use: test | dp | rl | marl | all | status | eta | kill" ;;
 esac
