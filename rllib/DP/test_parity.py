@@ -159,7 +159,7 @@ class TestTransitionParity(unittest.TestCase):
                                      f"  action {a} xi={xi} permit={pi}\n"
                                      f"  dp   -> {dp_next}\n  env  -> {env_next}"))
 
-                            dp_rew = self.ex.dp.reward(dp_next)
+                            dp_rew = self.ex.dp.reward(dp_next, s)
                             self.assertLess(
                                 abs(dp_rew - env_rew), TOL,
                                 msg=f"reward mismatch at {s} / {a}: "

@@ -206,7 +206,7 @@ class ExactDP:
                 next_values: Dict[StateKey, float]) -> float:
         q = 0.0
         for p, s2 in self.branches(action, state):
-            q += p * (self.dp.reward(s2) + self.gamma * next_values.get(state_key(s2), 0.0))
+            q += p * (self.dp.reward(s2, state) + self.gamma * next_values.get(state_key(s2), 0.0))
         return q
 
     def _assert_terminal_zero(self) -> None:

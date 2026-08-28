@@ -105,6 +105,28 @@ class DPImpl:
         self.hist_len: int = max(self.delay, self.forget) + 1
         self.p_permit: float = self.max_greenbudget / self.worldsize
 
+        # The action set is a property of the model, not of the solve.
+        # It used to be created inside build_transition_and_reward_matrices,
+        # so `dp.actions` raised AttributeError on a freshly built DPImpl --
+        # which is exactly how train_file.compare_rl_to_dp and
+        # print_optimal_trajectory consume it. CarbonEnv builds the same list
+        # independently; this is now the one definition both can share.
+        self.actions = [
+            Action(b, g, r, m)
+            for b in (0, 1)
+            for g in (0, 1)
+            for r in (0, 1)
+            for m in (0, 1)
+        ]
+        self.n_actions = len(self.actions)
+
+        # Discount lives with the model so the tabular solve and the exact
+        # solver cannot disagree about it; solve_mdp used to hardcode 0.998
+        # while ExactDP read it from the config.
+        self.gamma: float = float(
+            (cfg.get("agent_policy") or {}).get("gamma", 0.998)
+        )
+
     from copy import deepcopy
 
     def state_transition(
@@ -376,16 +398,7 @@ class DPImpl:
     def build_transition_and_reward_matrices(self):
         """Build P[a][s][s'] and R[a][s] using dataclasses and research_count"""
 
-        # Action space as dataclasses
-        self.actions = [
-            Action(b, g, r, m)
-            for b in (0, 1)
-            for g in (0, 1)
-            for r in (0, 1)
-            for m in (0, 1)
-        ]
-        self.n_actions = len(self.actions)
-
+        # self.actions / self.n_actions are built in __init__.
         P = np.zeros((self.n_actions, self.n_states, self.n_states))
         R = np.zeros((self.n_actions, self.n_states))
 
@@ -452,8 +465,8 @@ class DPImpl:
                                                     next_fail_idx = self.state_to_index(next_fail)
                                                     P[a_idx, state_idx, next_fail_idx] = self.failrate
 
-                                                    rew_succ = self.reward(next_succ)
-                                                    rew_fail = self.reward(next_fail)
+                                                    rew_succ = self.reward(next_succ, state)
+                                                    rew_fail = self.reward(next_fail, state)
                                                     R[a_idx, state_idx] = (
                                                             (1 - self.failrate) * rew_succ +
                                                             self.failrate * rew_fail
@@ -477,7 +490,7 @@ class DPImpl:
                                                         act, state, research_success=1, permit_granted=0)
                                                     next_idx = self.state_to_index(next_state)
                                                     P[a_idx, state_idx, next_idx] = 1.0
-                                                    R[a_idx, state_idx] = self.reward(next_state)
+                                                    R[a_idx, state_idx] = self.reward(next_state, state)
 
                                                     if len(sample_transitions) < 5:
                                                         sample_transitions.append({
@@ -583,16 +596,26 @@ class DPImpl:
 
         P, R = self.build_transition_and_reward_matrices()
 
-        mdp = mdptoolbox.mdp.PolicyIteration(P, R, discount=0.998)
+        mdp = mdptoolbox.mdp.PolicyIteration(P, R, discount=self.gamma)
         mdp.run()
 
-        # mdp.policy is array of shape (horizon, n_states)
-        # Each entry is the optimal action index for that state at that time
-        self.optimal_policy = mdp.policy
+        # PolicyIteration is the infinite-horizon solver: mdp.policy is a
+        # 1-D sequence of length n_states, NOT (horizon, n_states) as the
+        # previous comment claimed. That is sound here only because
+        # `timestep` is part of the discretised state, so a stationary
+        # policy over the augmented state already encodes time dependence.
+        # Callers must index it as policy[state_index].
+        self.optimal_policy = np.asarray(mdp.policy)
+        assert self.optimal_policy.ndim == 1, self.optimal_policy.shape
         return self.optimal_policy
 
-    def reward(self, s: State) -> float:
-        """Compute reward for a State dataclass."""
+    def utility(self, s: State) -> float:
+        """Level utility of a state: isoelastic coin minus labor.
+
+        The labor coefficient anneals with the state's own timestep, so two
+        states at different timesteps are scored with their own weights --
+        the convention Carbon_env.get_current_optimization_metrics uses.
+        """
         labor_coeff = self.energy_cost * (
                 1.0 - math.exp(-s.timestep / self.energy_warmup_constant)
         )
@@ -603,6 +626,19 @@ class DPImpl:
             isoelastic_eta=self.isoelastic_eta,
             labor_coefficient=labor_coeff,
         )
+
+    def reward(self, s: State, prev: State) -> float:
+        """Marginal utility of the transition prev -> s.
+
+        This returned the level utility of `s` while Carbon_env.compute_reward
+        also returned a level. Both now return the delta, so DP, single-agent
+        RL and MARL optimise the same objective.
+
+        `prev` is required rather than defaulting, so any call site not updated
+        to pass the predecessor fails loudly instead of silently reverting to
+        the level.
+        """
+        return self.utility(s) - self.utility(prev)
 
 
 def isoelastic_coin_minus_labor(
@@ -740,11 +776,13 @@ def print_optimal_trajectory(dp):
     for t in range(dp.max_timesteps):
         idx = dp.state_to_index(state)
 
-        # depending on mdptoolbox version
-        if hasattr(dp, "optimal_policy"):
-            action_idx = dp.optimal_policy[idx]
-        else:
-            action_idx = dp.optimal_policy[t, idx]
+        # The previous guard was `if hasattr(dp, "optimal_policy")` with the
+        # else branch reading dp.optimal_policy[t, idx] -- i.e. it reached for
+        # the attribute that hasattr had just proved absent, so the fallback
+        # could only ever raise AttributeError. Branch on the policy's shape,
+        # which is what actually varies.
+        policy = np.asarray(dp.optimal_policy)
+        action_idx = policy[idx] if policy.ndim == 1 else policy[t, idx]
 
         action = dp.actions[action_idx]
 
@@ -756,7 +794,7 @@ def print_optimal_trajectory(dp):
         next_state = dp.state_transition(action, state)
 
         print(f"  → Next State = {next_state}")
-        print(f"Reward = {dp.reward(next_state):.2f}")
+        print(f"Reward = {dp.reward(next_state, state):.2f}")
         state = next_state
 
 

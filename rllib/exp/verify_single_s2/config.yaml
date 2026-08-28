@@ -28,10 +28,10 @@ env:
       random_fails: 0.3
       delay: 5
       forget: 25
-  - Carbon_auction:
-      max_bid_ask: 20
-      max_num_orders: 5
-      order_duration: 10
+  # Carbon_auction is deliberately absent: with n_agents == 1 no bid can
+  # ever match the same agent's ask, so the component contributed 42 dead
+  # action slots (Buy 0-20, Sell 0-20) that could only charge order_labor
+  # and burn escrowed certificates. The multi-agent configs keep it.
   - Gather:
       collect_labor: 30
       collect_cost_coin: 10

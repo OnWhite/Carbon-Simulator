@@ -1,0 +1,147 @@
+#!/usr/bin/env bash
+#
+# run_all.sh -- launch the full verification stack: DP (V1), RL (V2), MARL (V3).
+#
+#   ./run_all.sh test     # fast: unit + parity tests only, blocking
+#   ./run_all.sh dp       # V1 standalone DP solve / horizon probe, blocking
+#   ./run_all.sh rl       # V2 single-agent PPO vs exact DP, 2 seeds, background
+#   ./run_all.sh marl     # V3 multi-agent, 4 runs on GPU 0-3, background
+#   ./run_all.sh all      # test -> dp -> rl -> marl
+#   ./run_all.sh status   # one-line status per run
+#   ./run_all.sh kill     # stop everything this script started
+#
+# Run from the repo root. Every tier writes to rllib/exp/<run>/stdout.log.
+
+set -euo pipefail
+cd "$(dirname "$0")"
+
+EXP=rllib/exp
+MARL_RUNS=(verify_single_s1 verify_multi_s1 verify_single_s2 verify_multi_s2)
+RL_RUNS=(verify_v2_s1 verify_v2_s2)
+ALL_RUNS=("${RL_RUNS[@]}" "${MARL_RUNS[@]}")
+PIDFILE=.run_all.pids
+
+# Tunables -- override from the environment, e.g. HORIZON=12 ./run_all.sh rl
+HORIZON="${HORIZON:-10}"
+MAX_HOURS="${MAX_HOURS:-8}"
+RL_WORKERS="${RL_WORKERS:-2}"
+
+log()  { printf '\033[1m[run_all]\033[0m %s\n' "$*"; }
+die()  { printf '\033[31m[run_all] ERROR:\033[0m %s\n' "$*" >&2; exit 1; }
+
+preflight() {
+  local branch; branch="$(git rev-parse --abbrev-ref HEAD)"
+  log "branch: $branch    commit: $(git rev-parse --short HEAD)"
+
+  # train_v2.py and the verify_* configs only exist on verification-rebuild.
+  [ -f rllib/RL/train_v2.py ] \
+    || die "rllib/RL/train_v2.py missing. You are on '$branch'; it lives on verification-rebuild."
+
+  for d in "${MARL_RUNS[@]}"; do
+    [ -f "$EXP/$d/config.yaml" ] || die "$EXP/$d/config.yaml missing."
+  done
+
+  [ -n "${WANDB_API_KEY:-}" ] || die "WANDB_API_KEY is not set."
+
+  # A dirty tree means the logged commit does not describe what actually ran.
+  if [ -n "$(git status --porcelain -- Carbon_simulator rllib)" ]; then
+    log "WARNING: uncommitted changes under Carbon_simulator/ or rllib/."
+    log "         manifest.json will record a commit that is not what ran."
+  fi
+
+  mkdir -p "${ALL_RUNS[@]/#/$EXP/}"
+  log "preflight OK"
+}
+
+# Records PID so `status` and `kill` can find the run later.
+launch() {                      # launch <name> <cuda_devices|-> <cmd...>
+  local name="$1"; shift
+  local dev="$1"; shift
+  local logfile="$EXP/$name/stdout.log"
+  mkdir -p "$EXP/$name"
+  [ -f "$logfile" ] && mv "$logfile" "$logfile.$(date +%Y%m%d-%H%M%S).bak"
+  if [ "$dev" = "-" ]; then
+    PYTHONPATH=. nohup "$@" > "$logfile" 2>&1 &
+  else
+    CUDA_VISIBLE_DEVICES="$dev" PYTHONPATH=. nohup "$@" > "$logfile" 2>&1 &
+  fi
+  echo "$name $!" >> "$PIDFILE"
+  log "launched $name (pid $!, gpu ${dev}) -> $logfile"
+}
+
+tier_test() {
+  log "=== tests (blocking) ==="
+  PYTHONPATH=. python3 -m unittest rllib.DP.Unittests -v
+  PYTHONPATH=. python3 -m unittest rllib.DP.test_parity -v
+  log "tests passed"
+}
+
+tier_dp() {
+  log "=== V1: exact DP (blocking) ==="
+  # train_v2.py solves the DP itself per run; this is the standalone
+  # solve + state-count probe, and it fails fast if the horizon has
+  # blown past what is enumerable.
+  mkdir -p "$EXP/verify_dp"
+  PYTHONPATH=. python3 -u rllib/DP/probe_horizon.py \
+      --min-t "$HORIZON" --max-t "$HORIZON" --solve \
+      2>&1 | tee "$EXP/verify_dp/stdout.log"
+  log "DP solve done -> $EXP/verify_dp/stdout.log"
+}
+
+tier_rl() {
+  log "=== V2: single-agent RL vs exact DP (background) ==="
+  local seed
+  for seed in 1 2; do
+    launch "verify_v2_s$seed" - \
+      python3 -u rllib/RL/train_v2.py \
+        --run_dir "$EXP/verify_v2_s$seed" \
+        --horizon "$HORIZON" --seed "$seed" \
+        --max-hours "$MAX_HOURS" --num-workers "$RL_WORKERS"
+  done
+}
+
+tier_marl() {
+  log "=== V3: multi-agent (background, GPU 0-3) ==="
+  local gpu=0 d
+  for d in "${MARL_RUNS[@]}"; do
+    launch "$d" "$gpu" python3 -u rllib/training_script.py --run_dir "$EXP/$d"
+    gpu=$((gpu + 1))
+  done
+}
+
+status() {
+  printf '%-20s %-8s %s\n' RUN PID LAST
+  local name pid state line
+  for name in "${ALL_RUNS[@]}"; do
+    pid="$(awk -v n="$name" '$1==n {p=$2} END {print p}' "$PIDFILE" 2>/dev/null || true)"
+    state="dead"
+    [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null && state="alive"
+    if [ -f "$EXP/$name/stdout.log" ]; then
+      line="$(grep -E 'iter |Traceback|Error|V\*|rel_regret' "$EXP/$name/stdout.log" | tail -1 | cut -c1-90)"
+      [ -z "$line" ] && line="$(tail -1 "$EXP/$name/stdout.log" | cut -c1-90)"
+    else
+      line="NO LOG"
+    fi
+    printf '%-20s %-8s %s  %s\n' "$name" "${pid:--}" "[$state]" "$line"
+  done
+}
+
+kill_all() {
+  [ -f "$PIDFILE" ] || die "no $PIDFILE; nothing launched from this script."
+  local name pid
+  while read -r name pid; do
+    if kill -0 "$pid" 2>/dev/null; then kill "$pid" && log "killed $name ($pid)"; fi
+  done < "$PIDFILE"
+  rm -f "$PIDFILE"
+}
+
+case "${1:-all}" in
+  test)   preflight; tier_test ;;
+  dp)     preflight; tier_dp ;;
+  rl)     preflight; tier_rl;   sleep 5; status ;;
+  marl)   preflight; tier_marl; sleep 5; status ;;
+  all)    preflight; tier_test; tier_dp; tier_rl; tier_marl; sleep 5; status ;;
+  status) status ;;
+  kill)   kill_all ;;
+  *)      die "unknown tier '${1}'. Use: test | dp | rl | marl | all | status | kill" ;;
+esac

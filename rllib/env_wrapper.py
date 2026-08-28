@@ -245,8 +245,9 @@ class RLlibEnvWrapper(MultiAgentEnv):
         obs, rewards, terminateds, infos = self.env.step(action_dict)
         assert isinstance(obs[self.sample_agent_idx]["action_mask"], np.ndarray)
 
-        assert not (np.isinf([float(rewards[i]) for i in rewards]).any() and np.isnan([float(rewards[i]) for i in rewards]).any()),\
-            (rewards, np.isnan([float(rewards[i]) for i in rewards]))
+        _rew_vals = [float(rewards[i]) for i in rewards]
+        assert not (np.isinf(_rew_vals).any() or np.isnan(_rew_vals).any()), \
+            (rewards, np.isnan(_rew_vals), np.isinf(_rew_vals))
 
         # Truncated should always be False by default.
         truncateds = {k: False for k in terminateds.keys()}

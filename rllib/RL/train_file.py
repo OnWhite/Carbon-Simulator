@@ -68,8 +68,8 @@ def compare_rl_to_dp(rl_algo, dp_instance, env):
         action = rl_algo.compute_single_action(observation, explore=False)
         state_idx = dp_instance.state_to_index(state)
         action_idx = dp_instance.optimal_policy[state_idx]
-        rewards1 += (dp_instance.reward(dp_instance.state_transition(dp_instance.actions[action], state)))
-        rewards2 += (dp_instance.reward(dp_instance.state_transition(dp_instance.actions[action_idx], state)))
+        rewards1 += (dp_instance.reward(dp_instance.state_transition(dp_instance.actions[action], state), state))
+        rewards2 += (dp_instance.reward(dp_instance.state_transition(dp_instance.actions[action_idx], state), state))
         if action != action_idx:
             if state.on_certificate == 0 and dp_instance.actions[action].green != dp_instance.actions[action_idx].green:
                 new_action1 = replace(dp_instance.actions[action], green=0)

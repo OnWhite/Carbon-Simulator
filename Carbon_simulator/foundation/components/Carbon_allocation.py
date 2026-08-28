@@ -140,20 +140,36 @@ class CarbonRedistribution(BaseComponent):
                     self.world.planner.state["env_idx"]
                     + sum(self.world.planner.state["mobile_idx"][:self.n_agents]))
                 for agent in world.agents:
-                    agent.state["inventory"]["Carbon_idx"] += world.planner.state["mobile_idx"][agent.idx]
+                    # Certificates expire at the year boundary: the new
+                    # allocation replaces the old balance rather than adding to
+                    # it, matching DPImpl.state_transition's
+                    # `new_state.carbon = start_idx`. A negative balance has
+                    # already been punished one step earlier, at
+                    # timestep % period == 0.
+                    agent.state["inventory"]["Carbon_idx"] = world.planner.state["mobile_idx"][agent.idx]
                     agent.state["escrow"]["Carbon_idx"] = 0
                     agent.state["inventory"]["Startidx"] = world.planner.state["mobile_idx"][agent.idx]
                     agent.state["Startidx"] = world.planner.state["mobile_idx"][agent.idx]
 
             elif self.planner_mode == "inactive":
-                agent = world.agents[0]
-                if agent.state["inventory"]["Carbon_idx"] < 0 and agent.idx == 0:
-                    self.world.planner.state["settlement_idx"][agent.idx] -= agent.state["inventory"]["Carbon_idx"]
-                    # when in the negative, the overspending of emissions gets logged per agent
+                # Every agent's overspend is logged, as in the "active" branch.
+                # This looked at world.agents[0] only, so with n_agents > 1 the
+                # settlement ledger ignored everyone but agent 0.
+                for agent in world.agents:
+                    if agent.state["inventory"]["Carbon_idx"] < 0:
+                        self.world.planner.state["settlement_idx"][agent.idx] -= agent.state["inventory"]["Carbon_idx"]
+
+                # Defaults so the branch is well defined for any
+                # years_predefined; total_percent / idx_action were previously
+                # bound only when years_predefined == "test", and every other
+                # value raised NameError below. [1, 0] was also hardcoded for
+                # exactly two agents.
+                idx_action = [1] * self.n_agents
+                total_percent = 0
                 test = False
                 if self.years_predefined == "test":
 
-                    idx_action = [1, 0]
+                    idx_action = [1] * self.n_agents
 
                     if ((world.timestep - 1) // self.period) < len(self.alloc_arr):
                         world.planner.state["punishment"] = 30
@@ -171,7 +187,7 @@ class CarbonRedistribution(BaseComponent):
                     else:
                         world.planner.state["mobile_idx"][i] =0
 
-                    agent.state["inventory"]["Carbon_idx"] += world.planner.state["mobile_idx"][i]
+                    agent.state["inventory"]["Carbon_idx"] = world.planner.state["mobile_idx"][i]
                     agent.state["escrow"]["Carbon_idx"] = 0
                     agent.state["Startidx"] = world.planner.state["mobile_idx"][i]
 

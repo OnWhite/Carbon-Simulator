@@ -26,26 +26,45 @@ class TestDP(unittest.TestCase):
                }
         self.dp = DPImpl(cfg)
 
+    # research_history has length max(delay, forget) + 1 == 2 for this config
+    # (Produce_and_Invest allocates [0] * (max(delay, forget) + 1) and indexes
+    # [delay] unguarded). These expectations carried length-1 tuples from
+    # before that fix, so all five were red on arrival.
+
     def test_build(self):
         self.assertEqual(self.dp.state_transition(Action(1, 0, 0, 0), State(0, 0, 0, 0, 0, (), 0, 0, 0)),
-                         State(2.0, 0.0, 0, 0, 1, (0,), 0, 0, 1))
+                         State(2.0, 0.0, 0, 0, 1, (0, 0), 0, 0, 1))
 
     def test_green(self):
         self.assertEqual(self.dp.state_transition(Action(0, 1, 0, 0), State(0, 0, 0, 0, 0, (), 0, 0, 0)),
-                         State(0.0, 1.0, 0, 0,0, (0,), 0, 0, 1))
+                         State(0.0, 1.0, 0, 0, 0, (0, 0), 0, 0, 1))
 
     def test_green2(self):
         # when on certificate
-        self.assertEqual(self.dp.state_transition(Action(0, 1, 0, 0), State(0, 0, 0, 0,0, (), 0, 1, 0)),
-                         State(-1.0, 2.0, 0,0, 1, (0,), 1.0, 0, 1))
+        self.assertEqual(self.dp.state_transition(Action(0, 1, 0, 0), State(0, 0, 0, 0, 0, (), 0, 1, 0)),
+                         State(-1.0, 2.0, 0, 0, 1, (0, 0), 1.0, 0, 1))
 
     def test_move(self):
-        self.assertEqual(self.dp.state_transition(Action(0, 0, 0, 1), State(0, 0, 0, 0,0, (), 0, 0, 0)),
-                         State(0.0, 1.0, 0,0, 1, (0,), 0, 0, 1))
+        self.assertEqual(self.dp.state_transition(Action(0, 0, 0, 1), State(0, 0, 0, 0, 0, (), 0, 0, 0)),
+                         State(0.0, 1.0, 0, 0, 1, (0, 0), 0, 0, 1))
 
     def test_all_at_once(self):
-        self.assertEqual(self.dp.state_transition(Action(1, 1, 1, 1), State(20, -2, 0,0, 2, (1, 1), 0, 0, 0)),
-                         State(11.90634623461009, 0, 1,1, 5, (1, 1), 0, 0, 1))
+        """Certificates EXPIRE at the year boundary (the decided regime).
+
+        The expected coin of 11.906 was written against the cumulative regime,
+        where `carbon += start_idx` let the incoming carbon of -2 survive into
+        the yearly settlement and trigger the punishment. Expiry is now
+        consistent across all three tiers -- DPImpl.state_transition
+        (`carbon = start_idx`) and both branches of
+        CarbonRedistribution.component_step, which assign rather than
+        accumulate -- so the -2 is discarded, no punishment fires, and coin
+        stays at 21.0.
+
+        A negative balance is still punished; that happens one step earlier,
+        at timestep % period == 0, before the new allocation lands.
+        """
+        self.assertEqual(self.dp.state_transition(Action(1, 1, 1, 1), State(20, -2, 0, 0, 2, (1, 1), 0, 0, 0)),
+                         State(21.0, 0.18126924692201818, 1, 1, 5, (1, 1), 0, 0, 1))
 
 
 def load_config(path: Path) -> Dict[str, Any]:

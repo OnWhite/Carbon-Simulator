@@ -119,7 +119,7 @@ class Carbon_env(BaseEnvironment):
             if 0 <= self.isoelastic_eta <= 1.0:
                 # Utility from coin endowment
                 if self.isoelastic_eta == 1.0:  # dangerous
-                    util_c = np.log(np.max(1, agent.total_endowment("Coin")))
+                    util_c = np.log(np.maximum(1, agent.total_endowment("Coin")))
                 else:  # isoelastic_eta >= 0
                     if np.all(agent.total_endowment("Coin") >= 0):
                         util_c = (agent.total_endowment("Coin") ** (1 - self.isoelastic_eta) - 1) / (
@@ -143,7 +143,9 @@ class Carbon_env(BaseEnvironment):
 
         # (for the planner)
         curr_optimization_metric[self.world.planner.idx] = rewards.planner_strategy(
-            profit=self.world.agents.__getitem__(0).total_endowment("Coin"),
+            coin_endowments=np.array(
+                [agent.total_endowment("Coin") for agent in self.world.agents]
+            ),
             mobile_idx=self.world.planner.state["settlement_idx"],
             remained_idx=self.world.planner.state["remained_idx"],
             mobile_coefficient=self.mobile_coefficient
@@ -364,8 +366,13 @@ class Carbon_env(BaseEnvironment):
         self.curr_optimization_metric = self.get_current_optimization_metrics()
 
         # reward = curr - prev objectives
+        #
+        # This returned the level (`k: v`) while DPImpl.reward also returned
+        # a level; both now return the marginal change, so the DP, the
+        # single-agent gym env and the MARL env optimise the same objective
+        # and an RL-vs-DP comparison is well posed.
         rew = {
-            k: v
+            k: float(v - utility_at_end_of_last_time_step[k])
             for k, v in self.curr_optimization_metric.items()
         }
 
@@ -433,7 +440,9 @@ class Carbon_env(BaseEnvironment):
             )
         # (for the planner)
         curr_optimization_metric[self.world.planner.idx] = rewards.planner_metrics(
-            profit=self.world.agents.__getitem__(0).total_endowment("Coin"),
+            coin_endowments=np.array(
+                [agent.total_endowment("Coin") for agent in self.world.agents]
+            ),
             mobile_idx=self.world.planner.state["settlement_idx"],
             remained_idx=self.world.planner.state["remained_idx"],
             mobile_coefficient=self.mobile_coefficient

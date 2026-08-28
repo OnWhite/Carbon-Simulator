@@ -307,8 +307,16 @@ class Carbon_auction(BaseComponent):
                         seller.state["Sell_count"] += 1
 
                         # Buyer's money (already set aside) leaves escrow
+                        # Costs/Revenue are logging only -- nothing reads them
+                        # back -- so with these three lines commented out a
+                        # matched trade moved the certificate but no coin: the
+                        # seller was credited Revenue but never paid, and the
+                        # buyer's bid stayed in escrow permanently (the bid is
+                        # popped from the book, so remove_expired_orders never
+                        # released it). Settlement restored; the parallel
+                        # Costs/Revenue writes are kept as the log.
                         pre_payment = int(trade["bid"])
-                        # buyer.state["escrow"]["Coin"] -= pre_payment
+                        buyer.state["escrow"]["Coin"] -= pre_payment
                         buyer.state["BidCost"] -= pre_payment
                         buyer.state["endogenous"]["Costs"] += pre_payment
                         assert buyer.state["escrow"]["Coin"] >= 0
@@ -319,9 +327,9 @@ class Carbon_auction(BaseComponent):
                         excess_payment_from_buyer = pre_payment - payment_to_seller
                         assert excess_payment_from_buyer >= 0
                         seller.state["endogenous"]["Revenue"] += payment_to_seller
-                        # seller.state["inventory"]["Coin"] += payment_to_seller
+                        seller.state["inventory"]["Coin"] += payment_to_seller
                         buyer.state["endogenous"]["Costs"] -= excess_payment_from_buyer
-                        # buyer.state["inventory"]["Coin"] += excess_payment_from_buyer
+                        buyer.state["inventory"]["Coin"] += excess_payment_from_buyer
                         seller.state["BidIncome"] += payment_to_seller
                         buyer.state["BidCost"] += excess_payment_from_buyer
                         break

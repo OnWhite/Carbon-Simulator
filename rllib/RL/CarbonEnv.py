@@ -149,7 +149,7 @@ class CarbonEnv(gym.Env):
             research_success=research_success,
             permit_granted=permit_granted,
         )
-        reward = self.dp.reward(next_state)
+        reward = self.dp.reward(next_state, self.state)
 
         # T decisions per episode, at t = 0 .. T-1. The old bound was
         # `max_timesteps - 1`, which terminated after a single decision when
@@ -176,7 +176,7 @@ class CarbonEnv(gym.Env):
             research_success=research_success,
             permit_granted=permit_granted,
         )
-        reward = self.dp.reward(next_state)
+        reward = self.dp.reward(next_state, state)
 
         self.state = next_state
         return next_state, reward
@@ -189,7 +189,7 @@ class CarbonEnv(gym.Env):
             research_success=research_success,
             permit_granted=permit_granted,
         )
-        return next_state, self.dp.reward(next_state)
+        return next_state, self.dp.reward(next_state, state)
 
     @property
     def horizon(self) -> int:
